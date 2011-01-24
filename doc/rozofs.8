@@ -1,0 +1,45 @@
+.\" Process this file with
+.\" groff -man -Tascii exportd.8
+.\"
+.TH ROZOFS 8 "DECEMBER 2010" Rozo "User Manuals"
+.SH NAME
+rozofs \- rozo fuse mount
+.SH SYNOPSIS
+.B rozofs {--help | -h } | 
+.I export_host export_path mount_point
+.B
+.SH DESCRIPTION
+.B rozofs
+Mount a 
+.BR rozo (7) 
+filesystem exported by
+.BR exportd (8)
+
+.I "export_host"
+.RS
+Address (or dns name) where exportd deamon is running.
+
+.RE
+.I "export_path"
+.RS
+Name of an export see
+.BR exportd (8)
+for further details.
+
+.RE
+.I "mount_point"
+.RS
+Directory where filesystem will be mounted. See
+.BR mount (8)
+for further details.
+
+.SH OPTIONS
+.IP "-h, --help"
+.RS
+Print help.
+.SH AUTHOR
+Fizians <http://www.fizians.com>
+.SH "SEE ALSO"
+.BR rozo (7),
+.BR exportd (8),
+.BR storaged (8)

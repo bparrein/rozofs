@@ -1,0 +1,8 @@
+#ifndef _CONFIG_H
+#define _CONFIG_H
+
+#cmakedefine EXPORTD_DEFAULT_CONFIG "${EXPORTD_DEFAULT_CONFIG}"
+#cmakedefine STORAGED_DEFAULT_CONFIG "${STORAGED_DEFAULT_CONFIG}"
+#cmakedefine VERSION "${VERSION}"
+
+#endif

@@ -1,0 +1,84 @@
+.\" Process this file with
+.\" groff -man -Tascii exportd.8
+.\"
+.TH EXPORTD 8 "DECEMBER 2010" Rozo "User Manuals"
+.SH NAME
+exportd \- rozo export daemon
+.SH SYNOPSIS
+.B exportd {--help | -h } | {--create
+.I path
+.B } | {[{--config | -c}
+.I file
+.B ] --start | --stop | --reload}
+.B
+.SH DESCRIPTION
+.B exportd
+Rozo export daemon. Managed meta data for the
+.BR rozo (7)
+filesystem.
+.SH OPTIONS
+.IP "-h, --help"
+.RS
+Print help.
+.RE
+.IP "--create path"
+.RS
+Set up a the given 
+.I path
+directory to be exported by
+.B exportd
+.RE
+.IP "-c, --config file"
+.RS
+Use 
+.I file
+as configuration file default is
+.I /etc/rozo/export.conf
+(or
+.I /usr/local/etc/rozo/export.conf
+according to install options)
+.RE
+.IP --start
+.RS
+Start the 
+.B exportd
+daemon.
+.RE
+.IP --stop
+.RS
+Stop the 
+.B exportd
+daemon.
+.RE
+.IP --reload
+Reload the configuration file (the one used at start up).
+.SH FILES
+.I /etc/rozo/export.conf (/usr/local/etc/rozo/export.conf)
+.RS
+The system wide configuration file. See
+.BR export.conf (5)
+for further details.
+.RE
+.I /var/log/syslog
+.RS
+The log file. See
+.BR syslogd (8)
+and
+.BR syslog.conf (5)
+for further details.
+.RE
+.I /var/run/exportd.pid
+.RS
+Pid file for the
+.B exportd
+daemon.
+.\".SH ENVIRONMENT
+.\".SH DIAGNOSTICS
+.\".SH BUGS
+.SH AUTHOR
+Fizians <http://www.fizians.com>
+.SH "SEE ALSO"
+.BR rozo (7),
+.BR export.conf (5),
+.BR storaged (8),
+.BR rozofs (8)

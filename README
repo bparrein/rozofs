@@ -1,0 +1,67 @@
+Rozo cloud filesystem : A clustered NAS using erasure coding.
+
+* WARNING *
+Rozo is currently on heavy developpement and release at alpha stage 
+Don't use rozo under production environment 
+* WARNING *
+
+Note : [xxx] are optional, <xxx> are parameters
+
+INSTALLATION
+============ 
+
+Requirements
+------------
+    - Cmake
+    - libxattr
+    - libuuid
+    - libconfig
+    - libfuse
+    - libpthread
+
+Quick start
+-----------
+Using default values will compile rozo in Release mode and install it on /usr/local
+
+mkdir build
+cd build
+cmake -G [-DCMAKE_INSTALL_PREFIX=/foo/bar -DCMAKE_BUILD_TYPE=Debug] "Unix Makefiles" ../
+make
+[sudo] make install
+
+Options (CMAKE_INSTALL_PREFIX, CMAKE_BUILD_TYPE...) of generated build tree can be modified with : make edit_cache
+
+uninstall
+---------
+
+make uninstall
+
+RUNNING
+=======
+
+Requirements
+------------
+    - a running portmap see portmap(8)
+    - extend attributes on used file system (exports and storages) see mount(8) and fstab(5)
+
+Start
+-----
+
+    1 ) install exportd on a host
+    2 ) install storaged on multiple hosts
+    3 ) create exported directory with exportd --create
+    4 ) fill in export.conf (/etc/rozo or /usr/local/etc/rozo accordind to CMAKE_INSTALL_PREFIX)
+    5 ) fill in all storage.conf
+    6 ) [sudo] exportd --start
+    7 ) [sudo] storaged --start
+    8 ) wherever you want : [sudo] rozofs <the_host_running_exportd> <the export_name> <the_mount_dir>
+
+Stop
+----
+    1) [sudo] exportd --stop
+    2) [sudo] storaged --stop
+    3) [sudo] umount <the_mount_dir>
+
+BUGS
+====
+A lot!?... let us know

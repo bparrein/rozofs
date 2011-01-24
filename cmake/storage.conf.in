@@ -1,0 +1,11 @@
+#
+# storaged configuration file sample
+#
+
+# uuids should exist in exportd config file
+storages = (
+    {uuid = "00000000-0000-0000-0000-000000000001"; root = "/path/to/foo";},
+    {uuid = "00000000-0000-0000-0000-000000000002"; root = "/path/to/bar";}
+    #...
+);
+

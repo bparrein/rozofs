@@ -1,0 +1,66 @@
+.\" Process this file with
+.\" groff -man -Tascii exportd.8
+.\"
+.TH EXPORT.CONF 5 "DECEMBER 2010" Rozo "User Manuals"
+.SH NAME
+export.conf \- rozo export daemon configuration file
+.SH DESCRIPTION
+.B export.conf
+is manage throw 
+.B libconfig
+<http://www.hyperrealm.com/libconfig/> and thus complies to the
+.B libconfig
+grammar.
+.SS volume
+A volume in Rozo is made by a list of storages managed by a
+.B storaged
+deamon on dedicate hosts. A storage in this file is an uuid (see 
+.BR uuidgen (1)
+or
+.BR uuid (3)
+for further details)
+and an ip or dns name to reach the 
+.B storaged
+deamon.
+.B storaged
+can manage several storages.
+
+.B warning
+modifying or removing uuid of storage servers can (will) lead to DATA LOSS !
+Adding storages is of course mandatory (use 
+.B exportd
+to reload configuration after storages being added
+
+volume = (
+    {uuid = "00000000-0000-0000-0000-000000000001"; host = "hostname1";},
+    {uuid = "00000000-0000-0000-0000-000000000002"; host = "hostname2";},
+    {uuid = "00000000-0000-0000-0000-000000000003"; host = "hostname3";},
+    {uuid = "00000000-0000-0000-0000-000000000004"; host = "hostname4";}
+);
+
+.SS exports
+exports are directory exported by 
+.B exportd
+daemon as virtual filesystems for clients. A volume can be used by several exports. Each of the exported directories
+should have been set up by 
+.B expord --create 
+.I root
+
+exports = (
+    {root = "/path/to/foo";},
+    {root = "/path/to/bar";}
+);
+
+.SH FILES
+.I /etc/rozo/export.conf (/usr/local/etc/rozo/export.conf)
+.RS
+The system wide configuration file.
+.\".SH ENVIRONMENT
+.\".SH DIAGNOSTICS
+.\".SH BUGS
+.SH AUTHOR
+Fizians <http://www.fizians.com>
+.SH "SEE ALSO"
+.BR rozo (7),
+.BR exportd (8)
+

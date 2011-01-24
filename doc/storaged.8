@@ -1,0 +1,74 @@
+.\" Process this file with
+.\" groff -man -Tascii storaged.8
+.\"
+.TH storaged 8 "DECEMBER 2010" Rozo "User Manuals"
+.SH NAME
+storaged \- rozo storage daemon
+.SH SYNOPSIS
+.B storaged {--help | -h } | {[{--config | -c}
+.I file
+.B ] --start | --stop}
+.B
+.SH DESCRIPTION
+.B storaged
+Rozo storaged daemon. Store erase code data for the
+.BR rozo (7)
+filesystem.
+.SH OPTIONS
+.IP "-h, --help"
+.RS
+Print help.
+.RE
+.IP "-c, --config file"
+.RS
+Use 
+.I file
+as configuration file default is
+.I /etc/rozo/storage.conf
+(or
+.I /usr/local/etc/rozo/storage.conf
+according to install options)
+.RE
+.IP --start
+.RS
+Start the 
+.B storaged
+daemon.
+.RE
+.IP --stop
+.RS
+Stop the 
+.B storaged
+daemon.
+.SH FILES
+.I /etc/rozo/storage.conf (/usr/local/etc/rozo/storage.conf)
+.RS
+The system wide configuration file. See
+.BR storage.conf (5)
+for further details.
+.RE
+.I /var/log/syslog
+.RS
+The log file. See
+.BR syslogd (8)
+and
+.BR syslog.conf (5)
+for further details.
+.RE
+.I /var/run/storaged.pid
+.RS
+Pid file for the
+.B storaged
+daemon.
+.\".SH ENVIRONMENT
+.\".SH DIAGNOSTICS
+.\".SH BUGS
+.SH AUTHOR
+Fizians <http://www.fizians.com>
+.SH "SEE ALSO"
+.BR rozo (7),
+.BR storage.conf (5),
+.BR exportd (8),
+.BR rozofs (8)
+
+

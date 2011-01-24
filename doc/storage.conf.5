@@ -1,0 +1,50 @@
+.\" Process this file with
+.\" groff -man -Tascii exportd.8
+.\"
+.TH STORAGE.CONF 5 "DECEMBER 2010" Rozo "User Manuals"
+.SH NAME
+storage.conf \- rozo storage daemon configuration file
+.SH DESCRIPTION
+.B storage.conf
+is manage throw 
+.B libconfig
+<http://www.hyperrealm.com/libconfig/> and thus complies to the
+.B libconfig
+grammar.
+.SS storages
+A storage in Rozo is directory used by a
+.B storaged
+deamon to store erase coded data. A storage in this file is an uuid (see 
+.BR uuidgen (1)
+or
+.BR uuid (3)
+for further details)
+and an root directory. 
+.B storaged
+deamon.
+.B storaged
+can manage several storages.
+
+.B warning
+uuids should be the same as those used in 
+.B export.conf
+
+storages = (
+    {uuid = "00000000-0000-0000-0000-000000000001"; root = "/path/to/foo";},
+    {uuid = "00000000-0000-0000-0000-000000000002"; root = "/path/to/bar";}
+    #...
+);
+
+.SH FILES
+.I /etc/rozo/storage.conf (/usr/local/etc/rozo/storage.conf)
+.RS
+The system wide configuration file.
+.\".SH ENVIRONMENT
+.\".SH DIAGNOSTICS
+.\".SH BUGS
+.SH AUTHOR
+Fizians <http://www.fizians.com>
+.SH "SEE ALSO"
+.BR rozo (7),
+.BR storaged (8)
+
