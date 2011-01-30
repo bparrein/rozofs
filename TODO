@@ -1,4 +1,4 @@
-- stand alone packages (exportd, storaged, fuse_rozo)
+- stand alone packages (exportd, storaged, rozofs)
 - manage versionning
 - set dependancy version (Cmakelist && README)
 - Manage traces on errors

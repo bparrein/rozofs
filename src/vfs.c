@@ -93,7 +93,7 @@ int vfs_create(const char *root) {
         goto out;
     }
 
-    if (setxattr(root, VFS_FILES_XATTR_KEY, &zero, sizeof (uint8_t), XATTR_CREATE) != 0) {
+    if (setxattr(root, VFS_FILES_XATTR_KEY, &zero, sizeof (uint64_t), XATTR_CREATE) != 0) {
         status = -1;
         goto out;
     }

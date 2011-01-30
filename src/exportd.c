@@ -38,7 +38,7 @@
 #include "export_proto.h"
 #include "export_config.h"
 
-#define EXPORTD_DAEMON_NAME "exportd.pid"
+#define EXPORTD_PID_FILE "exportd.pid"
 
 enum command {
     HELP,
@@ -389,13 +389,13 @@ int main(int argc, char* argv[]) {
     	    }
             break;
         case START:
-            daemon_start(EXPORTD_DAEMON_NAME, on_start, on_stop, on_usr1);
+            daemon_start(EXPORTD_PID_FILE, on_start, on_stop, on_usr1);
             break;
         case STOP:
-            daemon_stop(EXPORTD_DAEMON_NAME);
+            daemon_stop(EXPORTD_PID_FILE);
             break;
         case RELOAD:
-            daemon_usr1(EXPORTD_DAEMON_NAME);
+            daemon_usr1(EXPORTD_PID_FILE);
             break;
         default:
             usage();
