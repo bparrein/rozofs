@@ -69,25 +69,27 @@ add_custom_target(uninstall "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/u
 include(InstallRequiredSystemLibraries)
 
 # Binaries
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Rozo cloud filesystem")
-set(CPACK_PACKAGE_VENDOR "Fizians S.A.S")
-set(CPACK_PACKAGE_CONTACT "Fizians S.A.S")
+set(CPACK_GENERATOR "STGZ;TGZ")
+set(CPACK_STGZ_COMPONENT_INSTALL ON)
+set(CPACK_TGZ_COMPONENT_INSTALL ON)
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Rozo filesystem")
+set(CPACK_PACKAGE_VENDOR "Fizians SAS")
+set(CPACK_PACKAGE_CONTACT "Fizians SAS")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/README")
 set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/COPYING")
-set(CPACK_PACKAGE_VERSION_MAJOR "${MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${MINOR}")
-set(CPACK_PACKAGE_VERSION_PATCH "${REVISION}")
 set(CPACK_PACKAGE_VERSION "${VERSION}")
-set(CPACK_PACKAGE_FILE_NAME "rozo-${VERSION}-${CMAKE_SYSTEM_NAME}")
-
-#set(CPACK_GENERATOR "TGZ;DEB")
+set(CPACK_PACKAGE_FILE_NAME "rozo-${VERSION}-${CMAKE_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR}")
+set(CPACK_COMPONENTS_ALL client export storage)
+set(CPACK_COMPONENT_CLIENT_DISPLAY_NAME "rozofs")
+set(CPACK_COMPONENT_EXPORT_DISPLAY_NAME "exportd")
+set(CPACK_COMPONENT_STORAGE_DISPLAY_NAME "storaged")
+set(CPACK_COMPONENT_CLIENT_DESCRIPTION "rozofs")
+set(CPACK_COMPONENT_EXPORT_DESCRIPTION "exportd")
+set(CPACK_COMPONENT_HEADERS_DESCRIPTION "storaged")
 
 # Sources
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "rozo-${VERSION}")
 set(CPACK_SOURCE_GENERATOR "TGZ")
 set(CPACK_SOURCE_IGNORE_FILES "/build/;${CPACK_SOURCE_PACKAGE_FILE_NAME};tags;/CMakeFiles/;/_CPack_Packages/;/\\\\.hg/;CMakeCache.txt;Makefile;\\\\.vim$;\\\\.swp$;uninstall.cmake$;cmake_install.cmake;CPackConfig.cmake;CPackSourceConfig.cmake;~$;tags;/nbproject/;.hgignore;.dep.inc")
-# Deb
-#set(CPACK_DEBIAN_PACKAGE_SECTION "net")
-#set(CPACK_DEBIAN_PACKAGE_DEPENDS "portmap (>=6.0.0-1), libc6 (>= 2.11.1-0), libuuid1 (>=2.17.2-0), libconfig8(>=1.3.2-2), libattr1(>=1:2.4.44-1), libfuse2(>=2.8.1-1.1), fuse-utils(>=2.8.1-1.1)")
 include(CPack)
 
