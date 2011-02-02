@@ -25,14 +25,21 @@ set(MINOR "2")
 set(STATUS "0") # 0: alpha, 1: beta, 2: release candidate, 3: public release  
 set(REVISION "6")
 
-IF(NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE)
-ENDIF(NOT CMAKE_BUILD_TYPE)
+endif(NOT CMAKE_BUILD_TYPE)
 
 set(VERSION "${MAJOR}.${MINOR}.${STATUS}.${REVISION}")
 set(CONF_DIR "${CMAKE_INSTALL_PREFIX}/etc/rozo")
 set(EXPORTD_DEFAULT_CONFIG "${CONF_DIR}/export.conf")
 set(STORAGED_DEFAULT_CONFIG "${CONF_DIR}/storage.conf")
+if(NOT DAEMON_PID_DIRECTORY)
+    set(DAEMON_PID_DIRECTORY "/var/run/")
+endif(NOT DAEMON_PID_DIRECTORY)
+string(REGEX MATCH "$\\/" TRAILING_SLASH "${DAEMON_PID_DIRECTORY}")
+if(NOT TRAILING_SLASH)
+    set(DAEMON_PID_DIRECTORY "${DAEMON_PID_DIRECTORY}/")
+endif(NOT TRAILING_SLASH)
 
 subdirs(src doc tests)
 

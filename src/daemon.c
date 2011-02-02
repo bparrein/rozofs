@@ -27,11 +27,12 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include "config.h"
 #include "rozo.h"
 #include "log.h"
 #include "daemon.h"
 
-#define ROZO_PID_DIRECTORY "/var/run/"
+//#define ROZO_PID_DIRECTORY "/var/run/"
 
 /* manage only one daemon at a time */
 
@@ -43,7 +44,7 @@ static int write_pid(const char *name) {
 
     int status;
     int lfp = -1;
-    char pidf[255] = ROZO_PID_DIRECTORY;
+    char pidf[255] = DAEMON_PID_DIRECTORY;
     char str[10];
 
     DEBUG_FUNCTION;
@@ -78,7 +79,7 @@ static int read_pid(const char *name, int *pid) {
 
     int status;
     int lfp = -1;
-    char pidf[255] = ROZO_PID_DIRECTORY;
+    char pidf[255] = DAEMON_PID_DIRECTORY;
     char str[10];
 
     DEBUG_FUNCTION;
