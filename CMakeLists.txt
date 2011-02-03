@@ -22,14 +22,13 @@ cmake_minimum_required(VERSION 2.6)
 project(rozo C)
 set(MAJOR "0")
 set(MINOR "2")
-set(STATUS "0") # 0: alpha, 1: beta, 2: release candidate, 3: public release  
-set(REVISION "6")
+set(REVISION "7")
 
 if(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
-set(VERSION "${MAJOR}.${MINOR}.${STATUS}.${REVISION}")
+set(VERSION "${MAJOR}.${MINOR}.${REVISION}")
 set(CONF_DIR "${CMAKE_INSTALL_PREFIX}/etc/rozo")
 set(EXPORTD_DEFAULT_CONFIG "${CONF_DIR}/export.conf")
 set(STORAGED_DEFAULT_CONFIG "${CONF_DIR}/storage.conf")
