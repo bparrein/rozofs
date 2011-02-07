@@ -418,7 +418,7 @@ int main(int argc, char* argv[]) {
             if (before_start() != 0) {
                 exit(EXIT_FAILURE);
             }
-            daemon_start(EXPORTD_DAEMON_NAME, on_start, on_stop, on_usr1);
+            daemon_start(EXPORTD_PID_FILE, on_start, on_stop, on_usr1);
             break;
         case STOP:
             daemon_stop(EXPORTD_PID_FILE);
