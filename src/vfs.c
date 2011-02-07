@@ -19,6 +19,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <config.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -35,6 +37,7 @@
 #define VFS_UUID_XATTR_KEY "user.rozo.vfs.uuid"
 #define VFS_BLOCKS_XATTR_KEY "user.rozo.vfs.blocks"
 #define VFS_FILES_XATTR_KEY "user.rozo.vfs.files"
+#define VFS_VERSION_XATTR_KEY "user.rozo.vfs.version"
 
 #define VFS_MF_UUID_XATTR_KEY "user.rozo.vfs.mf.uuid"
 #define VFS_MF_MPSS_XATTR_KEY "user.rozo.vfs.mf.mss"
@@ -59,6 +62,36 @@ static inline char * vfs_unmap(vfs_t *vfs, const char *path, char *vpath) {
     strcpy(vpath, path + strlen(vfs->root));
 
     return vpath;
+}
+
+int vfs_version(const char *root, char *version) {
+    int status = 0;
+    struct stat st;
+
+    DEBUG_FUNCTION;
+
+    if (stat(root, &st) == -1) {
+        status = -1;
+        goto out;
+    }
+
+    if (!S_ISDIR(st.st_mode)) {
+        errno = ENOTDIR;
+        status = -1;
+        goto out;
+    }
+
+    char *version_recup;
+
+    if (getxattr(root, VFS_VERSION_XATTR_KEY, &version_recup, sizeof (char) * PATH_MAX) == -1) {
+        status = -1;
+        goto out;
+    }
+
+    strcpy(version, version_recup);
+
+out:
+    return status;
 }
 
 int vfs_create(const char *root) {
@@ -98,6 +131,13 @@ int vfs_create(const char *root) {
         goto out;
     }
 
+    const char *version = VERSION;
+
+    if (setxattr(root, VFS_VERSION_XATTR_KEY, &version, sizeof (char) * strlen(version) + 1, XATTR_CREATE) != 0) {
+        status = -1;
+        goto out;
+    }
+
 out:
     return status;
 }
@@ -106,7 +146,6 @@ int vfs_uuid(const char *root, uuid_t uuid) {
 
     int status = 0;
     struct stat st;
-    uint64_t zero = 0;
 
     DEBUG_FUNCTION;
 
@@ -123,6 +162,9 @@ int vfs_uuid(const char *root, uuid_t uuid) {
 
     if (getxattr(root, VFS_UUID_XATTR_KEY, &uuid, sizeof (uuid_t)) == -1) {
         status = -1;
+        if (errno == ENOATTR) {
+            fprintf(stderr, "error: you need to set up the directory %s to be exported by exportd\n", root);
+        }
         goto out;
     }
 

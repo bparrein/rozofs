@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -43,14 +43,17 @@ export_lookup_response_t * exportproc_lookup_1_svc(export_path_t *root, struct s
     uuid_t *uuid;
 
     DEBUG_FUNCTION;
-    
+
     response.status = EXPORT_SUCCESS;
+
     if ((uuid = exportd_lookup_id(*root)) == NULL) {
         response.status = EXPORT_FAILURE;
         response.export_lookup_response_t_u.error = errno;
     }
 
-    memcpy(response.export_lookup_response_t_u.uuid, uuid, sizeof(export_uuid_t));
+    if (uuid != NULL) {
+        memcpy(response.export_lookup_response_t_u.uuid, uuid, sizeof (export_uuid_t));
+    }
 
     return &response;
 }
@@ -321,6 +324,7 @@ export_status_response_t * exportproc_chmod_1_svc(export_chmod_args_t *args, str
 }
 
 // do not delete projections on ps (will be done by merkle trees)
+
 export_status_response_t * exportproc_trunc_1_svc(export_trunc_args_t *args, struct svc_req *req) {
 
     static export_status_response_t response;

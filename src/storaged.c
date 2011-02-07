@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,35 +83,38 @@ storage_t * storaged_lookup(uuid_t uuid) {
     return NULL;
 }
 
-static void on_start() {
-
-    int sock;
-    int one = 1;
+static int before_start() {
+    int fd;
+    int status;
     storage_config_t config;
     list_t *p;
 
     DEBUG_FUNCTION;
 
-    if (rozo_initialize() != 0) {
-        fatal("can't initialize rozo: %s.", strerror(errno));
-	    return;
+    if ((fd = open(storaged_config_file, O_RDWR)) == -1) {
+        fprintf(stderr, "storaged failed: configuration file %s: %s\n", storaged_config_file, strerror(errno));
+        status = -1;
+        goto out;
     }
+    close(fd);
 
     if (storage_config_initialize(&config, storaged_config_file) != 0) {
-        fatal("can't initialize config file %s", strerror(errno));
-        return;
+        fprintf(stderr, "storaged failed: can't initialize configuration file: %s\n", strerror(errno));
+        status = -1;
+        goto out;
     }
-    
+
     // initialize storages
     list_init(&storaged_storages);
 
     list_for_each_forward(p, &config) {
         storage_config_ms_entry_t *storage_config_ms_entry;
-        storaged_storage_entry_t *storaged_storage_entry ;
-        
-        if ((storaged_storage_entry = malloc(sizeof(storaged_storage_entry_t))) == NULL) {
-            fatal("can't allocate memory: %s.", strerror(errno));
-            return;
+        storaged_storage_entry_t *storaged_storage_entry;
+
+        if ((storaged_storage_entry = malloc(sizeof (storaged_storage_entry_t))) == NULL) {
+            fprintf(stderr, "storaged failed: can't allocate memory: %s\n", strerror(errno));
+            status = -1;
+            goto out;
         }
 
         storage_config_ms_entry = list_entry(p, storage_config_ms_entry_t, list);
@@ -119,11 +122,42 @@ static void on_start() {
         uuid_copy(storaged_storage_entry->uuid, storage_config_ms_entry->storage_config_ms.uuid);
         strcpy(storaged_storage_entry->storage, storage_config_ms_entry->storage_config_ms.root);
 
+        struct stat st;
+        if (stat(storage_config_ms_entry->storage_config_ms.root, &st) == -1) {
+            status = -1;
+            fprintf(stderr, "storaged failed: storage directory %s: %s\n", storage_config_ms_entry->storage_config_ms.root, strerror(errno));
+            goto out;
+        }
+
+        if (!S_ISDIR(st.st_mode)) {
+            errno = ENOTDIR;
+            status = -1;
+            fprintf(stderr, "storaged failed: storage directory %s: %s\n", storage_config_ms_entry->storage_config_ms.root, strerror(errno));
+            goto out;
+        }
+
         list_push_back(&storaged_storages, &storaged_storage_entry->list);
     }
 
     if (storage_config_release(&config) != 0) {
-        fatal("can't release config file: %s.", strerror(errno));
+        fprintf(stderr, "storaged failed: can't release config file: %s\n", strerror(errno));
+        status = -1;
+        goto out;
+    }
+
+    status = 0;
+out:
+    return status;
+}
+
+static void on_start() {
+
+    int sock;
+    int one = 1;
+    DEBUG_FUNCTION;
+
+    if (rozo_initialize() != 0) {
+        fatal("can't initialize rozo: %s.", strerror(errno));
         return;
     }
 
@@ -138,7 +172,7 @@ static void on_start() {
 
     pmap_unset(STORAGE_PROGRAM, STORAGE_VERSION);
 
-    if (! svc_register(storaged_svc, STORAGE_PROGRAM, STORAGE_VERSION, storage_program_1, IPPROTO_TCP)) {
+    if (!svc_register(storaged_svc, STORAGE_PROGRAM, STORAGE_VERSION, storage_program_1, IPPROTO_TCP)) {
         fatal("can't register service: %s.", strerror(errno));
         return;
     }
@@ -158,7 +192,7 @@ static void on_stop() {
     svc_unregister(STORAGE_PROGRAM, STORAGE_VERSION);
     pmap_unset(STORAGE_PROGRAM, STORAGE_VERSION);
     if (storaged_svc) {
-    	svc_destroy(storaged_svc);
+        svc_destroy(storaged_svc);
         storaged_svc = NULL;
     }
 
@@ -185,33 +219,33 @@ int main(int argc, char* argv[]) {
     int c;
 
     static struct option long_options[] = {
-        {"help",	no_argument, 	&storaged_command_flag,	HELP},
-        {"start",	no_argument,	&storaged_command_flag,	START},
-        {"stop",	no_argument,	&storaged_command_flag,	STOP},
-        {"config",	required_argument, 	0, 		'c'},
+        {"help", no_argument, &storaged_command_flag, HELP},
+        {"start", no_argument, &storaged_command_flag, START},
+        {"stop", no_argument, &storaged_command_flag, STOP},
+        {"config", required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
 
     while (1) {
-    	int option_index = 0;
+        int option_index = 0;
 
-    	c = getopt_long (argc, argv, "hc:", long_options, &option_index);
-     
-        if (c == -1) 
+        c = getopt_long(argc, argv, "hc:", long_options, &option_index);
+
+        if (c == -1)
             break;
-     
-	    switch (c) {
-	        case 0: //long option (manage by getopt but we don't want to be catched by default label)
+
+        switch (c) {
+            case 0: //long option (manage by getopt but we don't want to be catched by default label)
                 break;
-	        case 'h':
+            case 'h':
                 storaged_command_flag = HELP;
                 break;
-	        case 'c':
-	    	    if (! realpath(optarg, storaged_config_file)) {
-	    	        perror("realpath failed");
-	    	        exit(EXIT_FAILURE);
+            case 'c':
+                if (!realpath(optarg, storaged_config_file)) {
+                    fprintf(stderr, "storaged failed: configuration file: %s: %s\n", optarg, strerror(errno));
+                    exit(EXIT_FAILURE);
                 }
-	    	    break;
+                break;
             case '?':
                 exit(EXIT_FAILURE);
             default:
@@ -220,10 +254,13 @@ int main(int argc, char* argv[]) {
     }
 
     switch (storaged_command_flag) {
-	    case HELP:
+        case HELP:
             usage();
             break;
         case START:
+            if (before_start() != 0) {
+                exit(EXIT_FAILURE);
+            }
             daemon_start(STORAGED_DAEMON_NAME, on_start, on_stop, NULL);
             break;
         case STOP:

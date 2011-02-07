@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
     strcpy(export, argv[2]);
 
     if (rozo_initialize() != 0) {
-        perror("rozo_initialize failded");
+        perror("rozo_initialize failed");
         exit(1);
     }
 

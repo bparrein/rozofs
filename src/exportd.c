@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +73,7 @@ static pthread_t exportd_thread;
 static int load_config(export_config_t *config) {
 
     int status;
-    list_t *p,*q;
+    list_t *p, *q;
 
     DEBUG_FUNCTION;
 
@@ -96,9 +96,9 @@ static int load_config(export_config_t *config) {
 
     list_for_each_forward(p, &config->mss) {
         export_config_ms_entry_t *export_config_ms_entry;
-        volume_ms_entry_t *volume_ms_entry ;
-        
-        if ((volume_ms_entry = malloc(sizeof(volume_ms_entry_t))) == NULL) {
+        volume_ms_entry_t *volume_ms_entry;
+
+        if ((volume_ms_entry = malloc(sizeof (volume_ms_entry_t))) == NULL) {
             status = -1;
             goto out;
         }
@@ -125,17 +125,19 @@ static int load_config(export_config_t *config) {
         list_remove(p);
         free(entry);
     }
-    
+
     list_for_each_forward(p, &config->mfss) {
         export_config_mfs_entry_t *entry = list_entry(p, export_config_mfs_entry_t, list);
         exportd_vfs_entry_t *exportd_vfs_entry;
         uuid_t uuid;
 
-        if ((exportd_vfs_entry = malloc(sizeof(exportd_vfs_entry_t))) == NULL) {
+        if ((exportd_vfs_entry = malloc(sizeof (exportd_vfs_entry_t))) == NULL) {
             status = -1;
             goto out;
         }
         if ((status = vfs_uuid(entry->export_config_mfs, uuid)) != 0) {
+            fatal("vfs_uuid failed for export %s: %s", entry->export_config_mfs, strerror(errno));
+            fprintf(stderr, "vfs_uuid failed for export %s: %s\n", entry->export_config_mfs, strerror(errno));
             goto out;
         }
         uuid_copy(exportd_vfs_entry->uuid, uuid);
@@ -156,7 +158,7 @@ out:
 }
 
 static void * balance_volume(void *v) {
-    
+
     struct timespec ts = {2, 0}; //XXX hard coded
 
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
@@ -167,56 +169,80 @@ static void * balance_volume(void *v) {
     }
 }
 
-static void on_start() {
-
-    int sock;
-    int one = 1;
+static int before_start() {
+    int fd;
+    int status;
     export_config_t config;
 
     DEBUG_FUNCTION;
 
-    if (export_config_initialize(&config, exportd_config_file) != 0) {
-        fatal("can't initialize config file %s", strerror(errno));
-        return;
+    if ((fd = open(exportd_config_file, O_RDWR)) == -1) {
+        fprintf(stderr, "exportd failed: configuration file %s: %s\n", exportd_config_file, strerror(errno));
+        status = -1;
+        goto out;
     }
+    close(fd);
 
-    if (rozo_initialize() != 0) {
-        fatal("can't initialise rozo %s", strerror(errno));
-        return;
+    if (export_config_initialize(&config, exportd_config_file) != 0) {
+        fprintf(stderr, "exportd failed: can't initialize configuration file: %s: %s\n", exportd_config_file, strerror(errno));
+        status = -1;
+        goto out;
     }
 
     // initialize volume
     if (volume_initialize(&exportd_volume) != 0) {
-        fatal("can't initialise volume %s", strerror(errno));
-        return;
+        fprintf(stderr, "exportd failed: can't initialize volume: %s\n", strerror(errno));
+        status = -1;
+        goto out;
     }
 
     // initialize vfss
     list_init(&exportd_vfss);
 
     if (pthread_rwlock_init(&exportd_lock, NULL) != 0) {
-        fatal("can't initialise exportd lock %s", strerror(errno));
-        return;
+        fprintf(stderr, "exportd failed: can't initialize exportd lock %s\n", strerror(errno));
+        status = -1;
+        goto out;
     }
 
     if (load_config(&config) != 0) {
-        fatal("can't load config %s", strerror(errno));
-        return;
+        fprintf(stderr, "exportd failed: wrong data in configuration file: %s\n", strerror(errno));
+        status = -1;
+        goto out;
     }
 
     if (export_config_release(&config) != 0) {
-        fatal("can't release config file %s", strerror(errno));
-        return;
+        fprintf(stderr, "exportd failed: can't release config file %s\n", strerror(errno));
+        status = -1;
+        goto out;
     }
 
     if (pthread_create(&exportd_thread, NULL, balance_volume, NULL) != 0) {
-        fatal("can't create thread %s", strerror(errno));
+        fprintf(stderr, "exportd failed: can't create thread %s\n", strerror(errno));
+        status = -1;
+        goto out;
+    }
+
+    status = 0;
+out:
+    return status;
+}
+
+static void on_start() {
+
+    int sock;
+    int one = 1;
+
+    DEBUG_FUNCTION;
+
+    if (rozo_initialize() != 0) {
+        fatal("can't initialise rozo %s", strerror(errno));
         return;
     }
 
     sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    setsockopt(sock, SOL_TCP, TCP_NODELAY, (void *)one, sizeof(one));
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void *)one, sizeof(one));
+    setsockopt(sock, SOL_TCP, TCP_NODELAY, (void *) one, sizeof (one));
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void *) one, sizeof (one));
     // XXX Buffers sizes hard coded
     exportd_svc = svctcp_create(sock, 16384, 16384);
     if (exportd_svc == NULL) {
@@ -226,7 +252,7 @@ static void on_start() {
 
     pmap_unset(EXPORT_PROGRAM, EXPORT_VERSION); // in case !
 
-    if (! svc_register(exportd_svc, EXPORT_PROGRAM, EXPORT_VERSION, export_program_1, IPPROTO_TCP)) {
+    if (!svc_register(exportd_svc, EXPORT_PROGRAM, EXPORT_VERSION, export_program_1, IPPROTO_TCP)) {
         fatal("can't register service %s", strerror(errno));
         return;
     }
@@ -246,7 +272,7 @@ static void on_stop() {
     svc_unregister(EXPORT_PROGRAM, EXPORT_VERSION);
     pmap_unset(EXPORT_PROGRAM, EXPORT_VERSION);
     if (exportd_svc) {
-    	svc_destroy(exportd_svc);
+        svc_destroy(exportd_svc);
         exportd_svc = NULL;
     }
 
@@ -338,28 +364,28 @@ int main(int argc, char* argv[]) {
     char root[PATH_MAX];
 
     static struct option long_options[] = {
-        {"help",	no_argument, 		&exportd_command_flag,	HELP},
-        {"create",	required_argument, 	&exportd_command_flag,	CREATE},
-        {"start",	no_argument,		&exportd_command_flag,	START},
-        {"stop",	no_argument,		&exportd_command_flag,	STOP},
-        {"reload",	no_argument,		&exportd_command_flag,	RELOAD},
-        {"config",	required_argument, 	0, 		'c'},
+        {"help", no_argument, &exportd_command_flag, HELP},
+        {"create", required_argument, &exportd_command_flag, CREATE},
+        {"start", no_argument, &exportd_command_flag, START},
+        {"stop", no_argument, &exportd_command_flag, STOP},
+        {"reload", no_argument, &exportd_command_flag, RELOAD},
+        {"config", required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
 
     while (1) {
-    	int option_index = 0;
+        int option_index = 0;
 
-    	c = getopt_long (argc, argv, "hc:", long_options, &option_index);
-     
-        if (c == -1) 
+        c = getopt_long(argc, argv, "hc:", long_options, &option_index);
+
+        if (c == -1)
             break;
-     
-    	switch (c) {
+
+        switch (c) {
             case 0:
                 if (strcmp(long_options[option_index].name, "create") == 0)
-                    if (! realpath(optarg, root)) {
-                        perror("realpath failed");
+                    if (!realpath(optarg, root)) {
+                        fprintf(stderr, "exportd failed: export path: %s: %s\n", optarg, strerror(errno));
                         exit(EXIT_FAILURE);
                     }
                 break;
@@ -367,11 +393,11 @@ int main(int argc, char* argv[]) {
                 exportd_command_flag = HELP;
                 break;
             case 'c':
-                if (! realpath(optarg, exportd_config_file)) {
-                    perror("realpath failed");
+                if (!realpath(optarg, exportd_config_file)) {
+                    fprintf(stderr, "exportd failed: configuration file: %s: %s\n", optarg, strerror(errno));
                     exit(EXIT_FAILURE);
                 }
-    		    break;
+                break;
             case '?':
                 exit(EXIT_FAILURE);
             default:
@@ -380,15 +406,18 @@ int main(int argc, char* argv[]) {
     }
 
     switch (exportd_command_flag) {
-    	case HELP:
-    	    usage();
-    	    break;
-    	case CREATE:
+        case HELP:
+            usage();
+            break;
+        case CREATE:
             if (vfs_create(root) != 0) {
-                perror("create failed");
-    	    }
+                fprintf(stderr, "exportd failed: export path: %s: %s\n", root, strerror(errno));
+            }
             break;
         case START:
+            if (before_start() != 0) {
+                exit(EXIT_FAILURE);
+            }
             daemon_start(EXPORTD_DAEMON_NAME, on_start, on_stop, on_usr1);
             break;
         case STOP:

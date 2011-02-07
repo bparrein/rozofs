@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -48,7 +48,7 @@ int volume_initialize(volume_t *volume) {
 
     list_init(&volume->mss);
     if ((errno = pthread_rwlock_init(&volume->lock, NULL)) != 0) {
-	status = -1;
+        status = -1;
         goto out;
     }
 
@@ -63,7 +63,7 @@ int volume_release(volume_t *volume) {
     DEBUG_FUNCTION;
 
     if ((errno = pthread_rwlock_destroy(&volume->lock)) != 0) {
-	status = -1;
+        status = -1;
         goto out;
     }
 
@@ -90,7 +90,7 @@ volume_ms_t * volume_lookup(volume_t *volume, uuid_t uuid) {
 }
 
 int volume_balance(volume_t *volume) {
-    
+
     int status = 0;
     list_t *iterator;
 
@@ -104,14 +104,14 @@ int volume_balance(volume_t *volume) {
         } else {
             storage_stat_response_t *response;
             storage_uuid_t arg;
-            
+
             uuid_copy(arg, entry->ms.uuid);
             response = storageproc_stat_1(arg, client);
             if (response == NULL) {
                 entry->ms.capacity = 0;
             } else {
                 entry->ms.capacity = response->storage_stat_response_t_u.stat.bfree * ROZO_BSIZE /
-                    response->storage_stat_response_t_u.stat.bsize;
+                        response->storage_stat_response_t_u.stat.bsize;
             }
             clnt_destroy(client);
         }
@@ -175,7 +175,7 @@ int volume_distribute(volume_t *volume, volume_ms_t mss[ROZO_SAFE]) {
             volume_ms_entry_t *entry = list_entry(iterator, volume_ms_entry_t, list);
             if (entry->ms.capacity != 0)
                 memcpy(&mss[ms_found++], &list_entry(iterator, volume_ms_entry_t, list)->ms, sizeof(volume_ms_t));
-            if (ms_found == ROZO_SAFE) 
+            if (ms_found == ROZO_SAFE)
                 break;
         }
     } while(ms_found > 0 && ms_found < ROZO_SAFE);

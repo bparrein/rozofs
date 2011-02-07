@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -26,7 +26,7 @@
 #include "export_config.h"
 
 static int setting_to_export_config_ms(struct config_setting_t *setting, export_config_ms_t *export_config_ms) {
-    
+
     int status;
     const char *uuid;
     const char *host;
@@ -107,7 +107,7 @@ int export_config_initialize(export_config_t *export_config, const char* path) {
         struct config_setting_t *ms_setting;
         export_config_ms_entry_t *entry;
 
-        if ((entry = malloc(sizeof(export_config_ms_entry_t))) == NULL) {
+        if ((entry = malloc(sizeof (export_config_ms_entry_t))) == NULL) {
             severe("malloc failed: %s.", strerror(errno));
             status = -1;
             goto out;
@@ -139,7 +139,7 @@ int export_config_initialize(export_config_t *export_config, const char* path) {
         struct config_setting_t *mfs_setting;
         export_config_mfs_entry_t *entry;
 
-        if ((entry = malloc(sizeof(export_config_mfs_entry_t))) == NULL) {
+        if ((entry = malloc(sizeof (export_config_mfs_entry_t))) == NULL) {
             severe("malloc failed: %s.", strerror(errno));
             status = -1;
             goto out;
@@ -191,7 +191,6 @@ int export_config_release(export_config_t *config) {
 
 void export_config_print(export_config_t *export_config) {
 
-    int i;
     list_t *iterator;
 
     DEBUG_FUNCTION;
