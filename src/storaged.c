@@ -42,7 +42,7 @@
 #include "storage_proto.h"
 #include "storage_config.h"
 
-#define STORAGED_DAEMON_NAME "storaged.pid"
+#define STORAGED_PID_FILE "storaged.pid"
 
 enum command {
     HELP,
@@ -264,7 +264,7 @@ int main(int argc, char* argv[]) {
             daemon_start(STORAGED_DAEMON_NAME, on_start, on_stop, NULL);
             break;
         case STOP:
-            daemon_stop(STORAGED_DAEMON_NAME);
+            daemon_stop(STORAGED_PID_FILE);
             break;
         default:
             usage();

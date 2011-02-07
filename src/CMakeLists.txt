@@ -87,6 +87,7 @@ add_executable(rozofs
 #pthread need by fuse 
 target_link_libraries(rozofs ${PTHREAD_LIBRARY} ${FUSE_LIBRARY} ${UUID_LIBRARY})
 
+# Install
 install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${CONF_DIR})" COMPONENT storage)
 install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${CONF_DIR})" COMPONENT export)
 
