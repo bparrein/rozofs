@@ -180,7 +180,7 @@ struct export_write_block_args_t {
 	export_path_t path;
 	uint64_t mb;
 	uint32_t nmbs;
-	uint8_t distribution[ROZO_SAFE];
+	uint16_t distribution;
 };
 typedef struct export_write_block_args_t export_write_block_args_t;
 
@@ -197,7 +197,7 @@ struct export_read_block_response_t {
 	union {
 		struct {
 			u_int distribution_len;
-			uint8_t *distribution_val;
+			uint16_t *distribution_val;
 		} distribution;
 		int error;
 	} export_read_block_response_t_u;

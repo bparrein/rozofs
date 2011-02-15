@@ -162,9 +162,6 @@ int vfs_uuid(const char *root, uuid_t uuid) {
 
     if (getxattr(root, VFS_UUID_XATTR_KEY, &uuid, sizeof (uuid_t)) == -1) {
         status = -1;
-        if (errno == ENOATTR) {
-            fprintf(stderr, "error: you need to set up the directory %s to be exported by exportd\n", root);
-        }
         goto out;
     }
 
@@ -481,7 +478,9 @@ out:
     return status;
 }
 
-int vfs_read_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, uint8_t *distribution) {
+// In the case of nmbs block having same distribution we send back nmbs * sizeof(distribution) bytes
+// could be optimize (the wires stand point)
+int vfs_read_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, distribution_t *distribution) {
 
     int status = 0;
     char path[PATH_MAX];
@@ -495,8 +494,8 @@ int vfs_read_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, ui
         goto out;
     }
 
-    if (pread(fd, distribution, nmbs * ROZO_SAFE * sizeof (uint8_t),
-            mb * ROZO_SAFE * sizeof (uint8_t)) != nmbs * ROZO_SAFE * sizeof (uint8_t)) {
+    if (pread(fd, distribution, nmbs * sizeof(distribution_t), 
+                mb * sizeof(distribution_t)) != nmbs * sizeof(distribution_t)) {
         severe("vfs_read_block failed: pread in file %s failed: %s", vfs_map(vfs, vpath, path), strerror(errno));
         status = -1;
         goto out;
@@ -556,23 +555,24 @@ out:
     return read;
 }
 
-int vfs_write_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, uint8_t distribution[ROZO_SAFE]) {
+// TODO : For now we assume a vfs_write block can only be made for nmbs block with the same distribution.
+int vfs_write_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, distribution_t distribution) {
 
-    int status = 0, i, result_read, result_comp;
+    int status = 0, i, read_result;
     char path[PATH_MAX];
     int fd = -1;
-    uint8_t old_distribution[ROZO_SAFE];
+    distribution_t old_distribution;
     uuid_t uuids_ms[ROZO_SAFE];
     uuid_t uuid_file;
 
     DEBUG_FUNCTION;
 
-    if (getxattr(vfs_map(vfs, vpath, path), VFS_MF_UUID_XATTR_KEY, &(uuid_file), sizeof (uuid_t)) == -1) {
+    if (getxattr(vfs_map(vfs, vpath, path), VFS_MF_UUID_XATTR_KEY, &(uuid_file), sizeof(uuid_t)) == -1) {
         status = -1;
         goto out;
     }
 
-    if (getxattr(vfs_map(vfs, vpath, path), VFS_MF_MPSS_XATTR_KEY, uuids_ms, ROZO_SAFE * sizeof (uuid_t)) == -1) {
+    if (getxattr(vfs_map(vfs, vpath, path), VFS_MF_MPSS_XATTR_KEY, uuids_ms, ROZO_SAFE * sizeof(uuid_t)) == -1) {
         status = -1;
         goto out;
     }
@@ -582,32 +582,34 @@ int vfs_write_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, u
         goto out;
     }
 
-    if (lseek(fd, mb * ROZO_SAFE * sizeof (uint8_t), SEEK_SET) < 0) {
+    if (lseek(fd, mb * sizeof(distribution_t), SEEK_SET) < 0) {
         status = -1;
         goto out;
     }
 
     for (i = 0; i < nmbs; i++) {
 
-        if ((result_read = pread(fd, old_distribution, ROZO_SAFE * sizeof (uint8_t),
-                (mb + i) * ROZO_SAFE * sizeof (uint8_t))) == -1) {
+        if ((read_result = pread(fd, &old_distribution, sizeof(distribution_t),
+                (mb + i) * sizeof(distribution_t))) == -1) {
             severe("vfs_write_block failed: pread in file %s failed: %s", vfs_map(vfs, vpath, path), strerror(errno));
             status = -1;
             goto out;
         }
 
         // If the block already exists
-        if (result_read != 0 && memcmp(old_distribution, empty_distribution, ROZO_SAFE * sizeof (uint8_t)) != 0) {
+        //if (read_result != 0 && memcmp(old_distribution, empty_distribution, ROZO_SAFE * sizeof (uint8_t)) != 0) {
+        if (read_result != 0 && old_distribution != 0) {
 
             // We compare the the old an new distributions
-            if ((result_comp = memcmp(distribution, old_distribution, ROZO_SAFE * sizeof (uint8_t))) != 0) {
+            if (distribution != old_distribution) {
                 int j = 0;
                 int old_proj = 0;
                 int new_proj = 0;
 
                 for (j = 0; j < ROZO_SAFE; j++) {
 
-                    if (old_distribution[j] == 1 && (distribution[j] == 0 || old_proj != new_proj)) {
+                    if (distribution_is_set(old_distribution, j) && 
+                            (distribution_is_set(distribution, j) || old_proj != new_proj)) {
 
                         // New projection remove entry
                         item_proj_t proj;
@@ -631,13 +633,13 @@ int vfs_write_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, u
                             goto out;
                         }
                     }
-                    new_proj += distribution[j];
-                    old_proj += old_distribution[j];
+                    new_proj += distribution_is_set(distribution, j);
+                    old_proj += distribution_is_set(old_distribution, j);
                 }
             }
         }
         // NOT NECESSARY AT EACH TIME
-        if (write(fd, distribution, ROZO_SAFE * sizeof (uint8_t)) != ROZO_SAFE * sizeof (uint8_t)) {
+        if (write(fd, &distribution, sizeof(distribution_t)) != sizeof(distribution_t)) {
             status = -1;
             severe("vfs_write_block failed: write in file %s failed: %s", vfs_map(vfs, vpath, path), strerror(errno));
             goto out;

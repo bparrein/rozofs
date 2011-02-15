@@ -136,8 +136,10 @@ static int load_config(export_config_t *config) {
             goto out;
         }
         if ((status = vfs_uuid(entry->export_config_mfs, uuid)) != 0) {
-            fatal("vfs_uuid failed for export %s: %s", entry->export_config_mfs, strerror(errno));
             fprintf(stderr, "vfs_uuid failed for export %s: %s\n", entry->export_config_mfs, strerror(errno));
+            if (errno == ENODATA)
+                fprintf(stderr, "error: you need to set up the directory %s to be exported by exportd\n", 
+                        entry->export_config_mfs);
             goto out;
         }
         uuid_copy(exportd_vfs_entry->uuid, uuid);

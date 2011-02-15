@@ -1,0 +1,34 @@
+/*
+  Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
+  This file is part of Rozo.
+
+  Rozo is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published
+  by the Free Software Foundation; either version 3 of the License,
+  or (at your option) any later version.
+
+  Rozo is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see
+  <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef _DISTRIBUTION_H
+
+#include <stdint.h>
+
+typedef uint16_t distribution_t;
+
+#define distribution_is_set(d, b) (d & (1L << b % 16L) ? 1 : 0)
+
+#define distribution_set_true(d, b) (d |= (1L << b % 16L))
+
+#define distribution_set_false(d, b) (d &= ~(1L << b % 16L))
+
+#define distribution_set_value(d, b, v) ((v) ? distribution_set_true(d, b) : distribution_set_false(d, b))
+
+#endif

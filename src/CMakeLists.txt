@@ -51,6 +51,7 @@ add_executable(exportd
     file_log.c
     volume.h
     volume.c
+    distribution.h
     vfs.h
     vfs.c
     export_config.h

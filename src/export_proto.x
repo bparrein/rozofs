@@ -171,7 +171,7 @@ struct export_write_block_args_t {
     export_path_t path;
     uint64_t mb;
     uint32_t nmbs;
-    uint8_t distribution[ROZO_SAFE];
+    uint16_t distribution;
 };
 
 struct export_read_block_args_t {
@@ -183,7 +183,7 @@ struct export_read_block_args_t {
 
 union export_read_block_response_t switch (export_status_t status) {
     case EXPORT_SUCCESS:
-        uint8_t distribution<>;
+        uint16_t distribution<>;
     case EXPORT_FAILURE:
         int error;
     default:
@@ -248,22 +248,22 @@ program EXPORT_PROGRAM {
         EXPORTPROC_TRUNC(export_trunc_args_t)               = 12;
 
         export_list_response_t
-        EXPORTPROC_LIST(export_path_args_t)                        = 13;
+        EXPORTPROC_LIST(export_path_args_t)                 = 13;
 
         export_attr_response_t
-        EXPORTPROC_ATTR(export_path_args_t)                        = 14; 
+        EXPORTPROC_ATTR(export_path_args_t)                 = 14; 
 
         export_io_response_t
-        EXPORTPROC_READ(export_io_args_t)                        = 15;
+        EXPORTPROC_READ(export_io_args_t)                   = 15;
 
         export_read_block_response_t
         EXPORTPROC_READ_BLOCK(export_read_block_args_t)     = 16;
 
         export_io_response_t
-        EXPORTPROC_WRITE(export_io_args_t)                        = 17;
+        EXPORTPROC_WRITE(export_io_args_t)                  = 17;
 
         export_status_response_t
-        EXPORTPROC_WRITE_BLOCK(export_write_block_args_t)        = 18;
+        EXPORTPROC_WRITE_BLOCK(export_write_block_args_t)   = 18;
 
     } = 1;
 } = 0x20000003;

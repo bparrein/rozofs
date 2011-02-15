@@ -121,3 +121,7 @@ target_link_libraries(test_fs_operations ${UUID_LIBRARY})
 
 add_custom_target(copy_run_acceptance_tests ALL command ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/run_acceptance_tests.sh  ${CMAKE_CURRENT_BINARY_DIR}/run_acceptance_tests.sh)
 
+add_executable(test_distribution
+    ../src/distribution.h
+    test_distribution.c
+)

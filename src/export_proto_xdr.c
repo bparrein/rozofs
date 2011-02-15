@@ -389,7 +389,6 @@ xdr_export_write_block_args_t (XDR *xdrs, export_write_block_args_t *objp)
 {
 	register int32_t *buf;
 
-	int i;
 	 if (!xdr_export_uuid_t (xdrs, objp->uuid))
 		 return FALSE;
 	 if (!xdr_export_path_t (xdrs, &objp->path))
@@ -398,8 +397,7 @@ xdr_export_write_block_args_t (XDR *xdrs, export_write_block_args_t *objp)
 		 return FALSE;
 	 if (!xdr_uint32_t (xdrs, &objp->nmbs))
 		 return FALSE;
-	 if (!xdr_vector (xdrs, (char *)objp->distribution, ROZO_SAFE,
-		sizeof (uint8_t), (xdrproc_t) xdr_uint8_t))
+	 if (!xdr_uint16_t (xdrs, &objp->distribution))
 		 return FALSE;
 	return TRUE;
 }
@@ -430,7 +428,7 @@ xdr_export_read_block_response_t (XDR *xdrs, export_read_block_response_t *objp)
 	switch (objp->status) {
 	case EXPORT_SUCCESS:
 		 if (!xdr_array (xdrs, (char **)&objp->export_read_block_response_t_u.distribution.distribution_val, (u_int *) &objp->export_read_block_response_t_u.distribution.distribution_len, ~0,
-			sizeof (uint8_t), (xdrproc_t) xdr_uint8_t))
+			sizeof (uint16_t), (xdrproc_t) xdr_uint16_t))
 			 return FALSE;
 		break;
 	case EXPORT_FAILURE:

@@ -465,9 +465,9 @@ export_read_block_response_t * exportproc_read_block_1_svc(export_read_block_arg
         return &response;
     }
 
-    response.export_read_block_response_t_u.distribution.distribution_len = args->nmbs * ROZO_SAFE;
-    response.export_read_block_response_t_u.distribution.distribution_val = malloc(args->nmbs * ROZO_SAFE *
-            sizeof (uint8_t));
+    response.export_read_block_response_t_u.distribution.distribution_len = args->nmbs;
+    response.export_read_block_response_t_u.distribution.distribution_val = malloc(args->nmbs * 
+            sizeof(distribution_t));
 
     if (vfs_read_block(export, args->path, args->mb, args->nmbs,
             response.export_read_block_response_t_u.distribution.distribution_val) != 0) {

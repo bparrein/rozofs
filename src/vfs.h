@@ -29,6 +29,7 @@
 #include <uuid/uuid.h>
 
 #include "rozo.h"
+#include "distribution.h"
 
 typedef struct vattr {
     uuid_t uuid;
@@ -71,11 +72,11 @@ int vfs_truncate(vfs_t *vfs, const char *vpath, uint64_t offset);
 
 int64_t vfs_read(vfs_t *vfs, const char *vpath, uint64_t off, uint32_t len);
 
-int vfs_read_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, uint8_t *distribution);
+int vfs_read_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, distribution_t *distribution);
 
 int64_t vfs_write(vfs_t *vfs, const char *vpath, uint64_t off, uint32_t len);
 
-int vfs_write_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, uint8_t distribution[ROZO_SAFE]);
+int vfs_write_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, distribution_t distribution);
 
 DIR * vfs_opendir(vfs_t *vfs, const char *vpath);
 

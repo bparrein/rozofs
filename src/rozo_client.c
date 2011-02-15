@@ -27,6 +27,7 @@
 #include <fcntl.h>
 
 #include "log.h"
+#include "distribution.h"
 #include "export_proto.h"
 #include "storage_proto.h"
 #include "rozo_client.h"
@@ -725,7 +726,7 @@ static int read_blocks(rozo_client_t *rozo_client, rozo_file_t *file, int64_t mb
     export_read_block_response_t *export_read_block_response; // Pointer to where the export response will be stored
     storage_read_args_t storage_read_args; // Request send to storage servers
     storage_read_response_t *storage_read_response; // Pointer to where the storage server response will be stored
-    uint8_t *distribution; // Pointer to memory area where the block distribution will be stored
+    distribution_t *distribution; // Pointer to memory area where the block distribution will be stored
     uint8_t mp;
     char *bins[ROZO_INVERSE]; // Table of pointers to where are stored the received bins
     angle_t angles[ROZO_INVERSE];
@@ -791,9 +792,11 @@ static int read_blocks(rozo_client_t *rozo_client, rozo_file_t *file, int64_t mb
 
         // If the distribution is empty, then the block is filled with 0 and go to the following block
         // A distribution can be empty in the case of sparse file
-        if (!memcmp(distribution, empty_distribution, ROZO_SAFE)) {
+        //if (!memcmp(distribution, empty_distribution, ROZO_SAFE)) {
+        if (*distribution == 0) {
             i++; // Increment the number of block
-            distribution += ROZO_SAFE; // Shift to the next distribution
+            //distribution += ROZO_SAFE; // Shift to the next distribution
+            distribution ++; // Shift to the next distribution
             continue; // Exit loop
         }
 
@@ -801,9 +804,11 @@ static int read_blocks(rozo_client_t *rozo_client, rozo_file_t *file, int64_t mb
 
         uint32_t n = 1; // Nb. of identical distributions (blocks with the same distribution) (Set to 1 for begin)
         // If the currently distribution and the following are the same
-        while ((i + n) < nmbs && !memcmp(distribution, distribution + ROZO_SAFE, ROZO_SAFE)) {
+        //while ((i + n) < nmbs && !memcmp(distribution, distribution + ROZO_SAFE, ROZO_SAFE)) {
+        while ((i + n) < nmbs && *distribution == *(distribution + 1)) {
             n++; // Increment the number of block with the same distribution
-            distribution += ROZO_SAFE; // Shift to the next distribution
+            //distribution += ROZO_SAFE; // Shift to the next distribution
+            distribution ++; // Shift to the next distribution
         }
 
         DEBUG("read_blocks: %d block(s) have same distribution (block %llu to block %llu)", n, mb + i, mb + i + n - 1);
@@ -828,11 +833,11 @@ static int read_blocks(rozo_client_t *rozo_client, rozo_file_t *file, int64_t mb
             // Find the host for projection mp
             for (mps = 0; mps < ROZO_SAFE; mps++) {
                 // If the storage server nb: (mps) store a meta-projection and this meta-projection nb. is mp
-                if (distribution[mps] == 1 && j == mp) {
+                if (distribution_is_set(*distribution, mps) && j == mp) {
                     // It's OK, The storage server where the meta-projection mp is stored is find
                     break;
                 } else { // Try with the next storage server
-                    j += distribution[mps]; // Increment the current meta-projection if it's neccessary
+                    j += distribution_is_set(*distribution, mps); // Increment the current meta-projection if it's neccessary
                 }
             }
 
@@ -948,7 +953,8 @@ static int read_blocks(rozo_client_t *rozo_client, rozo_file_t *file, int64_t mb
         i += n;
 
         // Shift to the next distribution
-        distribution += ROZO_SAFE;
+        //distribution += ROZO_SAFE;
+        distribution ++;
     }
 
     // If everything is OK, the status is set to 0
@@ -1118,7 +1124,8 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
     }
     export_write_block_args.mb = mb; // Copy the metablock number
     export_write_block_args.nmbs = nmbs; // Copy the nb. of metablocks
-    memset(export_write_block_args.distribution, 0, ROZO_SAFE); // Distribution set to 0 by default
+    //memset(export_write_block_args.distribution, 0, ROZO_SAFE); // Distribution set to 0 by default
+    export_write_block_args.distribution = 0;
 
     /* Prepare the requests to send to storage servers
      * We will try to prepare request for ROZO_FORWARD (of ROZO_SAFE) storage servers used to store this file */
@@ -1212,7 +1219,8 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
 
         // If the request is sent, we set 1 in the distribution
         // i.e : The storage server ps store data for the block mb + nmbs
-        export_write_block_args.distribution[ps] = 1;
+        //export_write_block_args.distribution[ps] = 1;
+        distribution_set_true(export_write_block_args.distribution, ps);
 
         // Free the memory area where the response is stored
         xdr_free((xdrproc_t) xdr_storage_status_response_t, (char *) response);
@@ -1273,7 +1281,6 @@ out:
 
 // XXX assuming we will always find enough storages is fine unless a system error occurs,
 // the while loops for writing block is infinite in case of system failure (e.g encode/decode error)
-
 int64_t rozo_client_write(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t off, const char *buf, uint32_t len) {
 
     export_io_args_t export_io_args;
