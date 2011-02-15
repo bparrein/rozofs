@@ -50,6 +50,10 @@ add_executable(test_storage_config
 )
 target_link_libraries(test_storage_config ${CONFIG_LIBRARY} ${UUID_LIBRARY})
 
+add_executable(test_distribution
+    ../src/distribution.h
+    test_distribution.c
+)
 
 add_executable(transform_throughput
     ../src/rozo.h
@@ -78,25 +82,6 @@ add_executable(sendfile
 )
 target_link_libraries(sendfile ${UUID_LIBRARY})
 
-#add_executable(sendfile_multiple
-#    ../src/rozo.h
-#    ../src/rozo.c
-#    ../src/transform.h
-#    ../src/transform.c
-#    ../src/ps_proto.h
-#    ../src/ps_proto_xdr.c
-#    ../src/ps_proto_clt.c
-#    ../src/mfs_proto.h
-#    ../src/mfs_proto_xdr.c
-#    ../src/mfs_proto_clt.c
-#    ../src/rpc_client.h
-#    ../src/rpc_client.c
-#    ../src/api.h
-#    ../src/api.c
-#    sendfile_multiple.c
-#)
-#target_link_libraries(sendfile_multiple ${UUID_LIBRARY})
-
 add_executable(retrievefile
     ../src/rozo.h
     ../src/rozo.c
@@ -116,12 +101,3 @@ add_executable(retrievefile
 )
 target_link_libraries(retrievefile ${UUID_LIBRARY})
 
-add_executable(test_fs_operations test_fs_operations.c)
-target_link_libraries(test_fs_operations ${UUID_LIBRARY})
-
-add_custom_target(copy_run_acceptance_tests ALL command ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/run_acceptance_tests.sh  ${CMAKE_CURRENT_BINARY_DIR}/run_acceptance_tests.sh)
-
-add_executable(test_distribution
-    ../src/distribution.h
-    test_distribution.c
-)
