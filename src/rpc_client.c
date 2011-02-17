@@ -91,9 +91,11 @@ int rpc_client_initialize(rpc_client_t *client, const char *host, unsigned long 
     }
 
     // Set TIMEOUT for this connection
-    // TIMEOUT_SET is the waiting time for detect a problem with the remote server
-    static struct timeval TIMEOUT_SET = {5, 0};
-    clnt_control(client->client, CLSET_TIMEOUT, (char *) &TIMEOUT_SET);
+    // timeout_set is the waiting time for detect a problem with the remote server
+    struct timeval timeout_set;
+    timeout_set.tv_sec = 3; // change time-out to 3s
+    timeout_set.tv_usec = 0;
+    clnt_control(client->client, CLSET_TIMEOUT, (char *) &timeout_set);
 
     status = 0;
 out:

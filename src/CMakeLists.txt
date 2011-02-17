@@ -45,10 +45,6 @@ add_executable(exportd
     log.h
     daemon.h
     daemon.c
-    queue_log.h
-    queue_log.c
-    file_log.h
-    file_log.c
     volume.h
     volume.c
     vfs.h
