@@ -32,7 +32,7 @@
 #include "volume.h"
 #include "vfs.h"
 #include "queue_log.h"
-#include "file_log.h"
+//#include "file_log.h"
 
 #define VFS_UUID_XATTR_KEY "user.rozo.vfs.uuid"
 #define VFS_BLOCKS_XATTR_KEY "user.rozo.vfs.blocks"
@@ -43,7 +43,7 @@
 #define VFS_MF_MPSS_XATTR_KEY "user.rozo.vfs.mf.mss"
 #define VFS_MF_SIZE_XATTR_KEY "user.rozo.vfs.mf.size"
 
-static queue_t queue1;
+//static queue_t queue1;
 
 static inline char * vfs_map(vfs_t *vfs, const char *vpath, char *path) {
 
@@ -383,6 +383,7 @@ int vfs_unlink(vfs_t *vfs, const char *vpath) {
             goto out;
         }
 
+        /*
         for (i = 0; i < ROZO_SAFE; i++) {
 
             // New log_remove_file entry
@@ -403,6 +404,7 @@ int vfs_unlink(vfs_t *vfs, const char *vpath) {
                 goto out;
             }
         }
+        */
     }
 
     // XXX do we really need to call vfs_map again ?
@@ -588,6 +590,13 @@ int vfs_write_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, d
     }
 
     for (i = 0; i < nmbs; i++) {
+        if (write(fd, &distribution, sizeof(distribution_t)) != sizeof(distribution_t)) {
+            status = -1;
+            goto out;
+        }
+    }
+    /*
+    for (i = 0; i < nmbs; i++) {
 
         if ((read_result = pread(fd, &old_distribution, sizeof(distribution_t),
                 (mb + i) * sizeof(distribution_t))) == -1) {
@@ -645,6 +654,7 @@ int vfs_write_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, d
             goto out;
         }
     }
+    */
 
 out:
     if (fd != -1) close(fd);

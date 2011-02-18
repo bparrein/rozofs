@@ -31,6 +31,6 @@ typedef struct rpc_client {
 int rpc_client_initialize(rpc_client_t *client, const char *host, unsigned long prog, unsigned long vers, 
         unsigned int sendsz, unsigned int recvsz);
 
-int rpc_client_release(rpc_client_t *client);
+void rpc_client_release(rpc_client_t *client);
 
 #endif

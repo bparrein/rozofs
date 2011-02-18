@@ -101,26 +101,19 @@ out:
     return status;
 }
 
-int rpc_client_release(rpc_client_t *client) {
-
-    int status;
+void rpc_client_release(rpc_client_t *client) {
 
     DEBUG_FUNCTION;
 
-    if (client->sock > 0) {
-        if ((close(client->sock)) != 0) {
-            status = -1;
-            goto out;
-        }
-        client->sock = -1;
-    }
+    if (client->sock <= 0) goto out;
 
-    if (client->client != NULL) {
-        clnt_destroy(client->client);
-        client->client = NULL;
-    }
+    if ((close(client->sock)) != 0) goto out;
+    client->sock = -1;
 
-    status = 0;
+    if (! client->client) goto out;
+    clnt_destroy(client->client);
+    client->client = NULL;
+
 out:
-    return status;
+    return;
 }

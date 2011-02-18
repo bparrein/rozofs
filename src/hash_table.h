@@ -15,43 +15,34 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
- */
+*/
 
-#ifndef _ROZO_H
-#define _ROZO_H
+#ifndef _HASH_TABLE
+#define _HASH_TABLE
 
-#include <stdint.h>
+#include <stdlib.h>
 
-#include "transform.h"
+#include "list.h"
 
-// number of host needed to store
-#define ROZO_SAFE 16
+typedef struct hash_table {
+	int (*hash) (void *);
+	int (*cmp) (void *, void *);
+	int size;
+	list_t *buckets;
+} hash_table_t;
 
-// total number of projections
-#define ROZO_FORWARD 12
+// Convenient function hashing memory chunk.
+// Could be used by user defined hashing function.
+int hash_table_hash(void *key, int len);
 
-// number of projections needed to reconstruct
-#define ROZO_INVERSE 8
+int hash_table_init(hash_table_t *h, int size, int (*hash) (void *), int (*cmp) (void *, void *));
 
-// transform block size
-#define ROZO_BSIZE 8192
+void hash_table_release(hash_table_t *h);
 
-#define ROZO_RPC_BUFFER_SIZE 16384
+int hash_table_put(hash_table_t *h, void *key, void *value);
 
-#define ROZO_HOSTNAME_MAX 128
+void * hash_table_get(hash_table_t *h, void *key);
 
-#define ROZO_UUID_SIZE 16
-
-#define ROZO_PATH_MAX 1024
-
-#define ROZO_FILENAME_MAX 255
-
-extern angle_t rozo_angles[ROZO_FORWARD];
-
-extern int16_t rozo_psizes[ROZO_FORWARD];
-
-extern uint8_t empty_distribution[ROZO_SAFE];
-
-int rozo_initialize();
+void * hash_table_del(hash_table_t *h, void *key);
 
 #endif

@@ -78,7 +78,6 @@ out:
 }
 
 // XXX noops for now since time are set at server side
-
 static int rozofs_utimens(const char *path, const struct timespec tv[2]) {
 
     DEBUG_FUNCTION;

@@ -55,6 +55,21 @@ add_executable(test_distribution
     test_distribution.c
 )
 
+add_executable(test_hash_table
+    ../src/hash_table.h
+    ../src/hash_table.c
+    test_hash_table.c
+)
+
+add_executable(test_pool
+    ../src/rpc_client.h
+    ../src/rpc_client.c
+    ../src/hash_table.h
+    ../src/hash_table.c
+    ../src/pool.h
+    ../src/pool.c
+    test_pool.c
+)
 add_executable(transform_throughput
     ../src/rozo.h
     ../src/rozo.c
@@ -76,6 +91,11 @@ add_executable(sendfile
     ../src/export_proto_clt.c
     ../src/rpc_client.h
     ../src/rpc_client.c
+    ../src/distribution.h
+    ../src/hash_table.h
+    ../src/hash_table.c
+    ../src/pool.h
+    ../src/pool.c
     ../src/rozo_client.h
     ../src/rozo_client.c
     sendfile.c
@@ -95,6 +115,11 @@ add_executable(retrievefile
     ../src/export_proto_clt.c
     ../src/rpc_client.h
     ../src/rpc_client.c
+    ../src/distribution.h
+    ../src/hash_table.h
+    ../src/hash_table.c
+    ../src/pool.h
+    ../src/pool.c
     ../src/rozo_client.h
     ../src/rozo_client.c
     retrievefile.c

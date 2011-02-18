@@ -15,43 +15,27 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
- */
+*/
 
-#ifndef _ROZO_H
-#define _ROZO_H
+#ifndef _POOL_H
+#define _POOL_H
 
-#include <stdint.h>
+#include "list.h"
+#include "hash_table.h"
+#include "rpc_client.h"
 
-#include "transform.h"
+typedef struct pool {
+	list_t connections;
+	hash_table_t ht;
+} pool_t;
 
-// number of host needed to store
-#define ROZO_SAFE 16
+int pool_initialize(pool_t *pool);
 
-// total number of projections
-#define ROZO_FORWARD 12
+void pool_release(pool_t *pool);
 
-// number of projections needed to reconstruct
-#define ROZO_INVERSE 8
+rpc_client_t * pool_get(pool_t *pool, char* host);
 
-// transform block size
-#define ROZO_BSIZE 8192
+void pool_discard(pool_t *pool, char* host);
 
-#define ROZO_RPC_BUFFER_SIZE 16384
-
-#define ROZO_HOSTNAME_MAX 128
-
-#define ROZO_UUID_SIZE 16
-
-#define ROZO_PATH_MAX 1024
-
-#define ROZO_FILENAME_MAX 255
-
-extern angle_t rozo_angles[ROZO_FORWARD];
-
-extern int16_t rozo_psizes[ROZO_FORWARD];
-
-extern uint8_t empty_distribution[ROZO_SAFE];
-
-int rozo_initialize();
 
 #endif

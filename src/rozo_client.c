@@ -27,6 +27,7 @@
 #include <fcntl.h>
 
 #include "log.h"
+#include "pool.h"
 #include "distribution.h"
 #include "export_proto.h"
 #include "storage_proto.h"
@@ -57,18 +58,19 @@ int rozo_client_initialize(rozo_client_t *rozo_client, const char *host, char *e
     }
 
     uuid_copy(rozo_client->export_uuid, response->export_lookup_response_t_u.uuid);
-
-    status = 0;
+    
+    status = pool_initialize(&rozo_client->pool);
 out:
     if (status != 0) rozo_client_release(rozo_client);
     return status;
 }
 
-int rozo_client_release(rozo_client_t *rozo_client) {
+void rozo_client_release(rozo_client_t *rozo_client) {
 
     DEBUG_FUNCTION;
 
-    return rpc_client_release(&rozo_client->export_client);
+    pool_release(&rozo_client->pool);
+    rpc_client_release(&rozo_client->export_client);
 }
 
 int rozo_client_statfs(rozo_client_t *rozo_client, struct statvfs *st) {
@@ -603,9 +605,11 @@ struct rozo_file {
     uuid_t uuid;
     uuid_t uuids[ROZO_SAFE];
     char hosts[ROZO_SAFE][ROZO_HOSTNAME_MAX];
-    rpc_client_t storages[ROZO_SAFE];
+    //rpc_client_t storages[ROZO_SAFE];
+    rpc_client_t *storages[ROZO_SAFE];
 };
 
+/*
 static int disconnect_file(rozo_file_t *file) {
 
     int i;
@@ -618,14 +622,15 @@ static int disconnect_file(rozo_file_t *file) {
 
     return 0;
 }
+*/
 
-static int connect_file(rozo_file_t *file) {
+static int connect_file(rozo_client_t *rozo_client, rozo_file_t *file) {
 
     int i, connected;
 
     DEBUG_FUNCTION;
 
-    disconnect_file(file);
+    //disconnect_file(file);
 
     // Nb. of storage servers connected
     connected = 0;
@@ -633,8 +638,8 @@ static int connect_file(rozo_file_t *file) {
     // We will try to establish a connection with each server projections used to store this file
     for (i = 0; i < ROZO_SAFE; i++) {
 
+        /*
         // XXX : rpc_client_initialize() function is too long
-
         // RPC connection with a storage server
         if (rpc_client_initialize(&file->storages[i], file->hosts[i],
                 STORAGE_PROGRAM, STORAGE_VERSION, 32768, 32768) != 0) {
@@ -643,11 +648,15 @@ static int connect_file(rozo_file_t *file) {
             continue;
         }
         DEBUG("rpc_client_initialize: storage server %d :%s", i, file->hosts[i]);
+        */
+        if (!(file->storages[i] = pool_get(&rozo_client->pool, file->hosts[i])))
+            continue;
         //Increment the nb. of storage servers connected
         connected++;
     }
 
     // Not enough server storage connections to retrieve the file
+    // XXX if connected > ROZO_INVERSE we can read !!!!!!
     if (connected < ROZO_FORWARD) {
         errno = EIO; // I/O error
         return -1;
@@ -700,12 +709,13 @@ rozo_file_t * rozo_client_open(rozo_client_t *rozo_client, const char *path, mod
 
     uuid_copy(file->uuid, response->export_attr_response_t_u.attr.uuid);
     for (i = 0; i < ROZO_SAFE; i++) {
-        file->storages[i].client = NULL;
+        //file->storages[i].client = NULL;
+        file->storages[i]->client = NULL; //XXX why ?
         strcpy(file->hosts[i], response->export_attr_response_t_u.attr.hosts[i]);
         uuid_copy(file->uuids[i], response->export_attr_response_t_u.attr.uuids[i]);
     }
 
-    if (connect_file(file) != 0) {
+    if (connect_file(rozo_client, file) != 0) {
         rozo_client_close(file);
         file = NULL;
         goto out;
@@ -845,7 +855,8 @@ static int read_blocks(rozo_client_t *rozo_client, rozo_file_t *file, int64_t mb
                     mb + i, mb + i + n - 1, mp, mps);
 
             // If there is no established connection with the storage server mps then do not prepare request
-            if (file->storages[mps].client == NULL) {
+            //if (file->storages[mps].client == NULL) {
+            if (file->storages[mps]->client == NULL) {
                 continue;
             }
 
@@ -857,7 +868,8 @@ static int read_blocks(rozo_client_t *rozo_client, rozo_file_t *file, int64_t mb
             storage_read_args.nmbs = n; // Nb. of metablocks (same distribution)
 
             // Send the request to the storage server mps
-            storage_read_response = storageproc_read_1(&storage_read_args, file->storages[mps].client);
+            //storage_read_response = storageproc_read_1(&storage_read_args, file->storages[mps].client);
+            storage_read_response = storageproc_read_1(&storage_read_args, file->storages[mps]->client);
             // Awaiting response from server (storages[mps]) during TIMEOUT
             // See function rpc_client_initialize() in rpc_client.c for change the TIMEOUT
 
@@ -873,7 +885,7 @@ static int read_blocks(rozo_client_t *rozo_client, rozo_file_t *file, int64_t mb
                     warning("read_blocks failed: storage read failed (no response from storage server)");
                     // Release the RPC connection with this storage server
                     // to not send request unnecessarily long
-                    rpc_client_release(&file->storages[mps]);
+                    pool_discard(&rozo_client->pool, file->hosts[mps]);
                 }
                 // Try to retrieve the next meta-projection
                 continue;
@@ -1017,7 +1029,7 @@ int64_t rozo_client_read(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t
         char block[ROZO_BSIZE];
         memset(block, 0, ROZO_BSIZE);
         while (read_blocks(rozo_client, file, first, 1, block) != 0) {
-            if (connect_file(file) != 0) {
+            if (connect_file(rozo_client, file) != 0) {
                 length = -1;
                 goto out;
             }
@@ -1038,7 +1050,7 @@ int64_t rozo_client_read(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t
         if (foffset != 0) {
             DEBUG("first not complete");
             while (read_blocks(rozo_client, file, first, 1, block) != 0) {
-                if (connect_file(file) != 0) {
+                if (connect_file(rozo_client, file) != 0) {
                     length = -1;
                     goto out;
                 }
@@ -1055,7 +1067,7 @@ int64_t rozo_client_read(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t
         if (loffset != ROZO_BSIZE) {
             DEBUG("last not complete");
             while (read_blocks(rozo_client, file, last, 1, block) != 0) {
-                if (connect_file(file) != 0) {
+                if (connect_file(rozo_client, file) != 0) {
                     length = -1;
                     goto out;
                 }
@@ -1071,7 +1083,7 @@ int64_t rozo_client_read(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t
         // Read the others
         if ((last - first) + 1 != 0) {
             while (read_blocks(rozo_client, file, first, (last - first) + 1, bufp) != 0) {
-                if (connect_file(file) != 0) {
+                if (connect_file(rozo_client, file) != 0) {
                     length = -1;
                     goto out;
                 }
@@ -1185,7 +1197,8 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
         // and try with the next server
         // Warning: the server can be disconnected but file->storages[ps].client != NULL
         // the disconnection will be detected when the request will be sent
-        if (!file->storages[ps].client) continue;
+        //if (!file->storages[ps].client) continue;
+        if (!file->storages[ps]->client) continue;
 
         uuid_copy(storage_write_args[mp].uuid, file->uuids[ps]);
 
@@ -1194,7 +1207,8 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
         storage_status_response_t *response; // Pointer to memory area where the response will be stored
 
         // Send the request to the storage server mp
-        response = storageproc_write_1(&storage_write_args[mp], file->storages[ps].client);
+        //response = storageproc_write_1(&storage_write_args[mp], file->storages[ps].client);
+        response = storageproc_write_1(&storage_write_args[mp], file->storages[ps]->client);
         // Awaiting response from server (storages[mp]) during TIMEOUT
         // See function rpc_client_initialize() in rpc_client.c for change the TIMEOUT
 
@@ -1212,7 +1226,11 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
                 // If no response from storage server during TIMEOUT seconds
                 warning("write_blocks failed: storage write failed (no response from storage server: %s)",
                         file->hosts[ps]);
-                rpc_client_release(&(file->storages[ps]));
+                // XXX
+                // XXX INFORM THE POOL
+                // XXX
+                pool_discard(&rozo_client->pool, file->hosts[ps]);
+                //rpc_client_release(&(file->storages[ps]));
                 continue;
             }
         }
@@ -1335,7 +1353,7 @@ int64_t rozo_client_write(rozo_client_t *rozo_client, rozo_file_t *file, uint64_
         if (fread == 1 || lread == 1) {
 
             while (read_blocks(rozo_client, file, first, 1, block) != 0) {
-                if (connect_file(file) != 0) {
+                if (connect_file(rozo_client, file) != 0) {
                     length = -1;
                     goto out;
                 }
@@ -1345,7 +1363,7 @@ int64_t rozo_client_write(rozo_client_t *rozo_client, rozo_file_t *file, uint64_
         memcpy(&block[foffset], buf, len);
 
         while (write_blocks(rozo_client, file, first, 1, block) != 0) {
-            if (connect_file(file) != 0) {
+            if (connect_file(rozo_client, file) != 0) {
                 length = -1;
                 goto out;
             }
@@ -1363,7 +1381,7 @@ int64_t rozo_client_write(rozo_client_t *rozo_client, rozo_file_t *file, uint64_
             // If we need to read the first block
             if (fread == 1) {
                 while (read_blocks(rozo_client, file, first, 1, block) != 0) {
-                    if (connect_file(file) != 0) {
+                    if (connect_file(rozo_client, file) != 0) {
                         length = -1;
                         goto out;
                     }
@@ -1371,7 +1389,7 @@ int64_t rozo_client_write(rozo_client_t *rozo_client, rozo_file_t *file, uint64_
             }
             memcpy(&block[foffset], buf, ROZO_BSIZE - foffset);
             while (write_blocks(rozo_client, file, first, 1, block) != 0) {
-                if (connect_file(file) != 0) {
+                if (connect_file(rozo_client, file) != 0) {
                     length = -1;
                     goto out;
                 }
@@ -1384,7 +1402,7 @@ int64_t rozo_client_write(rozo_client_t *rozo_client, rozo_file_t *file, uint64_
             // If we need to read the last block
             if (lread == 1) {
                 while (read_blocks(rozo_client, file, last, 1, block) != 0) {
-                    if (connect_file(file) != 0) {
+                    if (connect_file(rozo_client, file) != 0) {
                         length = -1;
                         goto out;
                     }
@@ -1392,7 +1410,7 @@ int64_t rozo_client_write(rozo_client_t *rozo_client, rozo_file_t *file, uint64_
             }
             memcpy(block, bufp + ROZO_BSIZE * (last - first), loffset);
             while (write_blocks(rozo_client, file, last, 1, block) != 0) {
-                if (connect_file(file) != 0) {
+                if (connect_file(rozo_client, file) != 0) {
                     length = -1;
                     goto out;
                 }
@@ -1403,7 +1421,7 @@ int64_t rozo_client_write(rozo_client_t *rozo_client, rozo_file_t *file, uint64_
         // Write the other blocks
         if ((last - first) + 1 != 0) {
             while (write_blocks(rozo_client, file, first, (last - first) + 1, bufp) != 0) {
-                if (connect_file(file) != 0) {
+                if (connect_file(rozo_client, file) != 0) {
                     length = -1;
                     goto out;
                 }
@@ -1440,7 +1458,7 @@ int rozo_client_close(rozo_file_t *file) {
     DEBUG_FUNCTION;
 
     if (file != NULL) {
-        disconnect_file(file);
+        //disconnect_file(file);
         if (file->path != NULL) {
             free(file->path);
         }

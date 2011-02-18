@@ -47,8 +47,8 @@ add_executable(exportd
     daemon.c
     queue_log.h
     queue_log.c
-    file_log.h
-    file_log.c
+    #file_log.h
+    #file_log.c
     volume.h
     volume.c
     distribution.h
@@ -79,6 +79,11 @@ add_executable(rozofs
     storage_proto.h
     storage_proto_xdr.c
     storage_proto_clt.c
+    distribution.h
+    hash_table.h
+    hash_table.c
+    pool.h
+    pool.c
     rpc_client.h
     rpc_client.c
     rozo_client.h

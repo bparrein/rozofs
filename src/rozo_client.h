@@ -28,15 +28,17 @@
 #include <uuid/uuid.h>
 
 #include "rpc_client.h"
+#include "pool.h"
 
 typedef struct rozo_client {
     rpc_client_t export_client;
     uuid_t export_uuid;
+    pool_t pool;
 } rozo_client_t;
 
 int rozo_client_initialize(rozo_client_t *rozo_client, const char *host, char *export);
 
-int rozo_client_release(rozo_client_t *rozo_client);
+void rozo_client_release(rozo_client_t *rozo_client);
 
 int rozo_client_statfs(rozo_client_t *rozo_client, struct statvfs *st);
 
@@ -48,6 +50,7 @@ int rozo_client_mknod(rozo_client_t *rozo_client, const char *path, mode_t mode)
 
 int rozo_client_mkdir(rozo_client_t *rozo_client, const char *path, mode_t mode);
 
+// XXX could (shoul) be an anonymous type
 typedef struct rozo_dirent {
     char *name;
     struct rozo_dirent *next;

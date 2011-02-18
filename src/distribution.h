@@ -18,6 +18,7 @@
 */
 
 #ifndef _DISTRIBUTION_H
+#define _DISTRIBUTION_H
 
 #include <stdint.h>
 
