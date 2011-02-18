@@ -13,7 +13,7 @@ INSTALLATION
 Requirements
 ------------
     - Cmake
-    - libxattr
+    - libattr
     - libuuid
     - libconfig
     - libfuse

@@ -280,10 +280,10 @@ out:
 rozo_dirent_t * rozo_client_readdir(rozo_client_t *rozo_client, const char *path) {
 
     int status;
-    rozo_dirent_t *dirent;
+    rozo_dirent_t *dirent = NULL;
     rozo_dirent_t **dirent_iterator;
     export_path_args_t args;
-    export_list_response_t *response;
+    export_list_response_t *response = NULL;
     export_children_t iterator;
 
     DEBUG_FUNCTION;
@@ -399,10 +399,10 @@ int rozo_client_unlink(rozo_client_t *rozo_client, const char *path) {
 
     status = 0;
 out:
-    if (args.path != NULL) {
+    if (args.path != NULL)
         xdr_free((xdrproc_t) xdr_export_path_t, (char *) & args.path);
-    }
-    xdr_free((xdrproc_t) xdr_export_status_response_t, (char *) export_status_response);
+    if (export_status_response != NULL)
+        xdr_free((xdrproc_t) xdr_export_status_response_t, (char *) export_status_response);
     return status;
 }
 
@@ -980,9 +980,8 @@ out:
     // Free the memory area where the request send to export server is stored
     xdr_free((xdrproc_t) xdr_export_read_block_args_t, (char *) & export_read_block_args);
     // Free the memory area where the response from the export server is stored
-    if (export_read_block_response != NULL) {
+    if (export_read_block_response != NULL)
         xdr_free((xdrproc_t) xdr_export_read_block_response_t, (char *) export_read_block_response);
-    }
     return status; // Return the result
 }
 
@@ -1154,7 +1153,7 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
         storage_write_args[mp].nmbs = nmbs; // Copy the nb. of metablocks
         // Nb. of bins to send (nb. of blocks * size of the projection connected)
         storage_write_args[mp].bins.bins_len = rozo_psizes[mp] * nmbs * sizeof (uint8_t);
-        // Memory allocation for the bins 
+        // Memory allocation for the bins
         storage_write_args[mp].bins.bins_val = malloc(rozo_psizes[mp] * nmbs * sizeof (uint8_t));
         // If memory allocation problem
         if (storage_write_args[mp].bins.bins_val == NULL) {
@@ -1204,7 +1203,7 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
 
         //storages[connected] = file->storages[ps].client;
 
-        storage_status_response_t *response; // Pointer to memory area where the response will be stored
+        storage_status_response_t * response; // Pointer to memory area where the response will be stored
 
         // Send the request to the storage server mp
         //response = storageproc_write_1(&storage_write_args[mp], file->storages[ps].client);

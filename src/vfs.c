@@ -31,8 +31,6 @@
 #include "log.h"
 #include "volume.h"
 #include "vfs.h"
-#include "queue_log.h"
-//#include "file_log.h"
 
 #define VFS_UUID_XATTR_KEY "user.rozo.vfs.uuid"
 #define VFS_BLOCKS_XATTR_KEY "user.rozo.vfs.blocks"
@@ -42,8 +40,6 @@
 #define VFS_MF_UUID_XATTR_KEY "user.rozo.vfs.mf.uuid"
 #define VFS_MF_MPSS_XATTR_KEY "user.rozo.vfs.mf.mss"
 #define VFS_MF_SIZE_XATTR_KEY "user.rozo.vfs.mf.size"
-
-//static queue_t queue1;
 
 static inline char * vfs_map(vfs_t *vfs, const char *vpath, char *path) {
 
@@ -382,29 +378,6 @@ int vfs_unlink(vfs_t *vfs, const char *vpath) {
             status = -1;
             goto out;
         }
-
-        /*
-        for (i = 0; i < ROZO_SAFE; i++) {
-
-            // New log_remove_file entry
-            item_file_t file;
-            strcpy(file.file_path, vpath);
-            uuid_copy(file.mf, uuid_file);
-            uuid_copy(file.uuid_ms, uuids_ms[i]);
-
-            if ((queue_enqueue(&queue1, &file)) == -1) {
-                warning("vfs_unlink: queue_enqueue failed : %s", strerror(errno));
-                status = -1;
-                goto out;
-            }
-
-            if ((log_remove_file(&file)) == -1) {
-                warning("vfs_unlink: log_remove_file failed : %s", strerror(errno));
-                status = -1;
-                goto out;
-            }
-        }
-        */
     }
 
     // XXX do we really need to call vfs_map again ?
@@ -595,66 +568,6 @@ int vfs_write_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, d
             goto out;
         }
     }
-    /*
-    for (i = 0; i < nmbs; i++) {
-
-        if ((read_result = pread(fd, &old_distribution, sizeof(distribution_t),
-                (mb + i) * sizeof(distribution_t))) == -1) {
-            severe("vfs_write_block failed: pread in file %s failed: %s", vfs_map(vfs, vpath, path), strerror(errno));
-            status = -1;
-            goto out;
-        }
-
-        // If the block already exists
-        //if (read_result != 0 && memcmp(old_distribution, empty_distribution, ROZO_SAFE * sizeof (uint8_t)) != 0) {
-        if (read_result != 0 && old_distribution != 0) {
-
-            // We compare the the old an new distributions
-            if (distribution != old_distribution) {
-                int j = 0;
-                int old_proj = 0;
-                int new_proj = 0;
-
-                for (j = 0; j < ROZO_SAFE; j++) {
-
-                    if (distribution_is_set(old_distribution, j) && 
-                            (distribution_is_set(distribution, j) || old_proj != new_proj)) {
-
-                        // New projection remove entry
-                        item_proj_t proj;
-                        proj.mb = (mb + i);
-                        strcpy(proj.file_path, vpath);
-                        proj.mp = old_proj;
-                        uuid_copy(proj.mf, uuid_file);
-                        uuid_copy(proj.uuid_ms, uuids_ms[j]);
-
-                        // Enqueue this entry
-                        if ((queue_enqueue(&queue1, &proj)) == -1) {
-                            warning("vfs_write_block: queue_enqueue failed : %s", strerror(errno));
-                            status = -1;
-                            goto out;
-                        }
-
-                        // Log this in the logfile
-                        if ((log_remove_projection(&proj)) == -1) {
-                            warning("vfs_write_block: log_remove_projection failed : %s", strerror(errno));
-                            status = -1;
-                            goto out;
-                        }
-                    }
-                    new_proj += distribution_is_set(distribution, j);
-                    old_proj += distribution_is_set(old_distribution, j);
-                }
-            }
-        }
-        // NOT NECESSARY AT EACH TIME
-        if (write(fd, &distribution, sizeof(distribution_t)) != sizeof(distribution_t)) {
-            status = -1;
-            severe("vfs_write_block failed: write in file %s failed: %s", vfs_map(vfs, vpath, path), strerror(errno));
-            goto out;
-        }
-    }
-    */
 
 out:
     if (fd != -1) close(fd);

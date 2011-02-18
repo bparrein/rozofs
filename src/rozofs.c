@@ -42,6 +42,28 @@ static char export[255];
 
 static rozo_client_t rozo_client;
 
+// should return a context
+
+/*
+static void *rozofs_init(struct fuse_conn_info *conn) {
+
+    DEBUG_FUNCTION;
+
+    if (rozo_initialize() != 0) {
+        severe("%s", strerror(errno));
+        goto out;
+    }
+
+    if (rozo_client_initialize(&rozo_client, host, export) == -1) {
+        severe("%s", strerror(errno));
+        goto out;
+    }
+
+out:
+    return NULL;
+}
+*/
+
 static void rozofs_destroy(void *args) {
 
     DEBUG_FUNCTION;
@@ -321,6 +343,7 @@ out:
 }
 
 static struct fuse_operations rozo_operations = {
+    //.init = rozofs_init,
     .destroy = rozofs_destroy,
     .statfs = rozofs_statfs,
     .getattr = rozofs_getattr,
@@ -401,12 +424,12 @@ int main(int argc, char *argv[]) {
     fuse_argv[8] = strdup("-o");
     fuse_argv[9] = strdup("big_writes");
     fuse_argv[10] = strdup("-o");
-    fuse_argv[11] = strdup("max_write=65536");
+    fuse_argv[11] = strdup("max_write=65536"); // Why ?
     fuse_argv[12] = argv[3];
 
     openlog("rozofs", LOG_PID, LOG_LOCAL0);
 
-    if (rozo_initialize() != 0) {
+        if (rozo_initialize() != 0) {
         fprintf(stderr, "rozofs: failed to mount a rozo filesystem for export: %s from: %s on:"
                 " %s\n%s\nSee log for more information\n", argv[2], argv[1], argv[3], strerror(errno));
         exit(EXIT_FAILURE);
