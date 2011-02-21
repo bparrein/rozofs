@@ -20,12 +20,10 @@
 #ifndef _HASH_TABLE
 #define _HASH_TABLE
 
-#include <stdlib.h>
-
 #include "list.h"
 
 typedef struct hash_table {
-	int (*hash) (void *);
+	unsigned int (*hash) (void *);
 	int (*cmp) (void *, void *);
 	int size;
 	list_t *buckets;
@@ -33,9 +31,9 @@ typedef struct hash_table {
 
 // Convenient function hashing memory chunk.
 // Could be used by user defined hashing function.
-int hash_table_hash(void *key, int len);
+unsigned int hash_table_hash(void *key, int len);
 
-int hash_table_init(hash_table_t *h, int size, int (*hash) (void *), int (*cmp) (void *, void *));
+int hash_table_init(hash_table_t *h, int size, unsigned int (*hash) (void *), int (*cmp) (void *, void *));
 
 void hash_table_release(hash_table_t *h);
 

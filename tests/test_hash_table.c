@@ -23,7 +23,7 @@
 
 #include "hash_table.h"
 
-static int string_hash(void *key) {
+static unsigned int string_hash(void *key) {
 	return hash_table_hash(key, strlen(key));
 }
 
@@ -35,6 +35,7 @@ int main(int argc, char** argv) {
 
     int i;
     hash_table_t h;
+    void *ptr;
 
     static char *keys[] = { "a", "b", "c", "d", "e",
     			"f", "g", "h", "i", "j", "k", "l",
@@ -47,6 +48,8 @@ int main(int argc, char** argv) {
 			"tango", "uniform", "victor", "whisky", "x-ray", "yankee", "zulu" };
 
     hash_table_init(&h, 10, string_hash, string_cmp);
+
+    ptr = hash_table_get(&h, "z");
 
     for (i = 0; i < 26; i++)
     	hash_table_put(&h, keys[i], vals[i]);
@@ -70,4 +73,5 @@ int main(int argc, char** argv) {
     for (i = 0; i < 25; i++)
         	printf("%s: %s\n", keys[i], (char *)hash_table_get(&h, keys[i]));
 
+    hash_table_get(&h, "z");
 }

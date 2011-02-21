@@ -30,7 +30,7 @@ typedef struct pool_entry {
     list_t list;
 } pool_entry_t;
 
-static int string_hash(void *key) {
+static unsigned int string_hash(void *key) {
 	return hash_table_hash(key, strlen(key));
 }
 

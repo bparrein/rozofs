@@ -27,9 +27,9 @@ typedef struct hash_entry {
 	list_t list;
 } hash_entry_t;
 
-int hash_table_hash(void *key, int len) {
-	int hash = 0;
-    char *c;
+unsigned int hash_table_hash(void *key, int len) {
+	unsigned int hash = 0;
+	unsigned char *c;
 
     for (c = key; c != key + len; c++)
     	hash = *c + (hash << 6) + (hash << 16) - hash;
@@ -37,7 +37,7 @@ int hash_table_hash(void *key, int len) {
     return hash;
 }
 
-int hash_table_init(hash_table_t *h, int size, int (*hash) (void *), int (*cmp) (void *, void *)) {
+int hash_table_init(hash_table_t *h, int size, unsigned int (*hash) (void *), int (*cmp) (void *, void *)) {
 
 	int status = -1;
 	list_t *it;

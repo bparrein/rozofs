@@ -208,6 +208,9 @@ int rozo_client_mknod(rozo_client_t *rozo_client, const char *path, mode_t mode)
     export_status_response_t *response = NULL;
 
     DEBUG_FUNCTION;
+    // DEBUG
+    // mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+    // DEBUG
 
     uuid_copy(args.uuid, rozo_client->export_uuid);
 
@@ -710,7 +713,7 @@ rozo_file_t * rozo_client_open(rozo_client_t *rozo_client, const char *path, mod
     uuid_copy(file->uuid, response->export_attr_response_t_u.attr.uuid);
     for (i = 0; i < ROZO_SAFE; i++) {
         //file->storages[i].client = NULL;
-        file->storages[i]->client = NULL; //XXX why ?
+        //file->storages[i]->client = NULL; //XXX why ?
         strcpy(file->hosts[i], response->export_attr_response_t_u.attr.hosts[i]);
         uuid_copy(file->uuids[i], response->export_attr_response_t_u.attr.uuids[i]);
     }

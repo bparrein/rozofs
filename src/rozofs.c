@@ -263,6 +263,25 @@ out:
     return -errno;
 }
 
+/*
+static int rozofs_create(const char *path, mode_t mode, struct fuse_file_info *info) {
+
+	rozo_file_t *file;
+
+	DEBUG_FUNCTION;
+
+
+	if ((file = rozo_client_open(&rozo_client, path, mode)) == NULL) {
+		goto out;
+	}
+
+	info->fh = (unsigned long) file;
+
+	errno = 0;
+out:
+	return -errno;
+}
+*/
 static int rozofs_release(const char *path, struct fuse_file_info *info) {
 
     DEBUG_FUNCTION;
@@ -276,13 +295,14 @@ static int rozofs_release(const char *path, struct fuse_file_info *info) {
     return 0;
 }
 
+
 static int rozofs_create(const char *path, mode_t mode, struct fuse_file_info *info) {
 
     int status;
 
     DEBUG_FUNCTION;
 
-    if ((status = rozofs_mknod(path, mode, 0)) != 0) {
+    if ((status = rozofs_mknod(path, mode | S_IRUSR | S_IWUSR, 0)) != 0) {
         return -errno;
     }
 
@@ -292,6 +312,7 @@ static int rozofs_create(const char *path, mode_t mode, struct fuse_file_info *i
 
     return 0;
 }
+
 
 static int rozofs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 
@@ -351,7 +372,6 @@ static struct fuse_operations rozo_operations = {
     .utimens = rozofs_utimens,
     .readdir = rozofs_readdir,
     .mknod = rozofs_mknod,
-    //.create	= rozofs_create,
     .mkdir = rozofs_mkdir,
     .rename = rozofs_rename,
     .readlink = rozofs_readlink,
@@ -362,6 +382,7 @@ static struct fuse_operations rozo_operations = {
     .write = rozofs_write,
     .access = rozofs_access,
     .open = rozofs_open,
+    .create	= rozofs_create,
     .release = rozofs_release,
     .truncate = rozofs_truncate,
 };
