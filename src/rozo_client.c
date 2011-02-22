@@ -35,31 +35,32 @@
 
 int rozo_client_initialize(rozo_client_t *rozo_client, const char *host, char *export) {
 
-    int status;
+    int status = -1;
     export_lookup_response_t *response = NULL;
 
     DEBUG_FUNCTION;
 
+    if (pool_initialize(&rozo_client->pool) != 0) {
+    	goto out;
+    }
+
     if (rpc_client_initialize(&rozo_client->export_client, host, EXPORT_PROGRAM, EXPORT_VERSION, 8192, 8192) != 0) {
-        status = -1;
         severe("rpc_client_initialize failed: server %s unreachable: %s", host, strerror(errno));
         goto out;
     }
 
     if ((response = exportproc_lookup_1(&export, rozo_client->export_client.client)) == NULL) {
-        status = -1;
         goto out;
     }
 
     if (response->status == EXPORT_FAILURE) {
         errno = response->export_lookup_response_t_u.error;
-        status = -1;
         goto out;
     }
 
     uuid_copy(rozo_client->export_uuid, response->export_lookup_response_t_u.uuid);
     
-    status = pool_initialize(&rozo_client->pool);
+    status = 0;
 out:
     if (status != 0) rozo_client_release(rozo_client);
     return status;
@@ -1138,11 +1139,11 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
     }
     export_write_block_args.mb = mb; // Copy the metablock number
     export_write_block_args.nmbs = nmbs; // Copy the nb. of metablocks
-    //memset(export_write_block_args.distribution, 0, ROZO_SAFE); // Distribution set to 0 by default
     export_write_block_args.distribution = 0;
 
-    /* Prepare the requests to send to storage servers
-     * We will try to prepare request for ROZO_FORWARD (of ROZO_SAFE) storage servers used to store this file */
+    // Prepare the requests to send to storage servers
+    // We will try to prepare request for ROZO_FORWARD (of ROZO_SAFE)
+    // storage servers used to store this file
 
     // For each projection
     for (mp = 0; mp < ROZO_FORWARD; mp++) {
@@ -1199,18 +1200,15 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
         // and try with the next server
         // Warning: the server can be disconnected but file->storages[ps].client != NULL
         // the disconnection will be detected when the request will be sent
-        //if (!file->storages[ps].client) continue;
         if (!file->storages[ps]->client) continue;
 
         uuid_copy(storage_write_args[mp].uuid, file->uuids[ps]);
 
-        //storages[connected] = file->storages[ps].client;
-
         storage_status_response_t * response; // Pointer to memory area where the response will be stored
 
         // Send the request to the storage server mp
-        //response = storageproc_write_1(&storage_write_args[mp], file->storages[ps].client);
         response = storageproc_write_1(&storage_write_args[mp], file->storages[ps]->client);
+
         // Awaiting response from server (storages[mp]) during TIMEOUT
         // See function rpc_client_initialize() in rpc_client.c for change the TIMEOUT
 
@@ -1228,11 +1226,7 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
                 // If no response from storage server during TIMEOUT seconds
                 warning("write_blocks failed: storage write failed (no response from storage server: %s)",
                         file->hosts[ps]);
-                // XXX
-                // XXX INFORM THE POOL
-                // XXX
                 pool_discard(&rozo_client->pool, file->hosts[ps]);
-                //rpc_client_release(&(file->storages[ps]));
                 continue;
             }
         }
@@ -1248,8 +1242,8 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
         // Increment the number of send requests (and stop the loop if enough request prepared)
         if (++mp == ROZO_FORWARD) break;
     }
-    // Not enough server storage connections to store the file
 
+    // Not enough server storage connections to store the file
     if (mp < ROZO_FORWARD) {
         severe("write_blocks failed: error not enough connections with storage servers for store the blocks"
                 " %llu to %llu of file: %s (only %d/%d)", mb, mb + nmbs, file->path, mp, ROZO_FORWARD);
@@ -1258,8 +1252,6 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
         goto out; // -> test to reconnect the file (in function rozo_client_write())
     }
 
-
-    /* Send request to the export server */
 
     // Send the request to the export server
     export_response = exportproc_write_block_1(&export_write_block_args, rozo_client->export_client.client);
@@ -1278,7 +1270,6 @@ static int write_blocks(rozo_client_t *rozo_client, rozo_file_t *file, uint64_t 
         errno = EIO; // I/O error
         status = -1;
         goto out;
-        // NOT GOOD !!!!
         // XXX If no response from export server, don't try to connect the file with storage servers
     }
 

@@ -18,6 +18,8 @@
 */
 
 #include <string.h>
+
+#include "log.h"
 #include "list.h"
 #include "hash_table.h"
 
@@ -42,6 +44,8 @@ int hash_table_init(hash_table_t *h, int size, unsigned int (*hash) (void *), in
 	int status = -1;
 	list_t *it;
 
+	DEBUG_FUNCTION;
+
 	h->hash = hash;
 	h->cmp = cmp;
 	h->size = size;
@@ -61,6 +65,8 @@ out:
 void hash_table_release(hash_table_t *h) {
 
 	list_t *it;
+
+	DEBUG_FUNCTION;
 
 	if (! h) goto out;
 
@@ -82,6 +88,8 @@ int hash_table_put(hash_table_t *h, void *key, void *value) {
 	int status;
 	hash_entry_t *he = NULL;
 
+	DEBUG_FUNCTION;
+
 	if (!(he = malloc(sizeof(hash_entry_t)))) {
 		goto out;
 	}
@@ -101,6 +109,8 @@ void * hash_table_get(hash_table_t *h, void *key) {
 	void *value = NULL;
 	list_t *p;
 
+	DEBUG_FUNCTION;
+
 	list_for_each_forward(p, h->buckets + (h->hash(key) % h->size)) {
 		hash_entry_t *he = list_entry(p, hash_entry_t, list);
 		if (h->cmp(he->key, key) == 0) {
@@ -118,6 +128,8 @@ void * hash_table_del(hash_table_t *h, void *key) {
 
 	void *value = NULL;
 	list_t *p, *q;
+
+	DEBUG_FUNCTION;
 
 	list_for_each_forward_safe(p, q, h->buckets + (h->hash(key) % h->size)) {
 		hash_entry_t *he = list_entry(p, hash_entry_t, list);

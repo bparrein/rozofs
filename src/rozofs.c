@@ -263,25 +263,6 @@ out:
     return -errno;
 }
 
-/*
-static int rozofs_create(const char *path, mode_t mode, struct fuse_file_info *info) {
-
-	rozo_file_t *file;
-
-	DEBUG_FUNCTION;
-
-
-	if ((file = rozo_client_open(&rozo_client, path, mode)) == NULL) {
-		goto out;
-	}
-
-	info->fh = (unsigned long) file;
-
-	errno = 0;
-out:
-	return -errno;
-}
-*/
 static int rozofs_release(const char *path, struct fuse_file_info *info) {
 
     DEBUG_FUNCTION;
@@ -450,7 +431,7 @@ int main(int argc, char *argv[]) {
 
     openlog("rozofs", LOG_PID, LOG_LOCAL0);
 
-        if (rozo_initialize() != 0) {
+    if (rozo_initialize() != 0) {
         fprintf(stderr, "rozofs: failed to mount a rozo filesystem for export: %s from: %s on:"
                 " %s\n%s\nSee log for more information\n", argv[2], argv[1], argv[3], strerror(errno));
         exit(EXIT_FAILURE);

@@ -19,6 +19,7 @@
 
 #include <errno.h>
 
+#include "log.h"
 #include "pool.h"
 #include "storage_proto.h"
 
@@ -42,6 +43,8 @@ int pool_initialize(pool_t *pool) {
 
 	int status = -1;
 
+	DEBUG_FUNCTION;
+
 	if (! pool) {
 		errno = EFAULT;
 		goto out;
@@ -56,6 +59,8 @@ out:
 void pool_release(pool_t *pool) {
 
     list_t *p, *q;
+
+    DEBUG_FUNCTION;
 
     if (! pool) goto out;
 
