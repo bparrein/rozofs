@@ -20,20 +20,25 @@
 #ifndef _TRANSFORM_H
 #define	_TRANSFORM_H
 
+#include <stdint.h>
+
+typedef uint64_t bin_t;         // bin
+typedef uint64_t pxl_t;         // pixel
+
 typedef struct angle {
-    int p;	
+    int p;
     int q;
 } angle_t;
 
 typedef struct projection {
     angle_t angle;
     int size;
-    char *bins;
+    bin_t *bins;
 } projection_t;
 
-int transform_forward(const char *support, int rows, int cols, int np, projection_t *projections); 
-
-int transform_inverse(char *support, int rows, int cols, int np, projection_t *projections);
+void transform_forward(const pxl_t * support, int rows, int cols, int np,
+                       projection_t * projections);
+void transform_inverse(pxl_t * support, int rows, int cols, int np,
+                       projection_t * projections);
 
 #endif
-

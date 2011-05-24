@@ -22,72 +22,86 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}) # for config.h
 include_directories(${PTHREAD_INCLUDE_DIR})
 
 add_executable(storaged
-    log.h
+    config.h
     rozo.h
     rozo.c
-    daemon.h
-    daemon.c
+    log.h
+    list.h
+    xmalloc.h
+    xmalloc.c
+    htable.h
+    htable.c
     storage.h
     storage.c
-    storage_config.h
-    storage_config.c
-    storage_proto.h
-    storage_proto_xdr.c
-    storage_proto_svc.c
-    storage_proto.c
+    sproto.h
+    sprotoxdr.c
+    sprotosvc.c
+    sproto.c
+    daemon.h
+    daemon.c
     storaged.c
 )
 target_link_libraries(storaged ${XATTR_LIBRARY} ${UUID_LIBRARY} ${CONFIG_LIBRARY})
 
 add_executable(exportd
+    config.h
     rozo.h
     rozo.c
     log.h
+    list.h
+    dist.h
+    xmalloc.h
+    xmalloc.c
+    htable.h
+    htable.c
     daemon.h
     daemon.c
     volume.h
     volume.c
-    distribution.h
-    vfs.h
-    vfs.c
-    export_config.h
-    export_config.c
-    export_proto.h
-    export_proto_xdr.c
-    export_proto_svc.c
-    export_proto.c
-    storage_proto.h
-    storage_proto_xdr.c
-    storage_proto_clt.c
+    export.h
+    export.c
+    eproto.h
+    eprotoxdr.c
+    eprotosvc.c
+    eproto.c
+    rpcclt.h
+    rpcclt.c
+    sproto.h
+    sprotoxdr.c
+    sprotoclt.c
+    storageclt.c
     exportd.c
 )
 target_link_libraries(exportd ${XATTR_LIBRARY} ${PTHREAD_LIBRARY} ${UUID_LIBRARY} ${CONFIG_LIBRARY})
 
-add_executable(rozofs
-    log.h
-    transform.h
-    transform.c
+add_executable(rozomount
+    config.h
     rozo.h
     rozo.c
-    export_proto.h
-    export_proto_xdr.c
-    export_proto_clt.c
-    storage_proto.h
-    storage_proto_xdr.c
-    storage_proto_clt.c
-    distribution.h
-    hash_table.h
-    hash_table.c
-    pool.h
-    pool.c
-    rpc_client.h
-    rpc_client.c
-    rozo_client.h
-    rozo_client.c
-    rozofs.c
+    log.h
+    xmalloc.h
+    xmalloc.c
+    transform.h
+    transform.c
+    dist.h
+    htable.h
+    htable.c
+    rpcclt.h
+    rpcclt.c    
+    sproto.h
+    sprotoxdr.c
+    sprotoclt.c
+    storageclt.c
+    eproto.h
+    eprotoxdr.c
+    eprotoclt.c
+    exportclt.c
+    file.h
+    file.c
+    rozomount.c
 )
 #pthread need by fuse 
-target_link_libraries(rozofs ${PTHREAD_LIBRARY} ${FUSE_LIBRARY} ${UUID_LIBRARY})
+target_link_libraries(rozomount ${PTHREAD_LIBRARY} ${FUSE_LIBRARY} ${UUID_LIBRARY})
 
 # Install
 install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${CONF_DIR})" COMPONENT storage)
@@ -111,10 +125,9 @@ install(TARGETS exportd
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/export.conf.sample DESTINATION etc/rozo COMPONENT export)
 
-install(TARGETS rozofs
+install(TARGETS rozomount
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     COMPONENT client
 )
-

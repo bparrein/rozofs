@@ -16,7 +16,7 @@
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
 */
- 
+
 #ifndef _LIST_H
 #define _LIST_H
 
@@ -26,45 +26,47 @@ typedef struct list {
     struct list *next, *prev;
 } list_t;
 
-static inline void list_init(list_t *list) {
-    list->next = list; 
+static inline void list_init(list_t * list) {
+    list->next = list;
     list->prev = list;
 }
 
-static inline void list_insert(list_t *new, list_t *prev, list_t *next) {
+static inline void list_insert(list_t * new, list_t * prev, list_t * next) {
     next->prev = new;
     new->next = next;
     new->prev = prev;
     prev->next = new;
 }
 
-static inline void list_push_front(list_t *head, list_t *new) {
+static inline void list_push_front(list_t * head, list_t * new) {
     list_insert(new, head, head->next);
 }
 
-static inline void list_push_back(list_t *head, list_t *new) {
+static inline void list_push_back(list_t * head, list_t * new) {
     list_insert(new, head->prev, head);
 }
 
-static inline void list_remove(list_t *list) {
+static inline void list_remove(list_t * list) {
     list->next->prev = list->prev;
     list->prev->next = list->next;
     list->next = (void *) 0;
     list->prev = (void *) 0;
 }
 
-static inline int list_empty(list_t *head) {
+static inline int list_empty(list_t * head) {
     return head->next == head;
 }
 
-static inline int list_size(list_t *head) {
+static inline int list_size(list_t * head) {
     list_t *iterator;
     int size;
-    for (iterator = (head)->next, size = 0; iterator != (head); iterator = iterator->next, size++);
+    for (iterator = (head)->next, size = 0; iterator != (head);
+         iterator = iterator->next, size++);
     return size;
 }
 
-static inline void list_sort(list_t *head, int (*cmp)(list_t *a, list_t *b)) {
+static inline void list_sort(list_t * head,
+                             int (*cmp) (list_t * a, list_t * b)) {
     list_t *p, *q, *e, *list, *tail, *oldhead;
     int insize, nmerges, psize, qsize, i;
 
@@ -96,22 +98,26 @@ static inline void list_sort(list_t *head, int (*cmp)(list_t *a, list_t *b)) {
                     e = q;
                     q = q->next;
                     qsize--;
-                    if (q == oldhead) q = NULL;
+                    if (q == oldhead)
+                        q = NULL;
                 } else if (!qsize || !q) {
                     e = p;
                     p = p->next;
                     psize--;
-                    if (p == oldhead) p = NULL;
+                    if (p == oldhead)
+                        p = NULL;
                 } else if (cmp(p, q) <= 0) {
                     e = p;
                     p = p->next;
                     psize--;
-                    if (p == oldhead) p = NULL;
+                    if (p == oldhead)
+                        p = NULL;
                 } else {
                     e = q;
                     q = q->next;
                     qsize--;
-                    if (q == oldhead) q = NULL;
+                    if (q == oldhead)
+                        q = NULL;
                 }
                 if (tail)
                     tail->next = e;
@@ -138,16 +144,21 @@ static inline void list_sort(list_t *head, int (*cmp)(list_t *a, list_t *b)) {
     list->prev = head;
 }
 
-#define list_entry(ptr, type, member) ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+#define list_entry(ptr, type, member) \
+	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
 
-#define list_for_each_forward(pos, head) for (pos = (head)->next; pos != (head); pos = pos->next)
+#define list_for_each_forward(pos, head) \
+	for (pos = (head)->next; pos != (head); pos = pos->next)
 
-#define list_for_each_backward(pos, head) for (pos = (head)->prev; pos != (head); pos = pos->prev)
+#define list_for_each_backward(pos, head) \
+	for (pos = (head)->prev; pos != (head); pos = pos->prev)
 
 #define list_for_each_forward_safe(pos, n, head)\
-    for (pos = (head)->next, n = pos->next; pos != (head); pos = n, n = pos->next)
+    for (pos = (head)->next, n = pos->next; pos != (head); \
+    	pos = n, n = pos->next)
 
 #define list_for_each_backward_safe(pos, n, head)\
-    for (pos = (head)->prev, n = pos->prev; pos != (head); pos = n, n = pos->prev)
+    for (pos = (head)->prev, n = pos->prev; pos != (head); \
+    	pos = n, n = pos->prev)
 
 #endif

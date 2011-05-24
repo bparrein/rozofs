@@ -29,7 +29,7 @@
 #include <uuid/uuid.h>
 
 #include "rozo.h"
-#include "distribution.h"
+#include "dist.h"
 
 typedef struct vattr {
     uuid_t uuid;
@@ -44,40 +44,42 @@ typedef struct vfs {
 
 int vfs_create(const char *root);
 
-int vfs_uuid(const char *root, uuid_t uuid);
+//int vfs_uuid(const char *root, uuid_t uuid);
 
-int vfs_statfs(vfs_t *vfs, struct statvfs *st);
+int vfs_statfs(vfs_t * vfs, struct statvfs *st);
 
-int vfs_attr(vfs_t *vfs, const char *vpath, vattr_t *attr);
+int vfs_attr(vfs_t * vfs, const char *vpath, vattr_t * attr);
 
-int vfs_stat(vfs_t *vfs, const char *vpath, struct stat *st);
+int vfs_stat(vfs_t * vfs, const char *vpath, struct stat *st);
 
-int vfs_readlink(vfs_t *vfs, const char *vtarget, char *vlink);
+int vfs_readlink(vfs_t * vfs, const char *vtarget, char *vlink);
 
-int vfs_mknod(vfs_t *vfs, const char *vpath, mode_t mode);
+int vfs_mknod(vfs_t * vfs, const char *vpath, mode_t mode);
 
-int vfs_mkdir(vfs_t *vfs, const char *vpath, mode_t mode);
+int vfs_mkdir(vfs_t * vfs, const char *vpath, mode_t mode);
 
-int vfs_unlink(vfs_t *vfs, const char *vpath);
+int vfs_unlink(vfs_t * vfs, const char *vpath);
 
-int vfs_rmdir(vfs_t *vfs, const char *vpath);
+int vfs_rmdir(vfs_t * vfs, const char *vpath);
 
-int vfs_symlink(vfs_t *vfs, const char *vtarget, const char *vlink);
+int vfs_symlink(vfs_t * vfs, const char *vtarget, const char *vlink);
 
-int vfs_rename(vfs_t *vfs, const char *vfrom, const char *vto);
+int vfs_rename(vfs_t * vfs, const char *vfrom, const char *vto);
 
-int vfs_chmod(vfs_t *vfs, const char *vpath, mode_t mode);
+int vfs_chmod(vfs_t * vfs, const char *vpath, mode_t mode);
 
-int vfs_truncate(vfs_t *vfs, const char *vpath, uint64_t offset);
+int vfs_truncate(vfs_t * vfs, const char *vpath, uint64_t offset);
 
-int64_t vfs_read(vfs_t *vfs, const char *vpath, uint64_t off, uint32_t len);
+int64_t vfs_read(vfs_t * vfs, const char *vpath, uint64_t off, uint32_t len);
 
-int vfs_read_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, distribution_t *distribution);
+int vfs_read_block(vfs_t * vfs, const char *vpath, uint64_t mb, uint32_t nmbs,
+                   dist_t * distribution);
 
-int64_t vfs_write(vfs_t *vfs, const char *vpath, uint64_t off, uint32_t len);
+int64_t vfs_write(vfs_t * vfs, const char *vpath, uint64_t off, uint32_t len);
 
-int vfs_write_block(vfs_t *vfs, const char *vpath, uint64_t mb, uint32_t nmbs, distribution_t distribution);
+int vfs_write_block(vfs_t * vfs, const char *vpath, uint64_t mb,
+                    uint32_t nmbs, dist_t distribution);
 
-DIR * vfs_opendir(vfs_t *vfs, const char *vpath);
+DIR *vfs_opendir(vfs_t * vfs, const char *vpath);
 
 #endif

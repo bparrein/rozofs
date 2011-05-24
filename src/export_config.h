@@ -48,11 +48,11 @@ typedef struct export_config {
     list_t mfss;
 } export_config_t;
 
-int export_config_initialize(export_config_t *export_config, const char* path);
+int export_config_initialize(export_config_t * export_config,
+                             const char *path);
 
-int export_config_release(export_config_t *export_config);
+int export_config_release(export_config_t * export_config);
 
-void export_config_print(export_config_t *export_config);
+void export_config_print(export_config_t * export_config);
 
 #endif
-

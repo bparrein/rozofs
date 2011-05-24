@@ -1,14 +1,45 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "rozo.h"
+#include "xmalloc.h"
+#include "transform.h"
 #include "storage.h"
 
-// XXX COMPILATION TEST FOR NOW
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
+    storage_t st;
+    sid_t sid = 0;
+    sstat_t sst;
+    fid_t fid;
+    bin_t *bins;
 
-    if (!rozo_initialize()) {
-        perror("failed to initialize rozo");
+    rozo_initialize(LAYOUT_2_3_4);
+    storage_initialize(&st, sid, "/tmp");
+
+    if (storage_stat(&st, &sst) != 0) {
+        perror("failed to stat storage");
         exit(-1);
     }
+    printf("size: %lld, free: %lld\n", sst.size, sst.free);
+
+    uuid_generate(fid);
+    // Write some bins (15 prj)
+    bins = xmalloc(rozo_psizes[0] * 15);
+    if (storage_write(&st, fid, 0, 10, 15, bins) != 0) {
+        perror("failed to write bins");
+        exit(-1);
+    }
+
+    if (storage_truncate(&st, fid, 0, 10) != 0) {
+        perror("failed to truncate pfile");
+        exit(-1);
+    }
+
+    if (storage_remove(&st, fid, 0) != 0) {
+        perror("failed to remove pfile");
+        exit(-1);
+    }
+
+    storage_release(&st);
     exit(0);
 }

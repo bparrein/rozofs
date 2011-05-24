@@ -25,7 +25,9 @@
 #include "log.h"
 #include "export_config.h"
 
-static int setting_to_export_config_ms(struct config_setting_t *setting, export_config_ms_t *export_config_ms) {
+static int setting_to_export_config_ms(struct config_setting_t *setting,
+                                       export_config_ms_t *
+                                       export_config_ms) {
 
     int status;
     const char *uuid;
@@ -55,7 +57,9 @@ out:
     return status;
 }
 
-static int setting_to_export_config_mfs(struct config_setting_t *setting, export_config_mfs_t *export_config_mfs) {
+static int setting_to_export_config_mfs(struct config_setting_t *setting,
+                                        export_config_mfs_t *
+                                        export_config_mfs) {
 
     int status;
     const char *root;
@@ -76,7 +80,8 @@ out:
     return status;
 }
 
-int export_config_initialize(export_config_t *export_config, const char* path) {
+int export_config_initialize(export_config_t * export_config,
+                             const char *path) {
 
     int status, i;
     struct config_t config;
@@ -114,14 +119,17 @@ int export_config_initialize(export_config_t *export_config, const char* path) {
         }
 
         if ((ms_setting = config_setting_get_elem(mss_setting, i)) == NULL) {
-            errno = EIO; //XXX
-            severe("can't get setting element: %s.", config_error_text(&config));
+            errno = EIO;        //XXX
+            severe("can't get setting element: %s.",
+                   config_error_text(&config));
             status = -1;
             goto out;
         }
 
-        if (setting_to_export_config_ms(ms_setting, &entry->export_config_ms) != 0) {
-            severe("can't get meta storage from setting: %s.", strerror(errno));
+        if (setting_to_export_config_ms(ms_setting, &entry->export_config_ms)
+            != 0) {
+            severe("can't get meta storage from setting: %s.",
+                   strerror(errno));
             status = -1;
             goto out;
         }
@@ -146,13 +154,15 @@ int export_config_initialize(export_config_t *export_config, const char* path) {
         }
 
         if ((mfs_setting = config_setting_get_elem(mfss_setting, i)) == NULL) {
-            errno = EIO; //XXX
-            severe("can't get setting element: %s.", config_error_text(&config));
+            errno = EIO;        //XXX
+            severe("can't get setting element: %s.",
+                   config_error_text(&config));
             status = -1;
             goto out;
         }
 
-        if (setting_to_export_config_mfs(mfs_setting, &entry->export_config_mfs) != 0) {
+        if (setting_to_export_config_mfs
+            (mfs_setting, &entry->export_config_mfs) != 0) {
             severe("can't get export from setting: %s.", strerror(errno));
             status = -1;
             goto out;
@@ -162,12 +172,13 @@ int export_config_initialize(export_config_t *export_config, const char* path) {
 
     status = 0;
 out:
-    if (status != 0) errno = EIO;
+    if (status != 0)
+        errno = EIO;
     config_destroy(&config);
     return status;
 }
 
-int export_config_release(export_config_t *config) {
+int export_config_release(export_config_t * config) {
 
     DEBUG_FUNCTION;
     list_t *p, *q;
@@ -175,13 +186,15 @@ int export_config_release(export_config_t *config) {
     if (config) {
 
         list_for_each_forward_safe(p, q, &config->mss) {
-            export_config_ms_entry_t *entry = list_entry(p, export_config_ms_entry_t, list);
+            export_config_ms_entry_t *entry =
+                list_entry(p, export_config_ms_entry_t, list);
             list_remove(p);
             free(entry);
         }
 
         list_for_each_forward_safe(p, q, &config->mfss) {
-            export_config_mfs_entry_t *entry = list_entry(p, export_config_mfs_entry_t, list);
+            export_config_mfs_entry_t *entry =
+                list_entry(p, export_config_mfs_entry_t, list);
             list_remove(p);
             free(entry);
         }
@@ -189,26 +202,28 @@ int export_config_release(export_config_t *config) {
     return 0;
 }
 
-void export_config_print(export_config_t *export_config) {
+void export_config_print(export_config_t * export_config) {
 
     list_t *iterator;
 
     DEBUG_FUNCTION;
 
-    printf("export_config: %d mss, %d mfss\n", list_size(&export_config->mss), list_size(&export_config->mfss));
+    printf("export_config: %d mss, %d mfss\n", list_size(&export_config->mss),
+           list_size(&export_config->mfss));
     puts("volume:");
 
     list_for_each_forward(iterator, &export_config->mss) {
         char uuid[37];
-        export_config_ms_entry_t *entry = list_entry(iterator, export_config_ms_entry_t, list);
+        export_config_ms_entry_t *entry =
+            list_entry(iterator, export_config_ms_entry_t, list);
         uuid_unparse(entry->export_config_ms.uuid, uuid);
         printf("uuid: %s, host: %s\n", uuid, entry->export_config_ms.host);
     }
 
     puts("exports:");
     list_for_each_forward(iterator, &export_config->mfss) {
-        export_config_mfs_entry_t *entry = list_entry(iterator, export_config_mfs_entry_t, list);
+        export_config_mfs_entry_t *entry =
+            list_entry(iterator, export_config_mfs_entry_t, list);
         printf("root: %s\n", entry->export_config_mfs);
     }
 }
-

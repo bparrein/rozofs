@@ -1,6 +1,0 @@
-- stand alone packages (exportd, storaged, rozofs)
-- manage versionning
-- set dependancy version (Cmakelist && README)
-- Manage traces on errors
-- Manage status : if ((status = xxx()) != 0) instead of if (xxx() != 0) status = -1
-- Kernel vfs module

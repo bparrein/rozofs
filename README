@@ -54,7 +54,7 @@ Start
     5 ) fill in all storage.conf
     6 ) [sudo] exportd --start
     7 ) [sudo] storaged --start
-    8 ) wherever you want : [sudo] rozofs <the_host_running_exportd> <the export_name> <the_mount_dir>
+    8 ) wherever you want : [sudo] rozomount <the_host_running_exportd> <the export_name> <the_mount_dir>
 
 Stop
 ----

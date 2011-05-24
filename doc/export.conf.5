@@ -11,31 +11,68 @@ is manage throw
 <http://www.hyperrealm.com/libconfig/> and thus complies to the
 .B libconfig
 grammar.
+
+.SS layout
+Transform layout used by rozo. Data will be transform in 
+.B forward
+chunks, only 
+.B inverse 
+of them will be need to reconstruct, and they will be distributed over 
+.B safe
+storages.
+  
+Valid layouts are :
+   - 0 : inverse = 2, forward = 3, safe = 4
+   - 1 : inverse = 4, forward = 6, safe = 8
+   - 2 : inverse = 8, forward = 12, safe = 16
+
 .SS volume
 A volume in Rozo is made by a list of storages managed by a
 .B storaged
-deamon on dedicate hosts. A storage in this file is an uuid (see 
-.BR uuidgen (1)
-or
-.BR uuid (3)
-for further details)
+deamon on dedicate hosts. A storage in this file is an sid (uint16_t)
 and an ip or dns name to reach the 
 .B storaged
 deamon.
 .B storaged
 can manage several storages.
+storages are grouped together in
+.B clusters
+each cluster should be contain at least 
+.B safe
+storages of the same capacity. Use a new cluster when scaling with storage of different capacity.
 
 .B warning
-modifying or removing uuid of storage servers can (will) lead to DATA LOSS !
+modifying or removing sid of storage servers can (will) lead to DATA LOSS !
 Adding storages is of course mandatory (use 
 .B exportd
 to reload configuration after storages being added
 
 volume = (
-    {uuid = "00000000-0000-0000-0000-000000000001"; host = "hostname1";},
-    {uuid = "00000000-0000-0000-0000-000000000002"; host = "hostname2";},
-    {uuid = "00000000-0000-0000-0000-000000000003"; host = "hostname3";},
-    {uuid = "00000000-0000-0000-0000-000000000004"; host = "hostname4";}
+    # First cluster.
+    (
+        {sid = 01; host = "host1";},
+        {sid = 02; host = "host2";},
+        {sid = 03; host = "host3";},
+        {sid = 04; host = "host4";},
+        {sid = 05; host = "host5";},
+        {sid = 06; host = "host6";},
+        {sid = 07; host = "host7";},
+        {sid = 08; host = "host8";}
+        # ...
+    ),
+    # Second cluster.
+    (
+        {sid = 17; host = "host17";},
+        {sid = 18; host = "host18";},
+        {sid = 19; host = "host19";},
+        {sid = 20; host = "host20";},
+        {sid = 21; host = "host21";},
+        {sid = 22; host = "host22";},
+        {sid = 23; host = "host23";},
+        {sid = 24; host = "host24";},
+        {sid = 25; host = "host25";}
+        # ...
+    )
 );
 
 .SS exports

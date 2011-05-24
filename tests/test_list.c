@@ -9,14 +9,14 @@ typedef struct entry {
     int value;
 } entry_t;
 
-static int cmp(list_t *l1, list_t *l2) {
+static int cmp(list_t * l1, list_t * l2) {
     entry_t *e1 = list_entry(l1, entry_t, list);
     entry_t *e2 = list_entry(l2, entry_t, list);
 
     return e1->value < e2->value;
 }
 
-static void print_list(list_t *list) {
+static void print_list(list_t * list) {
 
     list_t *iterator;
 
@@ -27,7 +27,7 @@ static void print_list(list_t *list) {
     }
 };
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
 
     list_t head;
     entry_t e1;

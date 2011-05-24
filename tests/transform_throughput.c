@@ -3,13 +3,19 @@
 #include <string.h>
 #include <time.h>
 
+#include "xmalloc.h"
 #include "transform.h"
-#include "rozo.h"
+#include <uuid/uuid.h>
 
-#define BSIZE 8192
+#define BSIZE 8192              //BYTES
+#define FORWARD 6
+#define INVERSE	4
 
-int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1) {
-    long int diff = (t2->tv_usec + 1000000 * t2->tv_sec) - (t1->tv_usec + 1000000 * t1->tv_sec);
+int timeval_subtract(struct timeval *result, struct timeval *t2,
+                     struct timeval *t1) {
+    long int diff =
+        (t2->tv_usec + 1000000 * t2->tv_sec) - (t1->tv_usec +
+                                                1000000 * t1->tv_sec);
     result->tv_sec = diff / 1000000;
     result->tv_usec = diff % 1000000;
 
@@ -27,46 +33,46 @@ void timeval_print(struct timeval *tv) {
 }
 
 int main(int argc, char **argv) {
-    char *support;
-    projection_t *pforward;
-    projection_t *pinverse;
+    pxl_t *support;
+    projection_t *projections;
+    int nrloop = 0, done;
     int mp;
     struct timeval tic;
     struct timeval toc;
     struct timeval elapse;
 
-    rozo_initialize(8192, 16, 12, 8);
-
-    support = malloc(BSIZE);
+    if (argc < 2) {
+        printf("%s : nr loop\n", argv[0]);
+        return -1;
+    }
+    nrloop = atoi(argv[1]);
+    support = xmalloc(BSIZE);
     memset(support, 1, BSIZE);
-    pforward = malloc(ROZO_FORWARD * sizeof (projection_t));
-    for (mp = 0; mp < ROZO_FORWARD; mp++) {
-        pforward[mp].angle.p = rozo_angles[mp].p;
-        pforward[mp].angle.q = rozo_angles[mp].q;
-        pforward[mp].size = rozo_psizes[mp];
-        pforward[mp].bins = malloc(rozo_psizes[mp] * sizeof (char));
+    projections = xmalloc(FORWARD * sizeof (projection_t));
+    for (mp = 0; mp < FORWARD; mp++) {
+        projections[mp].angle.p = mp - FORWARD / 2;
+        projections[mp].angle.q = 1;
+        projections[mp].size =
+            abs(mp - FORWARD / 2) * (INVERSE - 1) +
+            (BSIZE / sizeof (pxl_t) / INVERSE - 1) + 1;
+        projections[mp].bins = xmalloc(projections[mp].size * sizeof (bin_t));
     }
 
     gettimeofday(&tic, NULL);
-    transform_forward(support, ROZO_INVERSE, ROZO_BSIZE / ROZO_INVERSE, ROZO_FORWARD, pforward);
+    for (done = 0; done < nrloop; done++)
+        transform_forward(support, INVERSE, BSIZE / INVERSE / sizeof (pxl_t),
+                          FORWARD, projections);
     gettimeofday(&toc, NULL);
     timeval_subtract(&elapse, &toc, &tic);
-    printf("%ld.%06ld\n", elapse.tv_sec, elapse.tv_usec);
-
-    pinverse = malloc(ROZO_INVERSE * sizeof (projection_t));
-    for (mp = 0; mp < ROZO_INVERSE; mp++) {
-        pinverse[mp].angle.p = rozo_angles[mp+2].p;
-        pinverse[mp].angle.q = rozo_angles[mp+2].q;
-        pinverse[mp].size = rozo_psizes[mp+2];
-        pinverse[mp].bins = malloc(rozo_psizes[mp+2] * sizeof (char));
-        memcpy(pinverse[mp].bins, pforward[mp+2].bins, rozo_psizes[mp+2]);
-    }
+    printf("Forward: %ld.%06ld\n", elapse.tv_sec, elapse.tv_usec);
 
     gettimeofday(&tic, NULL);
-    transform_inverse(support, ROZO_INVERSE, ROZO_BSIZE / ROZO_INVERSE, ROZO_INVERSE, pinverse);
+    for (done = 0; done < nrloop; done++)
+        transform_inverse(support, INVERSE, BSIZE / INVERSE / sizeof (pxl_t),
+                          INVERSE, projections);
     gettimeofday(&toc, NULL);
     timeval_subtract(&elapse, &toc, &tic);
-    printf("%ld.%06ld\n", elapse.tv_sec, elapse.tv_usec);
+    printf("Inverse: %ld.%06ld\n", elapse.tv_sec, elapse.tv_usec);
 
     return 0;
 }

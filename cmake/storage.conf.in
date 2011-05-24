@@ -2,10 +2,17 @@
 # storaged configuration file sample
 #
 
-# uuids should exist in exportd config file
+# storage layout
+# 1 : safe =  4, forward =  3, inverse = 2
+# 2 : safe =  8, forward =  6, inverse = 4
+# 3 : safe = 16, forward = 12, inverse = 8 
+layout = 1;
+
+# sid : - must be an unsigned 16 bytes int.
+#       - should exist in exportd config file
 storages = (
-    {uuid = "00000000-0000-0000-0000-000000000001"; root = "/path/to/foo";},
-    {uuid = "00000000-0000-0000-0000-000000000002"; root = "/path/to/bar";}
+    {sid = 1; root = "/path/to/foo";},
+    {sid = 2; root = "/path/to/bar";}
     #...
 );
 

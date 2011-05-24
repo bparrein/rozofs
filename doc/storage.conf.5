@@ -14,24 +14,38 @@ grammar.
 .SS storages
 A storage in Rozo is directory used by a
 .B storaged
-deamon to store erase coded data. A storage in this file is an uuid (see 
-.BR uuidgen (1)
-or
-.BR uuid (3)
-for further details)
-and an root directory. 
+deamon to store erase coded data.
+
 .B storaged
 deamon.
 .B storaged
 can manage several storages.
 
+.SS layout
+Transform layout used by rozo. Data will be transform in 
+.B forward
+chunks, only 
+.B inverse 
+of them will be need to reconstruct, and they will be distributed over 
+.B safe
+storages.
+  
+Valid layouts are :
+   - 0 : inverse = 2, forward = 3, safe = 4
+   - 1 : inverse = 4, forward = 6, safe = 8
+   - 2 : inverse = 8, forward = 12, safe = 16
+
+.SS storages
+ A storage in this file is an sid (uint16_t)
+and an root directory. 
+
 .B warning
-uuids should be the same as those used in 
+sids should be the same as those used in 
 .B export.conf
 
 storages = (
-    {uuid = "00000000-0000-0000-0000-000000000001"; root = "/path/to/foo";},
-    {uuid = "00000000-0000-0000-0000-000000000002"; root = "/path/to/bar";}
+    {sid = 01; root = "/path/to/foo";},
+    {sid = 02; root = "/path/to/bar";}
     #...
 );
 

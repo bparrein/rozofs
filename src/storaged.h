@@ -18,7 +18,6 @@
 */
 
 #include <uuid/uuid.h>
-
 #include "storage.h"
 
-storage_t * storaged_lookup(uuid_t uuid);
+storage_t *storaged_lookup(sid_t sid);

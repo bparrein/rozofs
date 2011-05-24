@@ -17,11 +17,11 @@
   <http://www.gnu.org/licenses/>.
 */
 
-#include <uuid/uuid.h>
+#include "rozo.h"
+#include "eproto.h"
 
-#include "vfs.h"
+extern long int layout;
 
-uuid_t * exportd_lookup_id(const char *root);
+eid_t *exportd_lookup_id(ep_path_t path);
 
-vfs_t * exportd_lookup_vfs(uuid_t uuid);
-
+export_t *exportd_lookup_export(eid_t eid);

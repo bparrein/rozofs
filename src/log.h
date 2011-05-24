@@ -23,17 +23,28 @@
 #include <syslog.h>
 #include <libgen.h>
 
-#define log(priority, ...) \
-    syslog(priority, "%s - %d", basename(__FILE__), __LINE__); \
-    syslog(priority, __VA_ARGS__)
+#define EDEBUG      0
+#define EINFO       1
+#define EWARNING    2
+#define ESEVERE     3
+#define EFATAL      4
 
-#define info(...) log(LOG_INFO, __VA_ARGS__)
-#define warning(...) log(LOG_WARNING, __VA_ARGS__)
-#define severe(...) log(LOG_ERR, __VA_ARGS__)
-#define fatal(...) log(LOG_EMERG, __VA_ARGS__)
+static const char *messages[] =
+    { "debug", "info", "warning", "severe", "fatal" };
+static const int priorities[] =
+    { LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_EMERG };
+
+#define log(level, ...) \
+    syslog(priorities[level], "%s - %d - %s", basename(__FILE__), __LINE__, messages[level]); \
+    syslog(priorities[level], __VA_ARGS__)
+
+#define info(...) log(EINFO, __VA_ARGS__)
+#define warning(...) log(EWARNING, __VA_ARGS__)
+#define severe(...) log(ESEVERE, __VA_ARGS__)
+#define fatal(...) log(EFATAL, __VA_ARGS__)
 
 #ifndef NDEBUG
-#define DEBUG(...) log(LOG_DEBUG, __VA_ARGS__)
+#define DEBUG(...) log(EDEBUG, __VA_ARGS__)
 #ifndef NDEBUGFUNCTION
 #define DEBUG_FUNCTION DEBUG("%s", __FUNCTION__)
 #else

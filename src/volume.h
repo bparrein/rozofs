@@ -15,52 +15,61 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #ifndef _VOLUME_H
 #define _VOLUME_H
 
 #include <stdint.h>
 #include <limits.h>
-#include <uuid/uuid.h>
-
 #include "rozo.h"
 #include "list.h"
 
-/* meta storage */
-typedef struct volume_ms {
-    uuid_t uuid;
-    char host[ROZO_HOSTNAME_MAX];
-    uint64_t capacity;
-} volume_ms_t;
-
-typedef struct volume_ms_entry {
-    volume_ms_t ms;
-    list_t list;
-} volume_ms_entry_t;
-
-typedef struct volume {
-    list_t mss ;
-    pthread_rwlock_t lock;
-} volume_t;
-
-/* volume stat */
 typedef struct volume_stat {
     uint16_t bsize;
     uint64_t bfree;
 } volume_stat_t;
 
-int volume_initialize(volume_t *volume);
+typedef struct volume_storage {
+    uint16_t sid;
+    char host[ROZO_HOSTNAME_MAX];
+    sstat_t stat;
+} volume_storage_t;
 
-int volume_release(volume_t *volume);
+typedef struct cluster {
+    uint16_t cid;
+    volume_storage_t *ms;
+    uint16_t nb_ms;
+    uint64_t size;
+    uint64_t free;
+    list_t list;
+} cluster_t;
 
-volume_ms_t * volume_lookup(volume_t *volume, uuid_t uuid);
+typedef struct volume {
+    list_t mcs;
+    pthread_rwlock_t lock;
+} volume_t;
 
-int volume_balance(volume_t *volume);
+volume_t volume;
 
-int volume_stat(volume_t *volume, volume_stat_t *volume_stat);
+int volume_initialize();
 
-int volume_distribute(volume_t *volume, volume_ms_t mss[ROZO_SAFE]);
+int volume_release();
+
+int mstorage_initialize(volume_storage_t * st, uint16_t sid,
+                        const char *hostname);
+
+int volume_register(uint16_t cid, volume_storage_t * storages,
+                    uint16_t ms_nb);
+
+int volume_balance();
+
+int volume_distribute(uint16_t * cid, uint16_t * sids);
+
+void volume_stat(volume_stat_t * volume_stat);
+
+int volume_print();
+
+uint16_t volume_size();
 
 #endif
-

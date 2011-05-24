@@ -2,21 +2,72 @@
 # exportd configuration file sample
 #
 
-# uuid can be generate by uuidgen(1)
+#
+# Transform layout used by rozo. Data will be transform in *forward* chunks,
+# only *inverse* of them will be need to reconstruct, and they will be 
+# distributed over *safe* storages.  
+# Valid layouts are :
+#   - 0 : inverse = 2, forward = 3, safe = 4
+#   - 1 : inverse = 4, forward = 6, safe = 8
+#   - 2 : inverse = 8, forward = 12, safe = 16
+#
+
+layout = 2;
+
+# Volume
+# each cluster should be contain at least *safe* storages of the same capacity.
+# Use a new cluster when scaling with storage of different capacity.
 # WARNING WARNING WARNING WARNING
 # modifying or removing uuid of storage servers can (will) lead to DATA LOSS !
 volume = (
-    {uuid = "00000000-0000-0000-0000-000000000001"; host = "hostname1";},
-    {uuid = "00000000-0000-0000-0000-000000000002"; host = "hostname2";},
-    {uuid = "00000000-0000-0000-0000-000000000003"; host = "hostname3";},
-    {uuid = "00000000-0000-0000-0000-000000000004"; host = "hostname4";}
-    #...
+# First cluster.
+    (
+        {sid = 01; host = "host1";},
+        {sid = 02; host = "host2";},
+        {sid = 03; host = "host3";},
+        {sid = 04; host = "host4";},
+        {sid = 05; host = "host5";},
+        {sid = 06; host = "host6";},
+        {sid = 07; host = "host7";},
+        {sid = 08; host = "host8";},
+        {sid = 09; host = "host9";},
+        {sid = 10; host = "host10";},
+        {sid = 11; host = "host11";},
+        {sid = 12; host = "host12";},
+        {sid = 13; host = "host13";},
+        {sid = 14; host = "host14";},
+        {sid = 15; host = "host15";},
+        {sid = 16; host = "host16";}
+        # ...
+    ),
+    # Second cluster.
+    (
+        {sid = 17; host = "host17";},
+        {sid = 18; host = "host18";},
+        {sid = 19; host = "host19";},
+        {sid = 20; host = "host20";},
+        {sid = 21; host = "host21";},
+        {sid = 22; host = "host22";},
+        {sid = 23; host = "host23";},
+        {sid = 24; host = "host24";},
+        {sid = 25; host = "host25";},
+        {sid = 26; host = "host26";},
+        {sid = 27; host = "host27";},
+        {sid = 28; host = "host28";},
+        {sid = 29; host = "host29";},
+        {sid = 30; host = "host30";},
+        {sid = 31; host = "host31";},
+        {sid = 32; host = "host32";}
+        # ...
+    )
 );
 
-# root directory used by virtual filesystem
+# exported filesystems
 # should have been set up by expord --create <root>
 exports = (
     {root = "/path/to/foo";},
     {root = "/path/to/bar";}
     #...
 );
+
+
