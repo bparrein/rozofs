@@ -61,7 +61,7 @@ int rozo_initialize(rozo_layout_t layout) {
         rozo_angles[i].p = i - rozo_forward / 2;
         rozo_angles[i].q = 1;
         rozo_psizes[i] = abs(i - rozo_forward / 2) * (rozo_inverse - 1)
-                + (ROZO_BSIZE / sizeof (pxl_t) / rozo_inverse - 1) + 1;
+            + (ROZO_BSIZE / sizeof (pxl_t) / rozo_inverse - 1) + 1;
     }
     status = 0;
 out:

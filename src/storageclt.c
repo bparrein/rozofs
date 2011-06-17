@@ -33,7 +33,9 @@ int storageclt_initialize(storageclt_t * clt, const char *host, sid_t sid) {
     strcpy(clt->host, host);
     clt->sid = sid;
 
-    if (rpcclt_initialize(&clt->rpcclt, host, STORAGE_PROGRAM, STORAGE_VERSION, ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE) != 0) {
+    if (rpcclt_initialize
+        (&clt->rpcclt, host, STORAGE_PROGRAM, STORAGE_VERSION,
+         ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE) != 0) {
         int xerrno = errno;
         storageclt_release(clt);
         errno = xerrno;
@@ -74,7 +76,7 @@ out:
 }
 
 int storageclt_write(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid,
-        uint32_t nrb, const bin_t * bins) {
+                     uint32_t nrb, const bin_t * bins) {
     int status = -1;
     sp_status_ret_t *ret = 0;
     sp_write_arg_t args;
@@ -90,12 +92,15 @@ int storageclt_write(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid,
     ret = sp_write_1(&args, clt->rpcclt.client);
     if (ret == 0) {
         storageclt_release(clt);
-        warning("storageclt_write failed: storage write failed (no response from storage server: %s)", clt->host);
+        warning
+            ("storageclt_write failed: storage write failed (no response from storage server: %s)",
+             clt->host);
         errno = EPROTO;
         goto out;
     }
     if (ret->status != 0) {
-        severe("storageclt_write failed: storage write response failure (%s)", strerror(errno));
+        severe("storageclt_write failed: storage write response failure (%s)",
+               strerror(errno));
         errno = ret->sp_status_ret_t_u.error;
         goto out;
     }
@@ -107,7 +112,7 @@ out:
 }
 
 int storageclt_read(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid,
-        uint32_t nrb, bin_t * bins) {
+                    uint32_t nrb, bin_t * bins) {
     int status = -1;
     sp_read_ret_t *ret = 0;
     sp_read_arg_t args;
@@ -121,18 +126,21 @@ int storageclt_read(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid,
     ret = sp_read_1(&args, clt->rpcclt.client);
     if (ret == 0) {
         storageclt_release(clt);
-        warning("storageclt_read failed: storage read failed (no response from storage server: %s)", clt->host);
+        warning
+            ("storageclt_read failed: storage read failed (no response from storage server: %s)",
+             clt->host);
         errno = EPROTO;
         goto out;
     }
     if (ret->status != 0) {
         errno = ret->sp_read_ret_t_u.error;
-        severe("storageclt_read failed: storage read response failure (%s)", strerror(errno));
+        severe("storageclt_read failed: storage read response failure (%s)",
+               strerror(errno));
         goto out;
     }
     // XXX could we avoid memcpy ??
     memcpy(bins, ret->sp_read_ret_t_u.bins.bins_val,
-            ret->sp_read_ret_t_u.bins.bins_len);
+           ret->sp_read_ret_t_u.bins.bins_len);
     status = 0;
 out:
     if (ret)

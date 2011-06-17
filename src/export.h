@@ -30,11 +30,11 @@
 
 typedef struct export {
     eid_t eid;
-    char root[PATH_MAX]; // absolute path.
-    fid_t rfid; // root fid.
+    char root[PATH_MAX];        // absolute path.
+    fid_t rfid;                 // root fid.
     list_t mfiles;
-    htable_t hfids; // fid indexed.
-    htable_t h_pfids; // parent fid indexed.
+    htable_t hfids;             // fid indexed.
+    htable_t h_pfids;           // parent fid indexed.
 } export_t;
 
 int export_create(const char *root);
@@ -46,7 +46,7 @@ void export_release(export_t * e);
 int export_stat(export_t * e, estat_t * st);
 
 int export_lookup(export_t * e, fid_t parent, const char *name,
-        mattr_t * attrs);
+                  mattr_t * attrs);
 
 int export_getattr(export_t * e, fid_t fid, mattr_t * attrs);
 
@@ -55,29 +55,29 @@ int export_setattr(export_t * e, fid_t fid, mattr_t * attrs);
 int export_readlink(export_t * e, fid_t fid, char link[PATH_MAX]);
 
 int export_mknod(export_t * e, fid_t parent, const char *name, mode_t mode,
-        mattr_t * attrs);
+                 mattr_t * attrs);
 
 int export_mkdir(export_t * e, fid_t parent, const char *name, mode_t mode,
-        mattr_t * attrs);
+                 mattr_t * attrs);
 
 int export_unlink(export_t * e, fid_t fid);
 
 int export_rmdir(export_t * e, fid_t fid);
 
 int export_symlink(export_t * e, fid_t target, fid_t parent, const char *name,
-        mattr_t * attrs);
+                   mattr_t * attrs);
 
 int export_rename(export_t * e, fid_t from, fid_t parent, const char *name);
 
 int64_t export_read(export_t * e, fid_t fid, uint64_t off, uint32_t len);
 
 int export_read_block(export_t * e, fid_t fid, bid_t bid, uint32_t n,
-        dist_t * d);
+                      dist_t * d);
 
 int64_t export_write(export_t * e, fid_t fid, uint64_t off, uint32_t len);
 
 int export_write_block(export_t * e, fid_t fid, bid_t bid, uint32_t n,
-        dist_t d);
+                       dist_t d);
 
 int export_readdir(export_t * e, fid_t fid, child_t ** children);
 

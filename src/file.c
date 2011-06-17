@@ -64,13 +64,17 @@ static int file_connect(file_t * f) {
     // Get the hostname for one sid et one cid
     for (i = 0; i < rozo_safe; i++) {
 
-        if ((f->storages[i] = lookup_mstorage(f->export, f->attrs.cid, f->attrs.sids[i]))) {
+        if ((f->storages[i] =
+             lookup_mstorage(f->export, f->attrs.cid, f->attrs.sids[i]))) {
 
             if (f->storages[i]->rpcclt.client != 0) {
                 connected++;
             } else {
-                if (storageclt_initialize(f->storages[i], f->storages[i]->host, f->storages[i]->sid) != 0) {
-                    warning("failed to join: %s,  %s", f->storages[i]->host, strerror(errno));
+                if (storageclt_initialize
+                    (f->storages[i], f->storages[i]->host,
+                     f->storages[i]->sid) != 0) {
+                    warning("failed to join: %s,  %s", f->storages[i]->host,
+                            strerror(errno));
                 } else {
                     connected++;
                 }
@@ -95,7 +99,7 @@ static int file_reconnect(file_t * f) {
 
 static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
     int status = -1, i, j;
-    dist_t *dist; // Pointer to memory area where the block distribution will be stored
+    dist_t *dist;               // Pointer to memory area where the block distribution will be stored
     dist_t *dist_iterator;
     uint8_t mp;
     bin_t **bins;
@@ -115,7 +119,7 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
         goto out;
 
     /* Until we don't decode all data blocks (nmbs blocks) */
-    i = 0; // Nb. of blocks decoded (at begin = 0)
+    i = 0;                      // Nb. of blocks decoded (at begin = 0)
     dist_iterator = dist;
     while (i < nmbs) {
         if (*dist_iterator == 0) {
@@ -144,7 +148,7 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
             for (mps = 0; mps < rozo_safe; mps++) {
                 if (dist_is_set(*dist_iterator, mps) && j == mp) {
                     break;
-                } else { // Try with the next storage server
+                } else {        // Try with the next storage server
                     j += dist_is_set(*dist_iterator, mps);
                 }
             }
@@ -153,7 +157,8 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
                 continue;
 
             b = xmalloc(n * rozo_psizes[mp] * sizeof (bin_t));
-            if (storageclt_read(f->storages[mps], f->fid, mp, bid + i, n, b) != 0) {
+            if (storageclt_read(f->storages[mps], f->fid, mp, bid + i, n, b)
+                != 0) {
                 free(b);
                 continue;
             }
@@ -187,9 +192,9 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
 
             // Inverse data for the block j
             transform_inverse((pxl_t *) (data + (ROZO_BSIZE * (i + j))),
-                    rozo_inverse,
-                    ROZO_BSIZE / rozo_inverse / sizeof (pxl_t),
-                    rozo_inverse, projections);
+                              rozo_inverse,
+                              ROZO_BSIZE / rozo_inverse / sizeof (pxl_t),
+                              rozo_inverse, projections);
         }
 
         // Free the memory area where are stored the bins.
@@ -225,13 +230,13 @@ out:
 }
 
 static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
-        const char *data) {
+                        const char *data) {
     int status;
-    projection_t *projections; // Table of projections used to transform data
+    projection_t *projections;  // Table of projections used to transform data
     bin_t **bins;
     angle_t *angles;
     uint16_t *psizes;
-    dist_t dist = 0; // Important
+    dist_t dist = 0;            // Important
     uint16_t mp = 0;
     uint16_t ps = 0;
     uint32_t i = 0;
@@ -260,8 +265,8 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
         }
         // Apply the erasure code transform for the block i
         transform_forward((pxl_t *) (data + (i * ROZO_BSIZE)), rozo_inverse,
-                ROZO_BSIZE / rozo_inverse / sizeof (pxl_t),
-                rozo_forward, projections);
+                          ROZO_BSIZE / rozo_inverse / sizeof (pxl_t),
+                          rozo_forward, projections);
     }
 
     /* Send requests to the storage servers */
@@ -274,7 +279,8 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
         if (!(f->storages[ps]->rpcclt.client))
             continue;
 
-        if (storageclt_write(f->storages[ps], f->fid, mp, bid, nmbs, bins[mp]) != 0)
+        if (storageclt_write(f->storages[ps], f->fid, mp, bid, nmbs, bins[mp])
+            != 0)
             continue;
 
         free(bins[mp]);
@@ -336,8 +342,8 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
     first = off / ROZO_BSIZE;
     foffset = off % ROZO_BSIZE;
     last =
-            (off + length) / ROZO_BSIZE + ((off + length) % ROZO_BSIZE ==
-            0 ? -1 : 0);
+        (off + length) / ROZO_BSIZE + ((off + length) % ROZO_BSIZE ==
+                                       0 ? -1 : 0);
     loffset = (off + length) - last * ROZO_BSIZE;
 
     // if our read is one block only
@@ -346,7 +352,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
         memset(block, 0, ROZO_BSIZE);
         retry = 0;
         while (read_blocks(f, first, 1, block) != 0 &&
-                retry++ < f->export->retries) {
+               retry++ < f->export->retries) {
             if (file_reconnect(f) != 0) {
                 length = -1;
                 goto out;
@@ -361,7 +367,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
         if (foffset != 0) {
             retry = 0;
             while (read_blocks(f, first, 1, block) != 0 &&
-                    retry++ < f->export->retries) {
+                   retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -374,7 +380,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
         if (loffset != ROZO_BSIZE) {
             retry = 0;
             while (read_blocks(f, last, 1, block) != 0 &&
-                    retry++ < f->export->retries) {
+                   retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -387,7 +393,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
         if ((last - first) + 1 != 0) {
             retry = 0;
             while (read_blocks(f, first, (last - first) + 1, bufp) != 0 &&
-                    retry++ < f->export->retries) {
+                   retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -401,7 +407,7 @@ out:
 }
 
 static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
-        uint32_t len) {
+                         uint32_t len) {
     int64_t length = -1;
     uint64_t first;
     uint16_t foffset;
@@ -421,8 +427,8 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
     foffset = off % ROZO_BSIZE;
     // Nb. of the last block to write
     last =
-            (off + length) / ROZO_BSIZE + ((off + length) % ROZO_BSIZE ==
-            0 ? -1 : 0);
+        (off + length) / ROZO_BSIZE + ((off + length) % ROZO_BSIZE ==
+                                       0 ? -1 : 0);
     // Offset (in bytes) for the last block
     loffset = (off + length) - last * ROZO_BSIZE;
 
@@ -447,7 +453,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
         if (fread == 1 || lread == 1) {
             retry = 0;
             while (read_blocks(f, first, 1, block) != 0 &&
-                    retry++ < f->export->retries) {
+                   retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -457,13 +463,13 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
         memcpy(&block[foffset], buf, len);
         retry = 0;
         while (write_blocks(f, first, 1, block) != 0 &&
-                retry++ < f->export->retries) {
+               retry++ < f->export->retries) {
             if (file_reconnect(f) != 0) {
                 length = -1;
                 goto out;
             }
         }
-    } else { // If we must write more than one block
+    } else {                    // If we must write more than one block
         const char *bufp;
         char block[ROZO_BSIZE];
 
@@ -475,7 +481,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
             if (fread == 1) {
                 retry = 0;
                 while (read_blocks(f, first, 1, block) != 0 &&
-                        retry++ < f->export->retries) {
+                       retry++ < f->export->retries) {
                     if (file_reconnect(f) != 0) {
                         length = -1;
                         goto out;
@@ -485,7 +491,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
             memcpy(&block[foffset], buf, ROZO_BSIZE - foffset);
             retry = 0;
             while (write_blocks(f, first, 1, block) != 0 &&
-                    retry++ < f->export->retries) {
+                   retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -500,7 +506,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
             if (lread == 1) {
                 retry = 0;
                 while (read_blocks(f, last, 1, block) != 0 &&
-                        retry++ < f->export->retries) {
+                       retry++ < f->export->retries) {
                     if (file_reconnect(f) != 0) {
                         length = -1;
                         goto out;
@@ -510,7 +516,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
             memcpy(block, bufp + ROZO_BSIZE * (last - first), loffset);
             retry = 0;
             while (write_blocks(f, last, 1, block) != 0 &&
-                    retry++ < f->export->retries) {
+                   retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -522,7 +528,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
         if ((last - first) + 1 != 0) {
             retry = 0;
             while (write_blocks(f, first, (last - first) + 1, bufp) != 0 &&
-                    retry++ < f->export->retries) {
+                   retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -584,9 +590,11 @@ int64_t file_write(file_t * f, uint64_t off, const char *buf, uint32_t len) {
 
     while (done) {
 
-        if (len > (f->export->bufsize - f->buf_pos) || (off != (f->buf_from + f->buf_pos) && f->buf_write_wait != 0)) {
+        if (len > (f->export->bufsize - f->buf_pos) ||
+            (off != (f->buf_from + f->buf_pos) && f->buf_write_wait != 0)) {
 
-            if ((len_write = write_buf(f, f->buf_from, f->buffer, f->buf_pos)) < 0) {
+            if ((len_write =
+                 write_buf(f, f->buf_from, f->buffer, f->buf_pos)) < 0) {
                 goto out;
             }
 
@@ -636,7 +644,8 @@ int64_t file_read(file_t * f, uint64_t off, char **buf, uint32_t len) {
     int64_t length = 0;
     DEBUG_FUNCTION;
 
-    if ((off < f->buf_from) || (off >= (f->buf_from + f->buf_pos)) || (len > (f->buf_from + f->buf_pos - off))) {
+    if ((off < f->buf_from) || (off >= (f->buf_from + f->buf_pos)) ||
+        (len > (f->buf_from + f->buf_pos - off))) {
 
         if ((len_rec = read_buf(f, off, f->buffer, f->export->bufsize)) <= 0) {
             length = len_rec;
@@ -650,7 +659,11 @@ int64_t file_read(file_t * f, uint64_t off, char **buf, uint32_t len) {
         f->buf_pos = len_rec;
         f->buf_read_wait = 1;
     } else {
-        length = (len <= (f->buf_pos - (off - f->buf_from))) ? len : (f->buf_pos - (off - f->buf_from));
+        length =
+            (len <=
+             (f->buf_pos - (off - f->buf_from))) ? len : (f->buf_pos - (off -
+                                                                        f->
+                                                                        buf_from));
         *buf = f->buffer + (off - f->buf_from);
     }
 

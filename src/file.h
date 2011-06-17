@@ -28,10 +28,10 @@ typedef struct file {
     fid_t fid;
     mode_t mode;
     mattr_t attrs;
-    exportclt_t * export;
+    exportclt_t *export;
     storageclt_t **storages;
     //char buffer[ROZO_BUF_SIZE];
-    char * buffer;
+    char *buffer;
     int buf_write_wait;
     int buf_read_wait;
     uint64_t buf_pos;

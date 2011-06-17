@@ -27,8 +27,8 @@
 #include "rpcclt.h"
 
 int rpcclt_initialize(rpcclt_t * client, const char *host, unsigned long prog,
-        unsigned long vers, unsigned int sendsz,
-        unsigned int recvsz) {
+                      unsigned long vers, unsigned int sendsz,
+                      unsigned int recvsz) {
     int status = -1;
     struct sockaddr_in server;
     struct hostent *hp;
@@ -40,7 +40,8 @@ int rpcclt_initialize(rpcclt_t * client, const char *host, unsigned long prog,
     client->sock = -1;
     server.sin_family = AF_INET;
     if ((hp = gethostbyname(host)) == 0) {
-        severe("gethostbyname failed for host : %s, %s", host, strerror(errno));
+        severe("gethostbyname failed for host : %s, %s", host,
+               strerror(errno));
         goto out;
     }
     bcopy((char *) hp->h_addr, (char *) &server.sin_addr, hp->h_length);
@@ -53,8 +54,9 @@ int rpcclt_initialize(rpcclt_t * client, const char *host, unsigned long prog,
     if ((client->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         goto out;
     }
-    if (setsockopt(client->sock, SOL_SOCKET, SO_REUSEADDR, (void *) &one,
-            sizeof (one)) < 0) {
+    if (setsockopt
+        (client->sock, SOL_SOCKET, SO_REUSEADDR, (void *) &one,
+         sizeof (one)) < 0) {
         goto out;
     }
 
@@ -66,16 +68,22 @@ int rpcclt_initialize(rpcclt_t * client, const char *host, unsigned long prog,
         goto out;
     }
 
-    if (setsockopt(client->sock, SOL_TCP, TCP_NODELAY, (void *) &one, sizeof (one)) < 0) {
+    if (setsockopt
+        (client->sock, SOL_TCP, TCP_NODELAY, (void *) &one,
+         sizeof (one)) < 0) {
 
         goto out;
     }
-    if ((client->sock < 0) || (connect(client->sock, (struct sockaddr *) &server, sizeof (server)) < 0)) {
+    if ((client->sock < 0) ||
+        (connect(client->sock, (struct sockaddr *) &server, sizeof (server)) <
+         0)) {
         status = -1;
         goto out;
     }
 
-    if ((client->client =clnttcp_create(&server, prog, vers, &client->sock, sendsz,recvsz)) == NULL) {
+    if ((client->client =
+         clnttcp_create(&server, prog, vers, &client->sock, sendsz,
+                        recvsz)) == NULL) {
         errno = EPROTO;
         goto out;
     }

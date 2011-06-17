@@ -51,15 +51,19 @@ static void usage(const char *progname) {
     fprintf(stderr, "\t-V --version\tprint rozo version\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "ROZO options:\n");
-    fprintf(stderr, "\t-H EXPORT_HOST\t\tdefine address (or dns name) where exportd deamon is running (default: rozoexport) equivalent to '-o exporthost=EXPORT_HOST'\n");
-    fprintf(stderr, "\t-E EXPORT_PATH\t\tdefine path of an export see exportd (default: /home/rozo) equivalent to '-o exportpath=EXPORT_PATH'\n");
-    fprintf(stderr, "\t-o rozobufsize=N\tdefine size of I/O buffer in KiB (default: 256)\n");
-    fprintf(stderr, "\t-o rozomaxretry=N\tdefine number of retries before I/O error is returned (default: 5)\n");
+    fprintf(stderr,
+            "\t-H EXPORT_HOST\t\tdefine address (or dns name) where exportd deamon is running (default: rozoexport) equivalent to '-o exporthost=EXPORT_HOST'\n");
+    fprintf(stderr,
+            "\t-E EXPORT_PATH\t\tdefine path of an export see exportd (default: /home/rozo) equivalent to '-o exportpath=EXPORT_PATH'\n");
+    fprintf(stderr,
+            "\t-o rozobufsize=N\tdefine size of I/O buffer in KiB (default: 256)\n");
+    fprintf(stderr,
+            "\t-o rozomaxretry=N\tdefine number of retries before I/O error is returned (default: 5)\n");
 }
 
 typedef struct rozomnt_conf {
-    char * host;
-    char * export;
+    char *host;
+    char *export;
     unsigned buf_size;
     unsigned max_retry;
 } rozomnt_conf_t;
@@ -91,7 +95,8 @@ static struct fuse_opt rozofs_opts[] = {
     FUSE_OPT_END
 };
 
-static int myfs_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs) {
+static int myfs_opt_proc(void *data, const char *arg, int key,
+                         struct fuse_args *outargs) {
     (void) data;
     switch (key) {
     case FUSE_OPT_KEY_OPT:
@@ -110,7 +115,7 @@ static int myfs_opt_proc(void *data, const char *arg, int key, struct fuse_args 
         return 0;
     case KEY_HELP:
         usage(outargs->argv[0]);
-        fuse_opt_add_arg(outargs, "-h"); // PRINT FUSE HELP
+        fuse_opt_add_arg(outargs, "-h");        // PRINT FUSE HELP
         fuse_parse_cmdline(outargs, NULL, NULL, NULL);
         fuse_mount(NULL, outargs);
         exit(1);
@@ -200,7 +205,7 @@ static struct stat *mattr_to_stat(mattr_t * attr, struct stat *st) {
     st->st_atime = attr->atime;
     st->st_mtime = attr->mtime;
     st->st_blksize = ROZO_BSIZE;
-    st->st_blocks = (attr->size) / 512 + 1; //XXX WRONG
+    st->st_blocks = (attr->size) / 512 + 1;     //XXX WRONG
     st->st_dev = 0;
     st->st_gid = getgid();
     st->st_uid = getuid();
@@ -222,7 +227,7 @@ static mattr_t *stat_to_mattr(struct stat *st, mattr_t * attr, int to_set) {
 }
 
 static void rozofs_ll_init(void *userdata, struct fuse_conn_info *conn) {
-    int *piped = (int*) userdata;
+    int *piped = (int *) userdata;
     char s;
     (void) conn;
     if (piped[1] >= 0) {
@@ -235,7 +240,7 @@ static void rozofs_ll_init(void *userdata, struct fuse_conn_info *conn) {
 }
 
 void rozofs_ll_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
-        mode_t mode, dev_t rdev) {
+                     mode_t mode, dev_t rdev) {
     ientry_t *ie = 0;
     ientry_t *nie = 0;
     mattr_t attrs;
@@ -244,7 +249,7 @@ void rozofs_ll_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
     DEBUG_FUNCTION;
 
     DEBUG("mknod (%lu,%s,%04o,%08lX)\n", (unsigned long int) parent, name,
-            (unsigned int) mode, (unsigned long int) rdev);
+          (unsigned int) mode, (unsigned long int) rdev);
 
     if (strlen(name) > ROZO_FILENAME_MAX) {
         errno = ENAMETOOLONG;
@@ -255,7 +260,7 @@ void rozofs_ll_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
         goto error;
     }
     if (exportclt_mknod(&exportclt, ie->fid, (char *) name, mode, &attrs) !=
-            0) {
+        0) {
         if (errno == ESTALE) {
             del_ientry(ie);
             free(ie);
@@ -284,7 +289,7 @@ out:
 }
 
 void rozofs_ll_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
-        mode_t mode) {
+                     mode_t mode) {
     ientry_t *ie = 0;
     ientry_t *nie = 0;
     mattr_t attrs;
@@ -293,7 +298,7 @@ void rozofs_ll_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
     DEBUG_FUNCTION;
 
     DEBUG("mkdir (%lu,%s,%04o)\n", (unsigned long int) parent, name,
-            (unsigned int) mode);
+          (unsigned int) mode);
 
     mode = (mode | S_IFDIR);
 
@@ -306,7 +311,7 @@ void rozofs_ll_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
         goto error;
     }
     if (exportclt_mkdir(&exportclt, ie->fid, (char *) name, mode, &attrs) !=
-            0) {
+        0) {
         if (errno == ESTALE) {
             del_ientry(ie);
             free(ie);
@@ -336,17 +341,17 @@ out:
 }
 
 void rozofs_ll_rename(fuse_req_t req, fuse_ino_t parent, const char *name,
-        fuse_ino_t newparent, const char *newname) {
+                      fuse_ino_t newparent, const char *newname) {
     ientry_t *pie = 0;
     ientry_t *npie = 0;
     mattr_t attrs;
     DEBUG_FUNCTION;
 
     DEBUG("rename (%lu,%s,%lu,%s)\n", (unsigned long int) parent, name,
-            (unsigned long int) newparent, newname);
+          (unsigned long int) newparent, newname);
 
     if (strlen(name) > ROZO_FILENAME_MAX ||
-            strlen(newname) > ROZO_FILENAME_MAX) {
+        strlen(newname) > ROZO_FILENAME_MAX) {
         errno = ENAMETOOLONG;
         goto error;
     }
@@ -367,7 +372,7 @@ void rozofs_ll_rename(fuse_req_t req, fuse_ino_t parent, const char *name,
         goto error;
     }
     if (exportclt_rename(&exportclt, attrs.fid, npie->fid, (char *) newname)
-            != 0) {
+        != 0) {
         if (errno == ESTALE) {
             // XXX Only one of them might be stale
             // cache might (WILL) be inconsistent !!!
@@ -443,7 +448,7 @@ out:
 }
 
 void rozofs_ll_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
-        struct fuse_file_info *fi) {
+                    struct fuse_file_info *fi) {
     size_t length = 0;
     char *buff;
     ientry_t *ie = 0;
@@ -451,15 +456,15 @@ void rozofs_ll_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     DEBUG_FUNCTION;
 
     DEBUG("read to inode %lu %llu bytes at position %llu\n",
-            (unsigned long int) ino, (unsigned long long int) size,
-            (unsigned long long int) off);
+          (unsigned long int) ino, (unsigned long long int) size,
+          (unsigned long long int) off);
 
     if (!(ie = htable_get(&htable_inode, &ino))) {
         errno = ENOENT;
         goto error;
     }
 
-    file_t* file = (file_t *) (unsigned long) fi->fh;
+    file_t *file = (file_t *) (unsigned long) fi->fh;
 
     memcpy(file->fid, ie->fid, sizeof (fid_t));
 
@@ -476,21 +481,21 @@ out:
 }
 
 void rozofs_ll_write(fuse_req_t req, fuse_ino_t ino, const char *buf,
-        size_t size, off_t off, struct fuse_file_info *fi) {
+                     size_t size, off_t off, struct fuse_file_info *fi) {
     size_t length = 0;
     ientry_t *ie = 0;
     DEBUG_FUNCTION;
 
     DEBUG("write to inode %lu %llu bytes at position %llu\n",
-            (unsigned long int) ino, (unsigned long long int) size,
-            (unsigned long long int) off);
+          (unsigned long int) ino, (unsigned long long int) size,
+          (unsigned long long int) off);
 
     if (!(ie = htable_get(&htable_inode, &ino))) {
         errno = ENOENT;
         goto error;
     }
 
-    file_t* file = (file_t *) (unsigned long) fi->fh;
+    file_t *file = (file_t *) (unsigned long) fi->fh;
     memcpy(file->fid, ie->fid, sizeof (fid_t));
 
     length = file_write(file, off, buf, size);
@@ -505,7 +510,7 @@ out:
 }
 
 void rozofs_ll_flush(fuse_req_t req, fuse_ino_t ino,
-        struct fuse_file_info *fi) {
+                     struct fuse_file_info *fi) {
     file_t *f;
     ientry_t *ie = 0;
     DEBUG_FUNCTION;
@@ -547,7 +552,7 @@ void rozofs_ll_access(fuse_req_t req, fuse_ino_t ino, int mask) {
 }
 
 void rozofs_ll_release(fuse_req_t req, fuse_ino_t ino,
-        struct fuse_file_info *fi) {
+                       struct fuse_file_info *fi) {
     file_t *f;
     ientry_t *ie = 0;
     DEBUG_FUNCTION;
@@ -604,7 +609,7 @@ out:
 }
 
 void rozofs_ll_getattr(fuse_req_t req, fuse_ino_t ino,
-        struct fuse_file_info *fi) {
+                       struct fuse_file_info *fi) {
     struct stat stbuf;
     (void) fi;
     ientry_t *ie = 0;
@@ -640,7 +645,7 @@ out:
 }
 
 void rozofs_ll_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *stbuf,
-        int to_set, struct fuse_file_info *fi) {
+                       int to_set, struct fuse_file_info *fi) {
     ientry_t *ie = 0;
     struct stat o_stbuf;
     mattr_t attr;
@@ -660,7 +665,8 @@ void rozofs_ll_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *stbuf,
         }
         goto error;
     }
-    if (exportclt_setattr(&exportclt, ie->fid, stat_to_mattr(stbuf, &attr, to_set)) == -1) {
+    if (exportclt_setattr
+        (&exportclt, ie->fid, stat_to_mattr(stbuf, &attr, to_set)) == -1) {
         if (errno == ESTALE) {
             del_ientry(ie);
             free(ie);
@@ -803,7 +809,7 @@ struct dirbuf {
 };
 
 static void dirbuf_add(fuse_req_t req, struct dirbuf *b, const char *name,
-        fuse_ino_t ino, mattr_t * attrs) {
+                       fuse_ino_t ino, mattr_t * attrs) {
     struct stat stbuf;
     size_t oldsize = b->size;
     b->size += fuse_add_direntry(req, NULL, 0, name, NULL, 0);
@@ -811,13 +817,13 @@ static void dirbuf_add(fuse_req_t req, struct dirbuf *b, const char *name,
     memcpy(&stbuf, mattr_to_stat(attrs, &stbuf), sizeof (struct stat));
     stbuf.st_ino = ino;
     fuse_add_direntry(req, b->p + oldsize, b->size - oldsize, name, &stbuf,
-            b->size);
+                      b->size);
 }
 
 #define min(x, y) ((x) < (y) ? (x) : (y))
 
 static int reply_buf_limited(fuse_req_t req, const char *buf, size_t bufsize,
-        off_t off, size_t maxsize) {
+                             off_t off, size_t maxsize) {
     if (off < bufsize)
         return fuse_reply_buf(req, buf + off, min(bufsize - off, maxsize));
     else
@@ -825,7 +831,7 @@ static int reply_buf_limited(fuse_req_t req, const char *buf, size_t bufsize,
 }
 
 void rozofs_ll_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
-        struct fuse_file_info *fi) {
+                       struct fuse_file_info *fi) {
     ientry_t *ie = 0;
     child_t *child, *iterator, *free_it;
     struct dirbuf b;
@@ -850,7 +856,7 @@ void rozofs_ll_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
         mattr_t attrs;
         ientry_t *ie2 = 0;
         if (exportclt_lookup(&exportclt, ie->fid, iterator->name, &attrs) !=
-                0) {
+            0) {
             if (errno == ESTALE) {
                 del_ientry(ie);
                 free(ie);
@@ -934,7 +940,8 @@ out:
     return;
 }
 
-void rozofs_ll_create(fuse_req_t req, fuse_ino_t parent, const char *name, mode_t mode, struct fuse_file_info *fi) {
+void rozofs_ll_create(fuse_req_t req, fuse_ino_t parent, const char *name,
+                      mode_t mode, struct fuse_file_info *fi) {
     ientry_t *ie = 0;
     ientry_t *nie = 0;
     mattr_t attrs;
@@ -943,7 +950,8 @@ void rozofs_ll_create(fuse_req_t req, fuse_ino_t parent, const char *name, mode_
     file_t *file;
     DEBUG_FUNCTION;
 
-    warning("create (%lu,%s,%04o)\n", (unsigned long int) parent, name, (unsigned int) mode);
+    warning("create (%lu,%s,%04o)\n", (unsigned long int) parent, name,
+            (unsigned int) mode);
 
     if (strlen(name) > ROZO_FILENAME_MAX) {
         errno = ENAMETOOLONG;
@@ -954,7 +962,7 @@ void rozofs_ll_create(fuse_req_t req, fuse_ino_t parent, const char *name, mode_
         goto error;
     }
     if (exportclt_mknod(&exportclt, ie->fid, (char *) name, mode, &attrs) !=
-            0) {
+        0) {
         if (errno == ESTALE) {
             del_ientry(ie);
             free(ie);
@@ -1036,7 +1044,7 @@ static struct fuse_lowlevel_ops rozo_ll_operations = {
     //.poll = rozofs_ll_poll,
 };
 
-int fuseloop(struct fuse_args *args, const char* mountpoint, int fg) {
+int fuseloop(struct fuse_args *args, const char *mountpoint, int fg) {
     int i;
     char s;
     int piped[2];
@@ -1047,19 +1055,20 @@ int fuseloop(struct fuse_args *args, const char* mountpoint, int fg) {
 
     openlog("rozomount", LOG_PID, LOG_LOCAL0);
 
-    if (exportclt_initialize(&exportclt, conf.host, conf.export, conf.buf_size * 1024, conf.max_retry) != 0) {
-        fprintf(stderr, "rozomount failed for:\n"
-                "export directory: %s\n"
-                "export hostnane: %s\n"
-                "local mountpoint: %s\n"
-                "error: %s\n"
-                "See log for more information\n"
-                , conf.export, conf.host, mountpoint, strerror(errno));
+    if (exportclt_initialize
+        (&exportclt, conf.host, conf.export, conf.buf_size * 1024,
+         conf.max_retry) != 0) {
+        fprintf(stderr,
+                "rozomount failed for:\n" "export directory: %s\n"
+                "export hostnane: %s\n" "local mountpoint: %s\n" "error: %s\n"
+                "See log for more information\n", conf.export, conf.host,
+                mountpoint, strerror(errno));
         return 1;
     }
 
     list_init(&inode_entries);
-    htable_initialize(&htable_inode, INODE_HSIZE, fuse_ino_hash, fuse_ino_cmp);
+    htable_initialize(&htable_inode, INODE_HSIZE, fuse_ino_hash,
+                      fuse_ino_cmp);
     htable_initialize(&htable_fid, PATH_HSIZE, fid_hash, fid_cmp);
 
     ientry_t *root = xmalloc(sizeof (ientry_t));
@@ -1067,7 +1076,8 @@ int fuseloop(struct fuse_args *args, const char* mountpoint, int fg) {
     root->inode = inode_idx++;
     put_ientry(root);
 
-    info("mounting - export: %s from : %s on: %s", conf.export, conf.host, mountpoint);
+    info("mounting - export: %s from : %s on: %s", conf.export, conf.host,
+         mountpoint);
 
     if (fg == 0) {
         if (pipe(piped) < 0) {
@@ -1102,12 +1112,13 @@ int fuseloop(struct fuse_args *args, const char* mountpoint, int fg) {
         return 1;
     }
 
-    se = fuse_lowlevel_new(args, &rozo_ll_operations, sizeof (rozo_ll_operations), (void*) piped);
+    se = fuse_lowlevel_new(args, &rozo_ll_operations,
+                           sizeof (rozo_ll_operations), (void *) piped);
 
     if (se == NULL) {
         fuse_unmount(mountpoint, ch);
         fprintf(stderr, "error in fuse_lowlevel_new\n");
-        usleep(100000); // time for print other error messages by FUSE
+        usleep(100000);         // time for print other error messages by FUSE
         if (piped[1] >= 0) {
             if (write(piped[1], &s, 1) != 1) {
                 fprintf(stderr, "pipe write error\n");
@@ -1140,7 +1151,8 @@ int fuseloop(struct fuse_args *args, const char* mountpoint, int fg) {
             (void) dup2(i, STDIN_FILENO);
             (void) dup2(i, STDOUT_FILENO);
             (void) dup2(i, STDERR_FILENO);
-            if (i > 2) close(i);
+            if (i > 2)
+                close(i);
         }
     }
 
@@ -1192,11 +1204,15 @@ int main(int argc, char *argv[]) {
         conf.buf_size = 256;
     }
     if (conf.buf_size < 128) {
-        fprintf(stderr, "write cache size to low (%u MiB) - increased to 128 KiB\n", conf.buf_size);
+        fprintf(stderr,
+                "write cache size to low (%u MiB) - increased to 128 KiB\n",
+                conf.buf_size);
         conf.buf_size = 128;
     }
     if (conf.buf_size > 4096) {
-        fprintf(stderr, "write cache size to big (%u MiB) - decresed to 4096 KiB\n", conf.buf_size);
+        fprintf(stderr,
+                "write cache size to big (%u MiB) - decresed to 4096 KiB\n",
+                conf.buf_size);
         conf.buf_size = 4096;
     }
 

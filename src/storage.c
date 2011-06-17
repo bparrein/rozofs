@@ -57,14 +57,17 @@ typedef struct pfentry {
     list_t list;
 } pfentry_t;
 
-static int pfentry_initialize(pfentry_t * pfe, const char *path, fid_t fid, tid_t pid) {
+static int pfentry_initialize(pfentry_t * pfe, const char *path, fid_t fid,
+                              tid_t pid) {
     int status = -1;
     DEBUG_FUNCTION;
 
     uuid_copy(pfe->fid, fid);
     pfe->pid = pid;
-    if ((pfe->fd = open(path, O_RDWR | O_CREAT, S_IFREG | S_IRUSR | S_IWUSR)) < 0) {
-        severe("pfentry_initialize failed: open for file %s failed: %s", path, strerror(errno));
+    if ((pfe->fd =
+         open(path, O_RDWR | O_CREAT, S_IFREG | S_IRUSR | S_IWUSR)) < 0) {
+        severe("pfentry_initialize failed: open for file %s failed: %s", path,
+               strerror(errno));
         goto out;
     }
     list_init(&pfe->list);
@@ -130,13 +133,13 @@ static pfentry_t *storage_find_pfentry(storage_t * st, fid_t fid, tid_t pid) {
 
         pfe = xmalloc(sizeof (pfentry_t));
 
-        if (pfentry_initialize(pfe, storage_map(st, fid, pid, path), fid, pid) != 0) {
+        if (pfentry_initialize(pfe, storage_map(st, fid, pid, path), fid, pid)
+            != 0) {
             free(pfe);
             pfe = 0;
             warning("storage_find_pfentry failed");
             goto out;
         }
-
         // if cache is full delete the tail of the list which should be the lru.
         if (st->csize == STORAGE_CSIZE) {
             pfentry_t *lru = list_entry(st->pfiles.prev, pfentry_t, list);
@@ -192,7 +195,7 @@ void storage_release(storage_t * st) {
 }
 
 int storage_write(storage_t * st, fid_t fid, tid_t pid, bid_t bid, uint32_t n,
-        const bin_t * bins) {
+                  const bin_t * bins) {
     int status = -1;
     pfentry_t *pfe = 0;
     size_t count = 0;
@@ -203,8 +206,12 @@ int storage_write(storage_t * st, fid_t fid, tid_t pid, bid_t bid, uint32_t n,
         goto out;
 
     count = n * rozo_psizes[pid] * sizeof (bin_t);
-    if (pwrite(pfe->fd, bins, count, (off_t) bid * (off_t) rozo_psizes[pid] * (off_t) sizeof (bin_t)) != count) {
-        severe("storage_write failed: pwrite in file %s failed: %s", storage_map(st, fid, pid, path), strerror(errno));
+    if (pwrite
+        (pfe->fd, bins, count,
+         (off_t) bid * (off_t) rozo_psizes[pid] * (off_t) sizeof (bin_t)) !=
+        count) {
+        severe("storage_write failed: pwrite in file %s failed: %s",
+               storage_map(st, fid, pid, path), strerror(errno));
         goto out;
     }
 
@@ -214,7 +221,7 @@ out:
 }
 
 int storage_read(storage_t * st, fid_t fid, tid_t pid, bid_t bid, uint32_t n,
-        bin_t * bins) {
+                 bin_t * bins) {
     int status = -1;
     pfentry_t *pfe = 0;
     size_t count;
@@ -226,8 +233,12 @@ int storage_read(storage_t * st, fid_t fid, tid_t pid, bid_t bid, uint32_t n,
 
     count = n * rozo_psizes[pid] * sizeof (bin_t);
 
-    if (pread(pfe->fd, bins, count, (off_t) bid * (off_t) rozo_psizes[pid] * (off_t) sizeof (bin_t)) != count) {
-        severe("storage_read failed: pread in file %s failed: %s", storage_map(st, fid, pid, path), strerror(errno));
+    if (pread
+        (pfe->fd, bins, count,
+         (off_t) bid * (off_t) rozo_psizes[pid] * (off_t) sizeof (bin_t)) !=
+        count) {
+        severe("storage_read failed: pread in file %s failed: %s",
+               storage_map(st, fid, pid, path), strerror(errno));
         goto out;
     }
 
@@ -244,7 +255,7 @@ int storage_truncate(storage_t * st, fid_t fid, tid_t pid, bid_t bid) {
     if (!(pfe = storage_find_pfentry(st, fid, pid)))
         goto out;
     status =
-            ftruncate(pfe->fd, (bid + 1) * rozo_psizes[pid] * sizeof (bin_t));
+        ftruncate(pfe->fd, (bid + 1) * rozo_psizes[pid] * sizeof (bin_t));
 out:
     return status;
 }

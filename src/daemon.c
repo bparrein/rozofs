@@ -99,7 +99,7 @@ static void daemon_handle_signal(int sig) {
 }
 
 void daemon_start(const char *name, void (*on_start) (void),
-        void (*on_stop) (void), void (*on_usr1) (void)) {
+                  void (*on_stop) (void), void (*on_usr1) (void)) {
     int pid;
     DEBUG_FUNCTION;
 

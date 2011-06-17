@@ -126,7 +126,7 @@ static int configure() {
             goto error;
         }
         if (storage_initialize(storaged_storages + i, (uint16_t) sid, root) !=
-                0) {
+            0) {
             goto out;
         }
     }
@@ -135,7 +135,7 @@ static int configure() {
     goto out;
 error:
     fatal("Can't read config file:%s at line %d", config_error_text(&config),
-            config_error_line(&config));
+          config_error_line(&config));
     errno = EIO;
 out:
     config_destroy(&config);
@@ -151,12 +151,16 @@ static void on_start() {
     setsockopt(sock, SOL_TCP, TCP_NODELAY, (void *) one, sizeof (one));
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void *) one, sizeof (one));
 
-    if ((storaged_svc = svctcp_create(sock, ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE)) == NULL) {
+    if ((storaged_svc =
+         svctcp_create(sock, ROZO_RPC_BUFFER_SIZE,
+                       ROZO_RPC_BUFFER_SIZE)) == NULL) {
         fatal("can't create service.");
         return;
     }
 
-    if (!svc_register(storaged_svc, STORAGE_PROGRAM, STORAGE_VERSION, storage_program_1, IPPROTO_TCP)) {
+    if (!svc_register
+        (storaged_svc, STORAGE_PROGRAM, STORAGE_VERSION, storage_program_1,
+         IPPROTO_TCP)) {
         fatal("can't register service : %s", strerror(errno));
         return;
     }
@@ -184,10 +188,10 @@ static void on_stop() {
 void usage() {
     printf("Rozo storage daemon - %s\n", VERSION);
     printf
-            ("Usage: storaged {--help} | {[{--config | -c} file] --start | --stop}\n\n");
+        ("Usage: storaged {--help} | {[{--config | -c} file] --start | --stop}\n\n");
     printf("\t-h, --help\tprint this message.\n");
     printf
-            ("\t-c, --config\tconfig file to use (default *install prefix*/etc/rozo/storage.conf).\n");
+        ("\t-c, --config\tconfig file to use (default *install prefix*/etc/rozo/storage.conf).\n");
     printf("\t--start\t\tstart the daemon.\n");
     printf("\t--stop\t\tstop the daemon\n");
     exit(EXIT_FAILURE);
@@ -211,7 +215,7 @@ int main(int argc, char *argv[]) {
             break;
 
         switch (c) {
-        case 0: //long option (manage by getopt but we don't want to be catched by default label)
+        case 0:                //long option (manage by getopt but we don't want to be catched by default label)
             break;
         case 'h':
             storaged_command_flag = HELP;

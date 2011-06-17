@@ -24,7 +24,8 @@
 #include "eproto.h"
 #include "exportclt.h"
 
-int exportclt_initialize(exportclt_t * clt, const char *host, char *root, uint32_t bufsize, uint32_t retries) {
+int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
+                         uint32_t bufsize, uint32_t retries) {
     int status = -1;
     ep_mount_ret_t *ret = 0;
     int i = 0;
@@ -37,8 +38,8 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root, uint32
     clt->bufsize = bufsize;
 
     if (rpcclt_initialize
-            (&clt->rpcclt, host, EXPORT_PROGRAM, EXPORT_VERSION,
-            ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE) != 0)
+        (&clt->rpcclt, host, EXPORT_PROGRAM, EXPORT_VERSION,
+         ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE) != 0)
         goto out;
 
     ret = ep_mount_1(&root, clt->rpcclt.client);
@@ -74,11 +75,15 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root, uint32
 
         for (j = 0; j < ep_cluster.storages_nb; j++) {
 
-            DEBUG("SID:%d, HOST:%s", ep_cluster.storages[j].sid, ep_cluster.storages[j].host);
+            DEBUG("SID:%d, HOST:%s", ep_cluster.storages[j].sid,
+                  ep_cluster.storages[j].host);
 
             //Initialize the connection with the storage
-            if (storageclt_initialize(&cluster->ms[j], ep_cluster.storages[j].host, ep_cluster.storages[j].sid) != 0) {
-                fatal("failed to join: %s,  %s", ep_cluster.storages[j].host, strerror(errno));
+            if (storageclt_initialize
+                (&cluster->ms[j], ep_cluster.storages[j].host,
+                 ep_cluster.storages[j].sid) != 0) {
+                fatal("failed to join: %s,  %s", ep_cluster.storages[j].host,
+                      strerror(errno));
                 goto out;
             }
 
@@ -136,7 +141,7 @@ out:
 }
 
 int exportclt_lookup(exportclt_t * clt, fid_t parent, char *name,
-        mattr_t * attrs) {
+                     mattr_t * attrs) {
     int status = -1;
     ep_lookup_arg_t arg;
     ep_mattr_ret_t *ret = 0;
@@ -239,7 +244,7 @@ out:
 }
 
 int exportclt_mknod(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
-        mattr_t * attrs) {
+                    mattr_t * attrs) {
     int status = -1;
     ep_mknod_arg_t arg;
     ep_mattr_ret_t *ret = 0;
@@ -267,7 +272,7 @@ out:
 }
 
 int exportclt_mkdir(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
-        mattr_t * attrs) {
+                    mattr_t * attrs) {
     int status = -1;
     ep_mkdir_arg_t arg;
     ep_mattr_ret_t *ret = 0;
@@ -343,7 +348,7 @@ out:
 }
 
 int exportclt_symlink(exportclt_t * clt, fid_t target, fid_t parent,
-        char *name, mattr_t * attrs) {
+                      char *name, mattr_t * attrs) {
     int status = -1;
     ep_symlink_arg_t arg;
     ep_mattr_ret_t *ret = 0;
@@ -397,7 +402,7 @@ out:
 }
 
 int64_t exportclt_read(exportclt_t * clt, fid_t fid, uint64_t off,
-        uint32_t len) {
+                       uint32_t len) {
     int64_t lenght = -1;
     ep_io_arg_t arg;
     ep_io_ret_t *ret = 0;
@@ -424,7 +429,7 @@ out:
 }
 
 int exportclt_read_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
-        dist_t * d) {
+                         dist_t * d) {
     int status = -1;
     ep_read_block_arg_t arg;
     ep_read_block_ret_t *ret = 0;
@@ -452,7 +457,7 @@ out:
 }
 
 int64_t exportclt_write(exportclt_t * clt, fid_t fid, uint64_t off,
-        uint32_t len) {
+                        uint32_t len) {
     int64_t lenght = -1;
     ep_io_arg_t arg;
     ep_io_ret_t *ret = 0;
@@ -479,7 +484,7 @@ out:
 }
 
 int exportclt_write_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
-        dist_t d) {
+                          dist_t d) {
     int status = -1;
     ep_write_block_arg_t arg;
     ep_status_ret_t *ret = 0;

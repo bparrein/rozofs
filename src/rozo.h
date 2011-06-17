@@ -39,12 +39,12 @@ typedef enum {
     LAYOUT_2_3_4, LAYOUT_4_6_8, LAYOUT_8_12_16
 } rozo_layout_t;
 
-typedef uint8_t tid_t; // projection id
-typedef uint64_t bid_t; // block id
-typedef uuid_t fid_t; // file id
-typedef uint16_t sid_t; // storage id
-typedef uint16_t cid_t; // cluster id
-typedef uint32_t eid_t; // export id
+typedef uint8_t tid_t;          // projection id
+typedef uint64_t bid_t;         // block id
+typedef uuid_t fid_t;           // file id
+typedef uint16_t sid_t;         // storage id
+typedef uint16_t cid_t;         // cluster id
+typedef uint32_t eid_t;         // export id
 
 // storage stat
 
@@ -57,8 +57,8 @@ typedef struct sstat {
 
 typedef struct mattr {
     fid_t fid;
-    cid_t cid; // 0 for non regular files
-    sid_t sids[ROZO_SAFE_MAX]; // not used for non regular files
+    cid_t cid;                  // 0 for non regular files
+    sid_t sids[ROZO_SAFE_MAX];  // not used for non regular files
     uint32_t mode;
     uint16_t nlink;
     uint64_t ctime;

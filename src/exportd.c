@@ -310,7 +310,8 @@ static void on_start() {
     setsockopt(sock, SOL_TCP, TCP_NODELAY, (void *) one, sizeof (one));
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void *) one, sizeof (one));
     // XXX Buffers sizes hard coded
-    exportd_svc = svctcp_create(sock, ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE);
+    exportd_svc =
+        svctcp_create(sock, ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE);
     if (exportd_svc == NULL) {
         fatal("can't create service %s", strerror(errno));
         return;
