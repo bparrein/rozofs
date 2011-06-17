@@ -15,7 +15,7 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see
  <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,7 +99,7 @@ static void daemon_handle_signal(int sig) {
 }
 
 void daemon_start(const char *name, void (*on_start) (void),
-                  void (*on_stop) (void), void (*on_usr1) (void)) {
+        void (*on_stop) (void), void (*on_usr1) (void)) {
     int pid;
     DEBUG_FUNCTION;
 

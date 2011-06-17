@@ -50,12 +50,12 @@ static void cluster_print(volume_storage_t * a, size_t n) {
     for (i = 0; i < n; i++) {
         volume_storage_t *p = a + i;
         printf("sid: %d, host: %s, size: %lld, free: %lld\n", p->sid, p->host,
-               p->stat.size, p->stat.free);
+                p->stat.size, p->stat.free);
     }
 }
 
 int mstorage_initialize(volume_storage_t * st, uint16_t sid,
-                        const char *hostname) {
+        const char *hostname) {
 
     DEBUG_FUNCTION;
 
@@ -163,7 +163,7 @@ int volume_balance() {
         }
 
         qsort(entry->ms, entry->nb_ms, sizeof (volume_storage_t),
-              volume_storage_compare);
+                volume_storage_compare);
     }
 
     list_sort(&volume.mcs, cluster_compare_capacity);
@@ -244,7 +244,7 @@ void volume_stat(volume_stat_t * stat) {
     list_for_each_forward(iterator, &volume.mcs) {
         stat->bfree += list_entry(iterator, cluster_t, list)->free / ROZO_BSIZE;
     }
-    stat->bfree = (long double)stat->bfree / ((double)rozo_forward / (double)rozo_inverse);
+    stat->bfree = (long double) stat->bfree / ((double) rozo_forward / (double) rozo_inverse);
 }
 
 int volume_print() {
@@ -265,8 +265,8 @@ int volume_print() {
     list_for_each_forward(p, &volume.mcs) {
         cluster_t *cluster = list_entry(p, cluster_t, list);
         if (printf
-            ("cluster %d, nb. of storages :%d, size: %lld, free: %lld\n",
-             cluster->cid, cluster->nb_ms, cluster->size, cluster->free) < 0)
+                ("cluster %d, nb. of storages :%d, size: %lld, free: %lld\n",
+                cluster->cid, cluster->nb_ms, cluster->size, cluster->free) < 0)
             goto out;
         cluster_print(cluster->ms, cluster->nb_ms);
     }

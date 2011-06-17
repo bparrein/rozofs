@@ -32,9 +32,8 @@ int storageclt_initialize(storageclt_t * clt, const char *host, sid_t sid) {
 
     strcpy(clt->host, host);
     clt->sid = sid;
-    if (rpcclt_initialize
-            (&clt->rpcclt, host, STORAGE_PROGRAM, STORAGE_VERSION,
-            ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE) != 0) {
+
+    if (rpcclt_initialize(&clt->rpcclt, host, STORAGE_PROGRAM, STORAGE_VERSION, ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE) != 0) {
         int xerrno = errno;
         storageclt_release(clt);
         errno = xerrno;
@@ -91,10 +90,12 @@ int storageclt_write(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid,
     ret = sp_write_1(&args, clt->rpcclt.client);
     if (ret == 0) {
         storageclt_release(clt);
+        warning("storageclt_write failed: storage write failed (no response from storage server: %s)", clt->host);
         errno = EPROTO;
         goto out;
     }
     if (ret->status != 0) {
+        severe("storageclt_write failed: storage write response failure (%s)", strerror(errno));
         errno = ret->sp_status_ret_t_u.error;
         goto out;
     }
@@ -120,11 +121,13 @@ int storageclt_read(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid,
     ret = sp_read_1(&args, clt->rpcclt.client);
     if (ret == 0) {
         storageclt_release(clt);
+        warning("storageclt_read failed: storage read failed (no response from storage server: %s)", clt->host);
         errno = EPROTO;
         goto out;
     }
     if (ret->status != 0) {
         errno = ret->sp_read_ret_t_u.error;
+        severe("storageclt_read failed: storage read response failure (%s)", strerror(errno));
         goto out;
     }
     // XXX could we avoid memcpy ??

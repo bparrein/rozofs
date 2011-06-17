@@ -23,7 +23,7 @@
 #include "xmalloc.h"
 #include "sproto.h"
 
-static mstorage_t *lookup_mstorage(exportclt_t * e, cid_t cid, sid_t sid) {
+static storageclt_t *lookup_mstorage(exportclt_t * e, cid_t cid, sid_t sid) {
     list_t *iterator;
     int i = 0;
     DEBUG_FUNCTION;
@@ -37,21 +37,23 @@ static mstorage_t *lookup_mstorage(exportclt_t * e, cid_t cid, sid_t sid) {
             }
         }
     }
-    warning("mstorage not found.");
+    warning("lookup_mstorage failed : mstorage not found");
     errno = EINVAL;
     return NULL;
 }
 
+/*
 static void file_disconnect(file_t * f) {
     int i;
     DEBUG_FUNCTION;
 
     // Free the export
     for (i = 0; i < rozo_safe; i++) {
-        storageclt_release(&f->storages[i]);
-        f->storages[i].rpcclt.client = 0;
+        storageclt_release(f->storages[i]);
+        f->storages[i]->rpcclt.client = 0;
     }
 }
+*/
 
 static int file_connect(file_t * f) {
     int i, connected;
@@ -61,17 +63,18 @@ static int file_connect(file_t * f) {
     connected = 0;
     // Get the hostname for one sid et one cid
     for (i = 0; i < rozo_safe; i++) {
-        mstorage_t *s = lookup_mstorage(f->export, f->attrs.cid,
-                f->attrs.sids[i]);
-        if (s) {
-            if (storageclt_initialize(&f->storages[i], s->host, s->sid) == 0) {
+
+        if ((f->storages[i] = lookup_mstorage(f->export, f->attrs.cid, f->attrs.sids[i]))) {
+
+            if (f->storages[i]->rpcclt.client != 0) {
                 connected++;
             } else {
-                f->storages[i].rpcclt.client = 0;
+                if (storageclt_initialize(f->storages[i], f->storages[i]->host, f->storages[i]->sid) != 0) {
+                    warning("failed to join: %s,  %s", f->storages[i]->host, strerror(errno));
+                } else {
+                    connected++;
+                }
             }
-        } else {
-            warning("can't find storage");
-            f->storages[i].rpcclt.client = 0;
         }
     }
 
@@ -86,7 +89,7 @@ static int file_connect(file_t * f) {
 
 static int file_reconnect(file_t * f) {
     DEBUG_FUNCTION;
-    file_disconnect(f);
+    //file_disconnect(f);
     return file_connect(f);
 }
 
@@ -146,12 +149,11 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
                 }
             }
 
-            if (!f->storages[mps].rpcclt.client)
+            if (!f->storages[mps]->rpcclt.client)
                 continue;
 
             b = xmalloc(n * rozo_psizes[mp] * sizeof (bin_t));
-            if (storageclt_read(f->storages + mps, f->fid, mp, bid + i, n, b)
-                    != 0) {
+            if (storageclt_read(f->storages[mps], f->fid, mp, bid + i, n, b) != 0) {
                 free(b);
                 continue;
             }
@@ -229,7 +231,7 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
     bin_t **bins;
     angle_t *angles;
     uint16_t *psizes;
-    dist_t dist;
+    dist_t dist = 0; // Important
     uint16_t mp = 0;
     uint16_t ps = 0;
     uint32_t i = 0;
@@ -269,10 +271,10 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
         // Warning: the server can be disconnected
         // but f->storages[ps].rpcclt->client != NULL
         // the disconnection will be detected when the request will be sent
-        if (!(f->storages[ps].rpcclt.client))
+        if (!(f->storages[ps]->rpcclt.client))
             continue;
 
-        if (storageclt_write(&f->storages[ps], f->fid, mp, bid, nmbs, bins[mp]) != 0)
+        if (storageclt_write(f->storages[ps], f->fid, mp, bid, nmbs, bins[mp]) != 0)
             continue;
 
         free(bins[mp]);
@@ -344,7 +346,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
         memset(block, 0, ROZO_BSIZE);
         retry = 0;
         while (read_blocks(f, first, 1, block) != 0 &&
-                retry++ < ROZO_MAX_RETRY) {
+                retry++ < f->export->retries) {
             if (file_reconnect(f) != 0) {
                 length = -1;
                 goto out;
@@ -359,7 +361,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
         if (foffset != 0) {
             retry = 0;
             while (read_blocks(f, first, 1, block) != 0 &&
-                    retry++ < ROZO_MAX_RETRY) {
+                    retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -372,7 +374,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
         if (loffset != ROZO_BSIZE) {
             retry = 0;
             while (read_blocks(f, last, 1, block) != 0 &&
-                    retry++ < ROZO_MAX_RETRY) {
+                    retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -385,7 +387,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
         if ((last - first) + 1 != 0) {
             retry = 0;
             while (read_blocks(f, first, (last - first) + 1, bufp) != 0 &&
-                    retry++ < ROZO_MAX_RETRY) {
+                    retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -445,7 +447,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
         if (fread == 1 || lread == 1) {
             retry = 0;
             while (read_blocks(f, first, 1, block) != 0 &&
-                    retry++ < ROZO_MAX_RETRY) {
+                    retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -455,7 +457,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
         memcpy(&block[foffset], buf, len);
         retry = 0;
         while (write_blocks(f, first, 1, block) != 0 &&
-                retry++ < ROZO_MAX_RETRY) {
+                retry++ < f->export->retries) {
             if (file_reconnect(f) != 0) {
                 length = -1;
                 goto out;
@@ -473,7 +475,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
             if (fread == 1) {
                 retry = 0;
                 while (read_blocks(f, first, 1, block) != 0 &&
-                        retry++ < ROZO_MAX_RETRY) {
+                        retry++ < f->export->retries) {
                     if (file_reconnect(f) != 0) {
                         length = -1;
                         goto out;
@@ -483,7 +485,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
             memcpy(&block[foffset], buf, ROZO_BSIZE - foffset);
             retry = 0;
             while (write_blocks(f, first, 1, block) != 0 &&
-                    retry++ < ROZO_MAX_RETRY) {
+                    retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -498,7 +500,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
             if (lread == 1) {
                 retry = 0;
                 while (read_blocks(f, last, 1, block) != 0 &&
-                        retry++ < ROZO_MAX_RETRY) {
+                        retry++ < f->export->retries) {
                     if (file_reconnect(f) != 0) {
                         length = -1;
                         goto out;
@@ -508,7 +510,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
             memcpy(block, bufp + ROZO_BSIZE * (last - first), loffset);
             retry = 0;
             while (write_blocks(f, last, 1, block) != 0 &&
-                    retry++ < ROZO_MAX_RETRY) {
+                    retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -520,7 +522,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
         if ((last - first) + 1 != 0) {
             retry = 0;
             while (write_blocks(f, first, (last - first) + 1, bufp) != 0 &&
-                    retry++ < ROZO_MAX_RETRY) {
+                    retry++ < f->export->retries) {
                 if (file_reconnect(f) != 0) {
                     length = -1;
                     goto out;
@@ -539,21 +541,26 @@ out:
 
 file_t *file_open(exportclt_t * e, fid_t fid, mode_t mode) {
     file_t *f = 0;
-    int i = 0;
     DEBUG_FUNCTION;
 
     f = xmalloc(sizeof (file_t));
-    memcpy(f->fid, fid, sizeof (fid_t));
-    f->storages = xmalloc(rozo_safe * sizeof (storageclt_t));
-    for (i = 0; i < rozo_safe; i++) {
-        f->storages[i].rpcclt.client = 0;
-    }
 
+    memcpy(f->fid, fid, sizeof (fid_t));
+    f->storages = xmalloc(rozo_safe * sizeof (storageclt_t *));
     if (exportclt_getattr(e, fid, &f->attrs) != 0)
         goto error;
+
+    f->buffer = xmalloc(e->bufsize * sizeof (char));
+
+    // Open the file descriptor in the export server
+    if (exportclt_open(e, fid) != 0)
+        goto error;
+
     f->export = e;
+
     if (file_connect(f) != 0)
         goto error;
+
     f->buf_from = 0;
     f->buf_pos = 0;
     f->buf_write_wait = 0;
@@ -577,9 +584,7 @@ int64_t file_write(file_t * f, uint64_t off, const char *buf, uint32_t len) {
 
     while (done) {
 
-        if (len > (ROZO_BUF_SIZE - f->buf_pos) || (off != (f->buf_from + f->buf_pos) && f->buf_write_wait != 0)) {
-
-            DEBUG("WRITE of %llu bytes from %llu", f->buf_pos, f->buf_from);
+        if (len > (f->export->bufsize - f->buf_pos) || (off != (f->buf_from + f->buf_pos) && f->buf_write_wait != 0)) {
 
             if ((len_write = write_buf(f, f->buf_from, f->buffer, f->buf_pos)) < 0) {
                 goto out;
@@ -614,8 +619,6 @@ int file_flush(file_t * f) {
 
     if (f->buf_write_wait != 0) {
 
-        DEBUG("FLUSH WRITE of %llu bytes", f->buf_pos);
-
         if ((length = write_buf(f, f->buf_from, f->buffer, f->buf_pos)) < 0)
             goto out;
 
@@ -635,7 +638,7 @@ int64_t file_read(file_t * f, uint64_t off, char **buf, uint32_t len) {
 
     if ((off < f->buf_from) || (off >= (f->buf_from + f->buf_pos)) || (len > (f->buf_from + f->buf_pos - off))) {
 
-        if ((len_rec = read_buf(f, off, f->buffer, ROZO_BUF_SIZE)) <= 0) {
+        if ((len_rec = read_buf(f, off, f->buffer, f->export->bufsize)) <= 0) {
             length = len_rec;
             goto out;
         }
@@ -651,29 +654,30 @@ int64_t file_read(file_t * f, uint64_t off, char **buf, uint32_t len) {
         *buf = f->buffer + (off - f->buf_from);
     }
 
-    /*
-        if ((length = read_buf(f, off, f->buffer, len)) <= 0) {
-            length = len_rec;
-            goto out;
-        }
-
-        length = len_rec;
-     *buf = f->buffer;
-     */
-
 out:
     return length;
 }
 
-void file_close(file_t * f) {
+int file_close(exportclt_t * e, file_t * f) {
+    int status = -1;
     DEBUG_FUNCTION;
+
     if (f) {
         f->buf_from = 0;
         f->buf_pos = 0;
         f->buf_write_wait = 0;
         f->buf_read_wait = 0;
-        file_disconnect(f);
+
+        // Close the file descriptor in the export server
+        if (exportclt_close(e, f->fid) != 0)
+            goto out;
+
         free(f->storages);
+        free(f->buffer);
         free(f);
+
     }
+    status = 0;
+out:
+    return status;
 }

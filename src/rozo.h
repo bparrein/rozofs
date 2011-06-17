@@ -33,7 +33,7 @@
 #define ROZO_FILENAME_MAX 4096
 #define ROZO_CLUSTERS_MAX 50
 #define ROZO_STORAGES_MAX 50
-#define ROZO_MAX_RETRY 5
+//#define ROZO_MAX_RETRY 5
 
 typedef enum {
     LAYOUT_2_3_4, LAYOUT_4_6_8, LAYOUT_8_12_16

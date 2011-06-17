@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 
 #ifndef _EXPORTCLT_H
@@ -24,15 +24,16 @@
 #include "rozo.h"
 #include "rpcclt.h"
 #include "dist.h"
+#include "storageclt.h"
 
-typedef struct mstorage {
-    sid_t sid;
-    char host[ROZO_HOSTNAME_MAX];
-} mstorage_t;
+//typedef struct mstorage {
+//    sid_t sid;
+//    char host[ROZO_HOSTNAME_MAX];
+//} mstorage_t;
 
 typedef struct mcluster {
     cid_t cid;
-    mstorage_t *ms;
+    storageclt_t *ms;
     uint16_t nb_ms;
     list_t list;
 } mcluster_t;
@@ -43,17 +44,19 @@ typedef struct exportclt {
     list_t mcs;
     rozo_layout_t rl;
     fid_t rfid;
+    uint32_t bufsize;
+    uint32_t retries;
     rpcclt_t rpcclt;
 } exportclt_t;
 
-int exportclt_initialize(exportclt_t * clt, const char *host, char *root);
+int exportclt_initialize(exportclt_t * clt, const char *host, char *root, uint32_t bufsize, uint32_t retries);
 
 void exportclt_release(exportclt_t * clt);
 
 int exportclt_stat(exportclt_t * clt, estat_t * st);
 
 int exportclt_lookup(exportclt_t * clt, fid_t parent, char *name,
-                     mattr_t * attrs);
+        mattr_t * attrs);
 
 int exportclt_getattr(exportclt_t * clt, fid_t fid, mattr_t * attrs);
 
@@ -62,32 +65,36 @@ int exportclt_setattr(exportclt_t * clt, fid_t fid, mattr_t * attrs);
 int exportclt_readlink(exportclt_t * clt, fid_t fid, char link[PATH_MAX]);
 
 int exportclt_mknod(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
-                    mattr_t * attrs);
+        mattr_t * attrs);
 
 int exportclt_mkdir(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
-                    mattr_t * attrs);
+        mattr_t * attrs);
 
 int exportclt_unlink(exportclt_t * clt, fid_t fid);
 
 int exportclt_rmdir(exportclt_t * clt, fid_t fid);
 
 int exportclt_symlink(exportclt_t * clt, fid_t target, fid_t parent,
-                      char *name, mattr_t * attrs);
+        char *name, mattr_t * attrs);
 
 int exportclt_rename(exportclt_t * clt, fid_t from, fid_t parent, char *name);
 
 int64_t exportclt_read(exportclt_t * clt, fid_t fid, uint64_t off,
-                       uint32_t len);
+        uint32_t len);
 
 int exportclt_read_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
-                         dist_t * d);
+        dist_t * d);
 
 int64_t exportclt_write(exportclt_t * clt, fid_t fid, uint64_t off,
-                        uint32_t len);
+        uint32_t len);
 
 int exportclt_write_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
-                          dist_t d);
+        dist_t d);
 
 int exportclt_readdir(exportclt_t * clt, fid_t fid, child_t ** children);
+
+int exportclt_open(exportclt_t * clt, fid_t fid);
+
+int exportclt_close(exportclt_t * clt, fid_t fid);
 
 #endif

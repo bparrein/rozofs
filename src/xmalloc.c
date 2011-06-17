@@ -50,7 +50,7 @@ void *xrealloc(void *p, size_t n) {
     return p;
 }
 
-char *xstrdup(char *str) {
+char *xstrdup(const char *str) {
     char *p;
 
     p = strdup(str);

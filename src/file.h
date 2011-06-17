@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #ifndef _FILE_H
 #define _FILE_H
@@ -28,9 +28,10 @@ typedef struct file {
     fid_t fid;
     mode_t mode;
     mattr_t attrs;
-    exportclt_t *export;
-    storageclt_t *storages;
-    char buffer[ROZO_BUF_SIZE];
+    exportclt_t * export;
+    storageclt_t **storages;
+    //char buffer[ROZO_BUF_SIZE];
+    char * buffer;
     int buf_write_wait;
     int buf_read_wait;
     uint64_t buf_pos;
@@ -45,6 +46,6 @@ int file_flush(file_t * f);
 
 int64_t file_read(file_t * f, uint64_t off, char **buf, uint32_t len);
 
-void file_close(file_t * f);
+int file_close(exportclt_t * e, file_t * f);
 
 #endif

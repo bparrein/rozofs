@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #include <errno.h>
 #include "rozo.h"
@@ -24,7 +24,7 @@
 #include "eproto.h"
 #include "exportclt.h"
 
-int exportclt_initialize(exportclt_t * clt, const char *host, char *root) {
+int exportclt_initialize(exportclt_t * clt, const char *host, char *root, uint32_t bufsize, uint32_t retries) {
     int status = -1;
     ep_mount_ret_t *ret = 0;
     int i = 0;
@@ -32,9 +32,13 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root) {
     DEBUG_FUNCTION;
 
     strcpy(clt->host, host);
+
+    clt->retries = retries;
+    clt->bufsize = bufsize;
+
     if (rpcclt_initialize
-        (&clt->rpcclt, host, EXPORT_PROGRAM, EXPORT_VERSION,
-         ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE) != 0)
+            (&clt->rpcclt, host, EXPORT_PROGRAM, EXPORT_VERSION,
+            ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE) != 0)
         goto out;
 
     ret = ep_mount_1(&root, clt->rpcclt.client);
@@ -56,20 +60,29 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root) {
 
     // For each cluster
     for (i = 0; i < ret->ep_mount_ret_t_u.volume.clusters_nb; i++) {
+
         ep_cluster_t ep_cluster = ret->ep_mount_ret_t_u.volume.clusters[i];
+
         mcluster_t *cluster = (mcluster_t *) xmalloc(sizeof (mcluster_t));
 
         DEBUG("CLUSTER: %d", ep_cluster.cid);
+
         cluster->cid = ep_cluster.cid;
         cluster->nb_ms = ep_cluster.storages_nb;
-        cluster->ms = xmalloc(ep_cluster.storages_nb * sizeof (mstorage_t));
-        for (j = 0; j < ep_cluster.storages_nb; j++) {
-            DEBUG("SID:%d, HOST:%s", ep_cluster.storages[j].sid,
-                  ep_cluster.storages[j].host);
-            cluster->ms[j].sid = ep_cluster.storages[j].sid;
-            strcpy(cluster->ms[j].host, ep_cluster.storages[j].host);
-        }
 
+        cluster->ms = xmalloc(ep_cluster.storages_nb * sizeof (storageclt_t));
+
+        for (j = 0; j < ep_cluster.storages_nb; j++) {
+
+            DEBUG("SID:%d, HOST:%s", ep_cluster.storages[j].sid, ep_cluster.storages[j].host);
+
+            //Initialize the connection with the storage
+            if (storageclt_initialize(&cluster->ms[j], ep_cluster.storages[j].host, ep_cluster.storages[j].sid) != 0) {
+                fatal("failed to join: %s,  %s", ep_cluster.storages[j].host, strerror(errno));
+                goto out;
+            }
+
+        }
         // Add to the list
         list_push_back(&clt->mcs, &cluster->list);
     }
@@ -123,7 +136,7 @@ out:
 }
 
 int exportclt_lookup(exportclt_t * clt, fid_t parent, char *name,
-                     mattr_t * attrs) {
+        mattr_t * attrs) {
     int status = -1;
     ep_lookup_arg_t arg;
     ep_mattr_ret_t *ret = 0;
@@ -226,7 +239,7 @@ out:
 }
 
 int exportclt_mknod(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
-                    mattr_t * attrs) {
+        mattr_t * attrs) {
     int status = -1;
     ep_mknod_arg_t arg;
     ep_mattr_ret_t *ret = 0;
@@ -254,7 +267,7 @@ out:
 }
 
 int exportclt_mkdir(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
-                    mattr_t * attrs) {
+        mattr_t * attrs) {
     int status = -1;
     ep_mkdir_arg_t arg;
     ep_mattr_ret_t *ret = 0;
@@ -330,7 +343,7 @@ out:
 }
 
 int exportclt_symlink(exportclt_t * clt, fid_t target, fid_t parent,
-                      char *name, mattr_t * attrs) {
+        char *name, mattr_t * attrs) {
     int status = -1;
     ep_symlink_arg_t arg;
     ep_mattr_ret_t *ret = 0;
@@ -384,7 +397,7 @@ out:
 }
 
 int64_t exportclt_read(exportclt_t * clt, fid_t fid, uint64_t off,
-                       uint32_t len) {
+        uint32_t len) {
     int64_t lenght = -1;
     ep_io_arg_t arg;
     ep_io_ret_t *ret = 0;
@@ -411,7 +424,7 @@ out:
 }
 
 int exportclt_read_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
-                         dist_t * d) {
+        dist_t * d) {
     int status = -1;
     ep_read_block_arg_t arg;
     ep_read_block_ret_t *ret = 0;
@@ -439,7 +452,7 @@ out:
 }
 
 int64_t exportclt_write(exportclt_t * clt, fid_t fid, uint64_t off,
-                        uint32_t len) {
+        uint32_t len) {
     int64_t lenght = -1;
     ep_io_arg_t arg;
     ep_io_ret_t *ret = 0;
@@ -466,7 +479,7 @@ out:
 }
 
 int exportclt_write_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
-                          dist_t d) {
+        dist_t d) {
     int status = -1;
     ep_write_block_arg_t arg;
     ep_status_ret_t *ret = 0;
@@ -528,5 +541,57 @@ int exportclt_readdir(exportclt_t * clt, fid_t fid, child_t ** children) {
 out:
     if (ret)
         xdr_free((xdrproc_t) xdr_ep_readdir_ret_t, (char *) ret);
+    return status;
+}
+
+int exportclt_open(exportclt_t * clt, fid_t fid) {
+
+    int status = -1;
+    ep_mfile_arg_t arg;
+    ep_status_ret_t *ret = 0;
+    DEBUG_FUNCTION;
+
+    arg.eid = clt->eid;
+    memcpy(arg.fid, fid, sizeof (fid_t));
+
+    ret = ep_open_1(&arg, clt->rpcclt.client);
+    if (ret == 0) {
+        errno = EPROTO;
+        goto out;
+    }
+    if (ret->status == EP_FAILURE) {
+        errno = ret->ep_status_ret_t_u.error;
+        goto out;
+    }
+    status = 0;
+out:
+    if (ret)
+        xdr_free((xdrproc_t) xdr_ep_status_ret_t, (char *) ret);
+    return status;
+}
+
+int exportclt_close(exportclt_t * clt, fid_t fid) {
+
+    int status = -1;
+    ep_mfile_arg_t arg;
+    ep_status_ret_t *ret = 0;
+    DEBUG_FUNCTION;
+
+    arg.eid = clt->eid;
+    memcpy(arg.fid, fid, sizeof (fid_t));
+
+    ret = ep_close_1(&arg, clt->rpcclt.client);
+    if (ret == 0) {
+        errno = EPROTO;
+        goto out;
+    }
+    if (ret->status == EP_FAILURE) {
+        errno = ret->ep_status_ret_t_u.error;
+        goto out;
+    }
+    status = 0;
+out:
+    if (ret)
+        xdr_free((xdrproc_t) xdr_ep_status_ret_t, (char *) ret);
     return status;
 }

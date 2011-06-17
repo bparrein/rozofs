@@ -1,44 +1,78 @@
 .\" Process this file with
 .\" groff -man -Tascii exportd.8
 .\"
-.TH ROZOFS 8 "DECEMBER 2010" Rozo "User Manuals"
+.TH ROZOMOUNT 8 "JUNE 2011" Rozo "User Manuals"
 .SH NAME
 rozomount \- rozo fuse mount
 .SH SYNOPSIS
-.B rozomount {--help | -h } | 
-.I export_host export_path mount_point
-.B
+.B rozomount
+\fImountpoint\fP
+[\fB\-f\fP]
+[\fB\-H\fP \fIEXPORT_HOST\fP]
+[\fB\-E\fP \fIEXPORT_PATH\fP]
+[\fB\-o\fP \fIopt\fP[,\fIopt\fP]...]
+.PP
+.B rozomount
+\fB\-h\fP|\fB\-\-help\fP
+.PP
+.B rozomount
+\fB\-V\fP|\fB\-\-version\fP
+.PP
 .SH DESCRIPTION
 .B rozomount
 Mount a 
 .BR rozo (7) 
 filesystem exported by
 .BR exportd (8)
-
-.I "export_host"
-.RS
-Address (or dns name) where exportd deamon is running.
-
-.RE
-.I "export_path"
-.RS
+.PP
+General options:
+.TP
+\fB\-h\fP, \fB\-\-help
+display help and exit
+.TP
+\fB\-V\fP, \fB\-\-version
+display version information and exit
+.PP
+FUSE options:
+.TP
+\fB\-f\fP
+foreground operation
+.PP
+Rozo options:
+.TP
+\fB\-H\fP \fIEXPORT_HOST\fP, \fB\-o exporthost=\fP\fIEXPORT_HOST\fP
+Address (or dns name) where exportd deamon is running (default is rozoexport).
+.TP
+\fB\-E\fP \fIEXPORT_PATH\fP, \fB-o exportpath=\fP\fIEXPORT_PATH\fP
 Root path of an export see
 .BR exportd (8)
-for further details.
+for further details. (default is /home/rozo).
+.TP
+\fB\-o rozobufsize=\fP\fIN\fP
+specify size of I/O buffer in KiB (in range: 128..4096 - default: 256)
+.TP
+\fB\-o rozomaxretry=\fP\fIN\fP
+specify number of retries before I/O error is returned (default: 5)
+.PP
+.SH "REPORTING BUGS"
+Report bugs to <bugs@fizians.org>.
+.SH COPYRIGHT
+Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
 
-.RE
-.I "mount_point"
-.RS
-Directory where filesystem will be mounted. See
-.BR mount (8)
-for further details.
+Rozo is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published
+by the Free Software Foundation; either version 3 of the License,
+or (at your option) any later version.
 
-.SH OPTIONS
-.IP "-h, --help"
-.RS
-Print help.
+Rozo is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with rozo.  If not, see <http://www.gnu.org/licenses/>.
 .SH AUTHOR
-Fizians <http://www.fizians.com>
+Fizians <http://www.fizians.org>
 .SH "SEE ALSO"
 .BR rozo (7),
 .BR exportd (8),

@@ -19,10 +19,12 @@
 #define FUSE_USE_VERSION 26
 
 #include <fuse/fuse_lowlevel.h>
+#include <fuse/fuse_opt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <stddef.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <getopt.h>
@@ -38,14 +40,97 @@
 #define INODE_HSIZE 256
 #define PATH_HSIZE  256
 
+#define FUSE_DEFAULT_OPTIONS "allow_other,fsname=rozo,subtype=rozo,big_writes"
+
+static void usage(const char *progname) {
+    fprintf(stderr, "Rozo fuse mounter - %s\n", VERSION);
+    fprintf(stderr, "Usage: %s mountpoint [options]\n", progname);
+    fprintf(stderr, "general options:\n");
+    fprintf(stderr, "\t-o opt,[opt...]\tmount options\n");
+    fprintf(stderr, "\t-h --help\tprint help\n");
+    fprintf(stderr, "\t-V --version\tprint rozo version\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "ROZO options:\n");
+    fprintf(stderr, "\t-H EXPORT_HOST\t\tdefine address (or dns name) where exportd deamon is running (default: rozoexport) equivalent to '-o exporthost=EXPORT_HOST'\n");
+    fprintf(stderr, "\t-E EXPORT_PATH\t\tdefine path of an export see exportd (default: /home/rozo) equivalent to '-o exportpath=EXPORT_PATH'\n");
+    fprintf(stderr, "\t-o rozobufsize=N\tdefine size of I/O buffer in KiB (default: 256)\n");
+    fprintf(stderr, "\t-o rozomaxretry=N\tdefine number of retries before I/O error is returned (default: 5)\n");
+}
+
+typedef struct rozomnt_conf {
+    char * host;
+    char * export;
+    unsigned buf_size;
+    unsigned max_retry;
+} rozomnt_conf_t;
+
+static rozomnt_conf_t conf;
+
+enum {
+    KEY_EXPORT_HOST,
+    KEY_EXPORT_PATH,
+    KEY_HELP,
+    KEY_VERSION,
+};
+
+#define MYFS_OPT(t, p, v) { t, offsetof(struct rozomnt_conf, p), v }
+
+static struct fuse_opt rozofs_opts[] = {
+    MYFS_OPT("exporthost=%s", host, 0),
+    MYFS_OPT("exportpath=%s", export, 0),
+    MYFS_OPT("rozobufsize=%u", buf_size, 0),
+    MYFS_OPT("rozomaxretry=%u", max_retry, 0),
+
+    FUSE_OPT_KEY("-H ", KEY_EXPORT_HOST),
+    FUSE_OPT_KEY("-E ", KEY_EXPORT_PATH),
+
+    FUSE_OPT_KEY("-V", KEY_VERSION),
+    FUSE_OPT_KEY("--version", KEY_VERSION),
+    FUSE_OPT_KEY("-h", KEY_HELP),
+    FUSE_OPT_KEY("--help", KEY_HELP),
+    FUSE_OPT_END
+};
+
+static int myfs_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs) {
+    (void) data;
+    switch (key) {
+    case FUSE_OPT_KEY_OPT:
+        return 1;
+    case FUSE_OPT_KEY_NONOPT:
+        return 1;
+    case KEY_EXPORT_HOST:
+        if (conf.host == NULL) {
+            conf.host = strdup(arg + 2);
+        }
+        return 0;
+    case KEY_EXPORT_PATH:
+        if (conf.export == NULL) {
+            conf.export = strdup(arg + 2);
+        }
+        return 0;
+    case KEY_HELP:
+        usage(outargs->argv[0]);
+        fuse_opt_add_arg(outargs, "-h"); // PRINT FUSE HELP
+        fuse_parse_cmdline(outargs, NULL, NULL, NULL);
+        fuse_mount(NULL, outargs);
+        exit(1);
+    case KEY_VERSION:
+        fprintf(stderr, "rozo version %s\n", VERSION);
+        fuse_opt_add_arg(outargs, "--version"); // PRINT FUSE VERSION
+        fuse_parse_cmdline(outargs, NULL, NULL, NULL);
+        exit(0);
+    }
+    return 1;
+}
+
 typedef struct ientry {
     fuse_ino_t inode;
     fid_t fid;
     list_t list;
 } ientry_t;
 
-static char host[255];
-static char export[255];
+//static char host[255];
+//static char export[255];
 static exportclt_t exportclt;
 
 static htable_t htable_inode;
@@ -134,6 +219,19 @@ static mattr_t *stat_to_mattr(struct stat *st, mattr_t * attr, int to_set) {
     if (to_set & FUSE_SET_ATTR_MTIME)
         attr->mtime = st->st_mtime;
     return attr;
+}
+
+static void rozofs_ll_init(void *userdata, struct fuse_conn_info *conn) {
+    int *piped = (int*) userdata;
+    char s;
+    (void) conn;
+    if (piped[1] >= 0) {
+        s = 0;
+        if (write(piped[1], &s, 1) != 1) {
+            warning("rozofs_ll_init: pipe write error: %s", strerror(errno));
+        }
+        close(piped[1]);
+    }
 }
 
 void rozofs_ll_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
@@ -352,6 +450,10 @@ void rozofs_ll_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 
     DEBUG_FUNCTION;
 
+    DEBUG("read to inode %lu %llu bytes at position %llu\n",
+            (unsigned long int) ino, (unsigned long long int) size,
+            (unsigned long long int) off);
+
     if (!(ie = htable_get(&htable_inode, &ino))) {
         errno = ENOENT;
         goto error;
@@ -446,12 +548,33 @@ void rozofs_ll_access(fuse_req_t req, fuse_ino_t ino, int mask) {
 
 void rozofs_ll_release(fuse_req_t req, fuse_ino_t ino,
         struct fuse_file_info *fi) {
-
+    file_t *f;
+    ientry_t *ie = 0;
     DEBUG_FUNCTION;
     DEBUG("release (%lu)\n", (unsigned long int) ino);
 
-    file_close((file_t *) ((unsigned long) fi->fh));
+    // Sanity check
+    if (!(ie = htable_get(&htable_inode, &ino))) {
+        errno = ENOENT;
+        goto error;
+    }
+
+    if (!(f = (file_t *) (unsigned long) fi->fh)) {
+        errno = EBADF;
+        goto out;
+    }
+
+    memcpy(f->fid, ie->fid, sizeof (fid_t));
+
+    if (file_close(&exportclt, f) != 0) {
+        goto error;
+    }
+
     fuse_reply_err(req, 0);
+    goto out;
+error:
+    fuse_reply_err(req, errno);
+out:
     return;
 }
 
@@ -522,6 +645,8 @@ void rozofs_ll_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *stbuf,
     struct stat o_stbuf;
     mattr_t attr;
     DEBUG_FUNCTION;
+
+    DEBUG("setattr for inode: %lu\n", (unsigned long int) ino);
 
     if (!(ie = htable_get(&htable_inode, &ino))) {
         errno = ENOENT;
@@ -873,7 +998,7 @@ out:
 }
 
 static struct fuse_lowlevel_ops rozo_ll_operations = {
-    //.init = rozofs_ll_init,
+    .init = rozofs_ll_init,
     //.destroy = rozofs_ll_destroy,
     .lookup = rozofs_ll_lookup,
     //.forget = rozofs_ll_forget,
@@ -911,103 +1036,187 @@ static struct fuse_lowlevel_ops rozo_ll_operations = {
     //.poll = rozofs_ll_poll,
 };
 
-static void usage() {
-    printf("Rozo fuse mounter - %s\n", VERSION);
-    printf
-            ("Usage: rozofs {--help | -h} | {export_host export_path mount_point} \n\n");
-    printf("\t-h, --help\tprint this message.\n");
-    printf
-            ("\texport_host\taddress (or dns name) where exportd deamon is running.\n");
-    printf("\texport_path\tname of an export see exportd.\n");
-    printf("\tmount_point\tdirectory where filesystem will be mounted.\n");
-    exit(EXIT_FAILURE);
-}
-
-int main(int argc, char *argv[]) {
-    struct fuse_args args; // = FUSE_ARGS_INIT(argc, argv);
+int fuseloop(struct fuse_args *args, const char* mountpoint, int fg) {
+    int i;
+    char s;
+    int piped[2];
+    piped[0] = piped[1] = -1;
+    int err;
     struct fuse_chan *ch;
-    char *mountpoint;
-    int err = -1;
-    char c;
-    static struct option long_options[] = {
-        {"help", no_argument, 0, 'h'},
-        {0, 0, 0, 0}
-    };
-
-    while (1) {
-        int option_index = 0;
-        c = getopt_long(argc, argv, "h", long_options, &option_index);
-        if (c == -1)
-            break;
-        switch (c) {
-        case 'h':
-            usage();
-            break;
-        case '?':
-            usage();
-        default:
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    if (argc < 4) {
-        usage();
-    }
-
-    strcpy(host, argv[1]);
-    strcpy(export, argv[2]);
-
-    args.argc = 7;
-    args.argv = xmalloc(8 * sizeof (char *));
-    args.argv[0] = xstrdup(argv[0]);
-    args.argv[1] = xstrdup("-s");
-    args.argv[2] = xstrdup("-oallow_other");
-    args.argv[3] = xstrdup("-ofsname=rozo");
-    args.argv[4] = xstrdup("-osubtype=rozo");
-    // FUSE 2.8 REQUIERED
-    args.argv[5] = xstrdup("-obig_writes");
-    //args.argv[6] = xstrdup("-d"); // XXX DEBUG
-    args.argv[6] = xstrdup(argv[3]);
-    args.argv[7] = 0;
+    struct fuse_session *se;
 
     openlog("rozomount", LOG_PID, LOG_LOCAL0);
 
-    list_init(&inode_entries);
-    htable_initialize(&htable_inode, INODE_HSIZE, fuse_ino_hash,
-            fuse_ino_cmp);
-    htable_initialize(&htable_fid, PATH_HSIZE, fid_hash, fid_cmp);
-
-    if (exportclt_initialize(&exportclt, host, export) != 0) {
-        perror("Fail to initialize export client");
-        return EXIT_FAILURE;
+    if (exportclt_initialize(&exportclt, conf.host, conf.export, conf.buf_size * 1024, conf.max_retry) != 0) {
+        fprintf(stderr, "rozomount failed for:\n"
+                "export directory: %s\n"
+                "export hostnane: %s\n"
+                "local mountpoint: %s\n"
+                "error: %s\n"
+                "See log for more information\n"
+                , conf.export, conf.host, mountpoint, strerror(errno));
+        return 1;
     }
+
+    list_init(&inode_entries);
+    htable_initialize(&htable_inode, INODE_HSIZE, fuse_ino_hash, fuse_ino_cmp);
+    htable_initialize(&htable_fid, PATH_HSIZE, fid_hash, fid_cmp);
 
     ientry_t *root = xmalloc(sizeof (ientry_t));
     memcpy(root->fid, exportclt.rfid, sizeof (fid_t));
     root->inode = inode_idx++;
     put_ientry(root);
 
-    info("mounting - export: %s from : %s on: %s", argv[2], argv[1], argv[3]);
-    if (fuse_parse_cmdline(&args, &mountpoint, NULL, NULL) != -1 &&
-            (ch = fuse_mount(mountpoint, &args)) != NULL) {
-        struct fuse_session *se;
+    info("mounting - export: %s from : %s on: %s", conf.export, conf.host, mountpoint);
 
-        se = fuse_lowlevel_new(&args, &rozo_ll_operations,
-                sizeof (rozo_ll_operations), NULL);
-        if (se != NULL) {
-            if (fuse_set_signal_handlers(se) != -1) {
-                fuse_session_add_chan(se, ch);
-                err = fuse_session_loop(se);
-                fuse_remove_signal_handlers(se);
-                fuse_session_remove_chan(ch);
-            }
-            fuse_session_destroy(se);
+    if (fg == 0) {
+        if (pipe(piped) < 0) {
+            fprintf(stderr, "pipe error\n");
+            return 1;
         }
-        fuse_unmount(mountpoint, ch);
+        err = fork();
+        if (err < 0) {
+            fprintf(stderr, "fork error\n");
+            return 1;
+        } else if (err > 0) {
+            // Parent process closes up output side of pipe
+            close(piped[1]);
+            err = read(piped[0], &s, 1);
+            if (err == 0) {
+                s = 1;
+            }
+            return s;
+        }
+        // Child process closes up input side of pipe 
+        close(piped[0]);
+        s = 1;
     }
-    fuse_opt_free_args(&args);
+    if ((ch = fuse_mount(mountpoint, args)) == NULL) {
+        fprintf(stderr, "error in fuse_mount\n");
+        if (piped[1] >= 0) {
+            if (write(piped[1], &s, 1) != 1) {
+                fprintf(stderr, "pipe write error\n");
+            }
+            close(piped[1]);
+        }
+        return 1;
+    }
+
+    se = fuse_lowlevel_new(args, &rozo_ll_operations, sizeof (rozo_ll_operations), (void*) piped);
+
+    if (se == NULL) {
+        fuse_unmount(mountpoint, ch);
+        fprintf(stderr, "error in fuse_lowlevel_new\n");
+        usleep(100000); // time for print other error messages by FUSE
+        if (piped[1] >= 0) {
+            if (write(piped[1], &s, 1) != 1) {
+                fprintf(stderr, "pipe write error\n");
+            }
+            close(piped[1]);
+        }
+        return 1;
+    }
+
+    fuse_session_add_chan(se, ch);
+
+    if (fuse_set_signal_handlers(se) < 0) {
+        fprintf(stderr, "error in fuse_set_signal_handlers\n");
+        fuse_session_remove_chan(ch);
+        fuse_session_destroy(se);
+        fuse_unmount(mountpoint, ch);
+        if (piped[1] >= 0) {
+            if (write(piped[1], &s, 1) != 1) {
+                fprintf(stderr, "pipe write error\n");
+            }
+            close(piped[1]);
+        }
+        return 1;
+    }
+
+    if (fg == 0) {
+        setsid();
+        setpgid(0, getpid());
+        if ((i = open("/dev/null", O_RDWR, 0)) != -1) {
+            (void) dup2(i, STDIN_FILENO);
+            (void) dup2(i, STDOUT_FILENO);
+            (void) dup2(i, STDERR_FILENO);
+            if (i > 2) close(i);
+        }
+    }
+
+    err = fuse_session_loop(se);
+
+    if (err) {
+        if (piped[1] >= 0) {
+            if (write(piped[1], &s, 1) != 1) {
+                syslog(LOG_ERR, "pipe write error: %s", strerror(errno));
+            }
+            close(piped[1]);
+        }
+    }
+    fuse_remove_signal_handlers(se);
+    fuse_session_remove_chan(ch);
+    fuse_session_destroy(se);
+    fuse_unmount(mountpoint, ch);
     exportclt_release(&exportclt);
     ientries_release();
     rozo_release();
+
     return err ? 1 : 0;
+}
+
+int main(int argc, char *argv[]) {
+    struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+    char *mountpoint;
+    int fg = 0;
+    int res;
+
+    memset(&conf, 0, sizeof (conf));
+
+    conf.max_retry = 5;
+    conf.buf_size = 0;
+
+    if (fuse_opt_parse(&args, &conf, rozofs_opts, myfs_opt_proc) < 0) {
+        exit(1);
+    }
+
+    if (conf.host == NULL) {
+        conf.host = strdup("rozoexport");
+    }
+
+    if (conf.export == NULL) {
+        conf.export = strdup("/home/rozo");
+    }
+
+    if (conf.buf_size == 0) {
+        conf.buf_size = 256;
+    }
+    if (conf.buf_size < 128) {
+        fprintf(stderr, "write cache size to low (%u MiB) - increased to 128 KiB\n", conf.buf_size);
+        conf.buf_size = 128;
+    }
+    if (conf.buf_size > 4096) {
+        fprintf(stderr, "write cache size to big (%u MiB) - decresed to 4096 KiB\n", conf.buf_size);
+        conf.buf_size = 4096;
+    }
+
+    if (fuse_opt_add_arg(&args, "-o" FUSE_DEFAULT_OPTIONS) == -1) {
+        fprintf(stderr, "fuse_opt_add_arg failed\n");
+        return 1;
+    }
+
+    if (fuse_parse_cmdline(&args, &mountpoint, NULL, &fg) == -1) {
+        fprintf(stderr, "see: %s -h for help\n", argv[0]);
+        return 1;
+    }
+
+    if (!mountpoint) {
+        fprintf(stderr, "no mount point\nsee: %s -h for help\n", argv[0]);
+        return 1;
+    }
+
+    res = fuseloop(&args, mountpoint, fg);
+
+    fuse_opt_free_args(&args);
+    return res;
 }

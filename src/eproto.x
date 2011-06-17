@@ -277,6 +277,11 @@ program EXPORT_PROGRAM {
         ep_status_ret_t
         EP_WRITE_BLOCK(ep_write_block_arg_t)    = 18;
 
+        ep_status_ret_t
+        EP_OPEN(ep_mfile_arg_t)                 = 19;
+
+        ep_status_ret_t
+        EP_CLOSE(ep_mfile_arg_t)                = 20;
     } = 1;
-} = 0x20000004;
+} = 0x20000005;
 

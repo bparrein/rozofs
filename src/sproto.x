@@ -99,5 +99,5 @@ program STORAGE_PROGRAM {
         SP_STAT(uint16_t)               = 5;
 
     }=1;
-} = 0x20000001;
+} = 0x20000002;
 
