@@ -22,6 +22,8 @@
 #include "log.h"
 #include "xmalloc.h"
 #include "sproto.h"
+#include "profile.h"
+
 
 static storageclt_t *lookup_mstorage(exportclt_t * e, cid_t cid, sid_t sid) {
     list_t *iterator;
@@ -140,7 +142,8 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
         // Nb. of received requests (at begin=0)
         int connected = 0;
         // For each projection
-        for (mp = 0; mp < rozo_forward; mp++) {
+        PROFILE_STORAGE_START 
+		for (mp = 0; mp < rozo_forward; mp++) {
             int mps = 0;
             int j = 0;
             bin_t *b;
@@ -171,12 +174,14 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
             if (++connected == rozo_inverse)
                 break;
         }
-
+        PROFILE_STORAGE_STOP
         // Not enough server storage response to retrieve the file
         if (connected < rozo_inverse) {
             errno = EIO;
             goto out;
         }
+
+        PROFILE_MOJETTE_START
         // Proceed the inverse data transform for the n blocks.
         for (j = 0; j < n; j++) {
             // Fill the table of projections for the block j
@@ -196,7 +201,7 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
                               ROZO_BSIZE / rozo_inverse / sizeof (pxl_t),
                               rozo_inverse, projections);
         }
-
+        PROFILE_MOJETTE_INV_STOP
         // Free the memory area where are stored the bins.
         for (mp = 0; mp < rozo_inverse; mp++) {
             if (bins[mp])
@@ -255,6 +260,7 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
         projections[mp].size = rozo_psizes[mp];
     }
 
+    PROFILE_MOJETTE_START
     /* Transform the data */
     // For each block to send
     for (i = 0; i < nmbs; i++) {
@@ -268,11 +274,12 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
                           ROZO_BSIZE / rozo_inverse / sizeof (pxl_t),
                           rozo_forward, projections);
     }
-
+    PROFILE_MOJETTE_FRWD_STOP
     /* Send requests to the storage servers */
     // For each projection server
     mp = 0;
-    for (ps = 0; ps < rozo_safe; ps++) {
+    PROFILE_STORAGE_START 
+	for (ps = 0; ps < rozo_safe; ps++) {
         // Warning: the server can be disconnected
         // but f->storages[ps].rpcclt->client != NULL
         // the disconnection will be detected when the request will be sent
@@ -291,7 +298,7 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
         if (++mp == rozo_forward)
             break;
     }
-
+    PROFILE_STORAGE_STOP
     // Not enough server storage connections to store the file
     if (mp < rozo_forward) {
         errno = EIO;

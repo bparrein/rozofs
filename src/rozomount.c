@@ -35,6 +35,8 @@
 #include "file.h"
 #include "htable.h"
 #include "xmalloc.h"
+#include "profile.h"
+
 
 #define hash_xor8(n)    (((n) ^ ((n)>>8) ^ ((n)>>16) ^ ((n)>>24)) & 0xff)
 #define INODE_HSIZE 256
@@ -1076,8 +1078,9 @@ int fuseloop(struct fuse_args *args, const char *mountpoint, int fg) {
     root->inode = inode_idx++;
     put_ientry(root);
 
-    info("mounting - export: %s from : %s on: %s", conf.export, conf.host,
-         mountpoint);
+    PROFILE_INIT 
+	info("mounting - export: %s from : %s on: %s", conf.export,
+                      conf.host, mountpoint);
 
     if (fg == 0) {
         if (pipe(piped) < 0) {
@@ -1174,6 +1177,8 @@ int fuseloop(struct fuse_args *args, const char *mountpoint, int fg) {
     ientries_release();
     rozo_release();
 
+    PROFILE_PRINT;
+    PROFILE_DELETE;
     return err ? 1 : 0;
 }
 

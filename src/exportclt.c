@@ -23,6 +23,7 @@
 #include "xmalloc.h"
 #include "eproto.h"
 #include "exportclt.h"
+#include "profile.h"
 
 int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
                          uint32_t bufsize, uint32_t retries) {
@@ -123,8 +124,10 @@ int exportclt_stat(exportclt_t * clt, estat_t * st) {
     ep_statfs_ret_t *ret = 0;
     DEBUG_FUNCTION;
 
-    ret = ep_statfs_1(&clt->eid, clt->rpcclt.client);
-    if (ret == 0) {
+    PROFILE_EXPORT_START 
+	ret = ep_statfs_1(&clt->eid, clt->rpcclt.client);
+    PROFILE_EXPORT_STOP 
+	if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -150,8 +153,10 @@ int exportclt_lookup(exportclt_t * clt, fid_t parent, char *name,
     arg.eid = clt->eid;
     memcpy(arg.parent, parent, sizeof (uuid_t));
     arg.name = name;
-    ret = ep_lookup_1(&arg, clt->rpcclt.client);
-    if (ret == 0) {
+    PROFILE_EXPORT_START
+	 ret = ep_lookup_1(&arg, clt->rpcclt.client);
+    PROFILE_EXPORT_STOP 
+	if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -175,8 +180,10 @@ int exportclt_getattr(exportclt_t * clt, fid_t fid, mattr_t * attrs) {
 
     arg.eid = clt->eid;
     memcpy(arg.fid, fid, sizeof (uuid_t));
-    ret = ep_getattr_1(&arg, clt->rpcclt.client);
-    if (ret == 0) {
+    PROFILE_EXPORT_START 
+	ret = ep_getattr_1(&arg, clt->rpcclt.client);
+    PROFILE_EXPORT_STOP 
+	if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -201,8 +208,10 @@ int exportclt_setattr(exportclt_t * clt, fid_t fid, mattr_t * attrs) {
     arg.eid = clt->eid;
     memcpy(&arg.attrs, attrs, sizeof (mattr_t));
     memcpy(arg.attrs.fid, fid, sizeof (fid_t));
-    ret = ep_setattr_1(&arg, clt->rpcclt.client);
-    if (ret == 0) {
+    PROFILE_EXPORT_START
+	ret = ep_setattr_1(&arg, clt->rpcclt.client);
+    PROFILE_EXPORT_STOP 
+	if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -412,8 +421,10 @@ int64_t exportclt_read(exportclt_t * clt, fid_t fid, uint64_t off,
     memcpy(arg.fid, fid, sizeof (fid_t));
     arg.offset = off;
     arg.length = len;
-    ret = ep_read_1(&arg, clt->rpcclt.client);
-    if (ret == 0) {
+    PROFILE_EXPORT_START 
+	ret = ep_read_1(&arg, clt->rpcclt.client);
+    PROFILE_EXPORT_STOP 
+	if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -439,8 +450,10 @@ int exportclt_read_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
     memcpy(arg.fid, fid, sizeof (fid_t));
     arg.bid = bid;
     arg.nrb = n;
-    ret = ep_read_block_1(&arg, clt->rpcclt.client);
-    if (ret == 0) {
+    PROFILE_EXPORT_START 
+	ret = ep_read_block_1(&arg, clt->rpcclt.client);
+    PROFILE_EXPORT_STOP 
+	if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -467,8 +480,10 @@ int64_t exportclt_write(exportclt_t * clt, fid_t fid, uint64_t off,
     memcpy(arg.fid, fid, sizeof (fid_t));
     arg.offset = off;
     arg.length = len;
-    ret = ep_write_1(&arg, clt->rpcclt.client);
-    if (ret == 0) {
+    PROFILE_EXPORT_START 
+	ret = ep_write_1(&arg, clt->rpcclt.client);
+    PROFILE_EXPORT_STOP 
+	if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -497,8 +512,10 @@ int exportclt_write_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
     //arg.dist.dist_len = n;
     //arg.dist.dist_val = d;
     arg.dist = d;
-    ret = ep_write_block_1(&arg, clt->rpcclt.client);
-    if (ret == 0) {
+    PROFILE_EXPORT_START 
+	ret = ep_write_block_1(&arg, clt->rpcclt.client);
+    PROFILE_EXPORT_STOP 
+	if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -523,8 +540,10 @@ int exportclt_readdir(exportclt_t * clt, fid_t fid, child_t ** children) {
 
     arg.eid = clt->eid;
     memcpy(arg.fid, fid, sizeof (fid_t));
-    ret = ep_readdir_1(&arg, clt->rpcclt.client);
-    if (ret == 0) {
+    PROFILE_EXPORT_START 
+	ret = ep_readdir_1(&arg, clt->rpcclt.client);
+    PROFILE_EXPORT_STOP 
+	if (ret == 0) {
         errno = EPROTO;
         goto out;
     }

@@ -94,6 +94,8 @@ add_executable(rozomount
     storageclt.c
     eproto.h
     eprotoxdr.c
+    profile.h
+    profile.c
     eprotoclt.c
     exportclt.c
     file.h

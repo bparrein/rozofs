@@ -775,11 +775,11 @@ int export_symlink(export_t * e, uuid_t target, uuid_t parent,
     lmfe->attrs.mode = S_IFLNK | S_IRUSR | S_IWUSR | S_IXUSR;
     lmfe->attrs.nlink = 0;
     if ((lmfe->attrs.ctime = lmfe->attrs.atime = lmfe->attrs.mtime =
-            time(NULL)) == -1)
+         time(NULL)) == -1)
         goto out;
     lmfe->attrs.size = strlen(tmfe->path) - strlen(rindex(tmfe->path, '/'));
     if (fsetxattr
-            (lmfe->fd, EATTRSTKEY, &attrs, sizeof (mattr_t), XATTR_CREATE) != 0)
+        (lmfe->fd, EATTRSTKEY, &attrs, sizeof (mattr_t), XATTR_CREATE) != 0)
         goto out;
     // TO CHANGE
     //export_put_mfentry(e, lmfe);
