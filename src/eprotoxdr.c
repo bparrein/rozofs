@@ -330,11 +330,11 @@ bool_t xdr_ep_symlink_arg_t(XDR * xdrs, ep_symlink_arg_t * objp) {
 
     if (!xdr_uint32_t(xdrs, &objp->eid))
         return FALSE;
-    if (!xdr_ep_uuid_t(xdrs, objp->target))
+    if (!xdr_ep_name_t(xdrs, &objp->link))
         return FALSE;
-    if (!xdr_ep_uuid_t(xdrs, objp->link_parent))
+    if (!xdr_ep_uuid_t(xdrs, objp->parent))
         return FALSE;
-    if (!xdr_ep_name_t(xdrs, &objp->link_name))
+    if (!xdr_ep_name_t(xdrs, &objp->name))
         return FALSE;
     return TRUE;
 }

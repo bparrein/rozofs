@@ -29,6 +29,22 @@ add_executable(test_transform
     test_transform.c
 )
 
+add_executable(rpc_throughput
+    ../src/rpcclt.h
+    ../src/rpcclt.c
+    rpc_throughput.h
+    rpc_throughputxdr.c
+    rpc_throughputclt.c
+    rpc_throughput_client.c
+)
+
+add_executable(rpc_throughput_server
+    rpc_throughput.h
+    rpc_throughputxdr.c
+    rpc_throughput_server.c
+    rpc_throughputsvc.c
+)
+
 add_executable(transform_throughput
     ../src/xmalloc.h
     ../src/xmalloc.c

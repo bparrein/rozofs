@@ -148,8 +148,26 @@ static void on_start() {
     DEBUG_FUNCTION;
 
     sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    setsockopt(sock, SOL_TCP, TCP_NODELAY, (void *) one, sizeof (one));
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void *) one, sizeof (one));
+
+
+    setsockopt(sock, SOL_TCP, TCP_NODELAY, (char *) &one, sizeof (int));
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *) &one, sizeof (int));
+
+    // SET NONBLOCK
+    int value = 1;
+    int oldflags = fcntl(sock, F_GETFL, 0);
+    /* If reading the flags failed, return error indication now. */
+    if (oldflags < 0) {
+        return;
+    }
+    /* Set just the flag we want to set. */
+    if (value != 0) {
+        oldflags |= O_NONBLOCK;
+    } else {
+        oldflags &= ~O_NONBLOCK;
+    }
+    /* Store modified flag word in the descriptor. */
+    fcntl(sock, F_SETFL, oldflags);
 
     if ((storaged_svc =
          svctcp_create(sock, ROZO_RPC_BUFFER_SIZE,
@@ -157,6 +175,8 @@ static void on_start() {
         fatal("can't create service.");
         return;
     }
+
+    pmap_unset(STORAGE_PROGRAM, STORAGE_VERSION);       // in case !
 
     if (!svc_register
         (storaged_svc, STORAGE_PROGRAM, STORAGE_VERSION, storage_program_1,

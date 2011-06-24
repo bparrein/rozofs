@@ -64,8 +64,8 @@ int export_unlink(export_t * e, fid_t fid);
 
 int export_rmdir(export_t * e, fid_t fid);
 
-int export_symlink(export_t * e, fid_t target, fid_t parent, const char *name,
-                   mattr_t * attrs);
+int export_symlink(export_t * e, const char *link, fid_t parent,
+                   const char *name, mattr_t * attrs);
 
 int export_rename(export_t * e, fid_t from, fid_t parent, const char *name);
 

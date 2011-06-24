@@ -77,7 +77,6 @@ out:
 }
 
 // Just check if VERSION is set.
-
 static int export_check_setup(const char *root) {
     char version[20];
 
@@ -88,6 +87,7 @@ static int export_check_setup(const char *root) {
 
 typedef struct mfentry {
     struct mfentry *parent;
+    fid_t pfid;                 // Parent UUID
     char *path;                 // Absolute path on underlying fs
     char *name;                 // Name of file
     int fd;                     // File descriptor
@@ -95,13 +95,6 @@ typedef struct mfentry {
     mattr_t attrs;              // meta file attr
     list_t list;
 } mfentry_t;
-
-// Key to search an mfentry with its parent and its name
-
-typedef struct mfkey {
-    fid_t pfid;                 // UUID of the parent
-    char *name;                 // Name of entry
-} mfkey_t;
 
 static int mfentry_initialize(mfentry_t * mfe, mfentry_t * parent,
                               const char *name, char *path) {
@@ -112,20 +105,34 @@ static int mfentry_initialize(mfentry_t * mfe, mfentry_t * parent,
     mfe->path = xstrdup(path);
     mfe->name = xstrdup(name);
 
-    if (getxattr(path, EATTRSTKEY, &(mfe->attrs), sizeof (mattr_t)) == -1)
-        goto error;
+    if (parent != NULL) {
+        memcpy(mfe->pfid, parent->attrs.fid, sizeof (fid_t));
+    } else {
+        uuid_clear(mfe->pfid);
+    }
 
     // Open the fd is not necessary now
     mfe->fd = -1;
     // The counter is initialized to zero
     mfe->cnt = 0;
 
+    if (getxattr(path, EATTRSTKEY, &(mfe->attrs), sizeof (mattr_t)) == -1) {
+        warning("mfentry_initialize failed: getxattr for file %s failed: %s",
+                path, strerror(errno));
+        goto error;
+    }
+
     list_init(&mfe->list);
     status = 0;
     goto out;
 error:
-    free(mfe->path);
-    free(mfe->name);
+    if (mfe->path)
+        free(mfe->path);
+    if (mfe->name)
+        free(mfe->name);
+    mfe->path = NULL;
+    mfe->name = NULL;
+    mfe->parent = NULL;
 out:
     return status;
 }
@@ -134,8 +141,10 @@ static void mfentry_release(mfentry_t * mfe) {
     if (mfe) {
         if (mfe->fd != -1)
             close(mfe->fd);
-        free(mfe->path);
-        free(mfe->name);
+        if (mfe->path)
+            free(mfe->path);
+        if (mfe->name)
+            free(mfe->name);
     }
 }
 
@@ -154,14 +163,14 @@ static uint32_t mfentry_hash_fid(void *key) {
 }
 
 static uint32_t mfentry_hash_fid_name(void *key) {
-    mfkey_t *mfk = (mfkey_t *) key;
+    mfentry_t *mfe = (mfentry_t *) key;
     uint32_t hash = 0;
     uint8_t *c;
     char *d;
 
-    for (c = mfk->pfid; c != mfk->pfid + 16; c++)
+    for (c = mfe->pfid; c != mfe->pfid + 16; c++)
         hash = *c + (hash << 6) + (hash << 16) - hash;
-    for (d = mfk->name; *d != '\0'; d++)
+    for (d = mfe->name; *d != '\0'; d++)
         hash = *d + (hash << 6) + (hash << 16) - hash;
     return hash;
 }
@@ -172,8 +181,8 @@ static int mfentry_cmp_fid(void *k1, void *k2) {
 
 static int mfentry_cmp_fid_name(void *k1, void *k2) {
 
-    mfkey_t *sk1 = (mfkey_t *) k1;
-    mfkey_t *sk2 = (mfkey_t *) k2;
+    mfentry_t *sk1 = (mfentry_t *) k1;
+    mfentry_t *sk2 = (mfentry_t *) k2;
 
     if ((uuid_compare(sk1->pfid, sk2->pfid) == 0) &&
         (strcmp(sk1->name, sk2->name) == 0)) {
@@ -185,31 +194,18 @@ static int mfentry_cmp_fid_name(void *k1, void *k2) {
 
 static void export_put_mfentry(export_t * e, mfentry_t * mfe) {
     DEBUG_FUNCTION;
-    mfkey_t *mfkey = xmalloc(sizeof (mfentry_t));
-
-    // Consideration for root node
-    if (mfe->parent != NULL) {
-        memcpy(mfkey->pfid, mfe->parent->attrs.fid, sizeof (fid_t));
-    } else {
-        uuid_clear(mfkey->pfid);
-    }
-    mfkey->name = xstrdup(mfe->name);
 
     htable_put(&e->hfids, mfe->attrs.fid, mfe);
-    htable_put(&e->h_pfids, mfkey, mfe);
+    htable_put(&e->h_pfids, mfe, mfe);
 
     list_push_front(&e->mfiles, &mfe->list);
 }
 
 static void export_del_mfentry(export_t * e, mfentry_t * mfe) {
     DEBUG_FUNCTION;
-    mfkey_t *mfkey = xmalloc(sizeof (mfentry_t));
-
-    memcpy(mfkey->pfid, mfe->parent->attrs.fid, sizeof (fid_t));
-    mfkey->name = xstrdup(mfe->name);
 
     htable_del(&e->hfids, mfe->attrs.fid);
-    htable_del(&e->h_pfids, mfkey);
+    htable_del(&e->h_pfids, mfe);
 
     list_remove(&mfe->list);
 }
@@ -218,12 +214,20 @@ static inline int export_update_files(export_t * e, int32_t n) {
     int status = -1;
     uint64_t files;
 
-    if (getxattr(e->root, EFILESKEY, &files, sizeof (uint64_t)) == -1)
+    if (getxattr(e->root, EFILESKEY, &files, sizeof (uint64_t)) == -1) {
+        warning("export_update_files failed: getxattr for file %s failed: %s",
+                e->root, strerror(errno));
         goto out;
+    }
+
     files += n;
+
     if (setxattr(e->root, EFILESKEY, &files, sizeof (uint64_t), XATTR_REPLACE)
-        == -1)
+        == -1) {
+        warning("export_update_files failed: setxattr for file %s failed: %s",
+                e->root, strerror(errno));
         goto out;
+    }
     status = 0;
 out:
     return status;
@@ -235,12 +239,23 @@ static inline int export_update_blocks(export_t * e, int32_t n) {
     DEBUG_FUNCTION;
 
     if (getxattr(e->root, EBLOCKSKEY, &blocks, sizeof (uint64_t)) !=
-        sizeof (uint64_t))
+        sizeof (uint64_t)) {
+        warning
+            ("export_update_blocks failed: getxattr for file %s failed: %s",
+             e->root, strerror(errno));
         goto out;
+    }
+
     blocks += n;
+
     if (setxattr
-        (e->root, EBLOCKSKEY, &blocks, sizeof (uint64_t), XATTR_REPLACE) != 0)
+        (e->root, EBLOCKSKEY, &blocks, sizeof (uint64_t),
+         XATTR_REPLACE) != 0) {
+        warning
+            ("export_update_blocks failed: setxattr for file %s failed: %s",
+             e->root, strerror(errno));
         goto out;
+    }
     status = 0;
 out:
     return status;
@@ -320,7 +335,7 @@ void export_release(export_t * e) {
 
     list_for_each_forward_safe(p, q, &e->mfiles) {
         mfentry_t *mfe = list_entry(p, mfentry_t, list);
-        list_remove(&mfe->list);
+        export_del_mfentry(e, mfe);
         mfentry_release(mfe);
         free(mfe);
     }
@@ -362,7 +377,7 @@ int export_lookup(export_t * e, fid_t parent, const char *name,
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
     mfentry_t *mfe = 0;
-    mfkey_t *mfkey = 0;
+    mfentry_t *mfkey = 0;
     DIR *dp = 0;
     struct dirent *de = 0;
     DEBUG_FUNCTION;
@@ -391,7 +406,7 @@ int export_lookup(export_t * e, fid_t parent, const char *name,
     strcat(path, "/");
     strcat(path, name);
 
-    mfkey = xmalloc(sizeof (mfkey_t));
+    mfkey = xmalloc(sizeof (mfentry_t));
     memcpy(mfkey->pfid, pmfe->attrs.fid, sizeof (fid_t));
     mfkey->name = xstrdup(name);
 
@@ -433,6 +448,11 @@ int export_lookup(export_t * e, fid_t parent, const char *name,
         status = -1;
     }
 out:
+    if (mfkey) {
+        if (mfkey->name)
+            free(mfkey->name);
+        free(mfkey);
+    }
     if (dp)
         closedir(dp);
     return status;
@@ -464,7 +484,7 @@ int export_setattr(export_t * e, fid_t fid, mattr_t * attrs) {
         errno = ESTALE;
         goto out;
     }
-
+    // XXX IS IT POSSIBLE WITH A DIRECTORY?
     if (mfe->attrs.size != attrs->size) {
 
         uint64_t nrb_new = ((attrs->size + ROZO_BSIZE - 1) / ROZO_BSIZE);
@@ -542,7 +562,6 @@ int export_mknod(export_t * e, uuid_t parent, const char *name, mode_t mode,
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
     mfentry_t *mfe = 0;
-    mfkey_t *mfkey = 0;
     int xerrno = errno;
     DEBUG_FUNCTION;
 
@@ -577,20 +596,10 @@ int export_mknod(export_t * e, uuid_t parent, const char *name, mode_t mode,
     if (mfentry_initialize(mfe, pmfe, name, path) != 0)
         goto error;
 
+    export_put_mfentry(e, mfe);
+
     if (export_update_files(e, 1) != 0)
         goto error;
-
-    pmfe->attrs.nlink++;
-    if (mfentry_persist(pmfe) != 0) {
-        pmfe->attrs.nlink--;
-        goto error;
-    }
-
-    mfkey = xmalloc(sizeof (mfkey_t));
-    memcpy(mfkey->pfid, pmfe->attrs.fid, sizeof (fid_t));
-    mfkey->name = xstrdup(name);
-
-    export_put_mfentry(e, mfe);
 
     status = 0;
     goto out;
@@ -624,6 +633,7 @@ int export_mkdir(export_t * e, uuid_t parent, const char *name, mode_t mode,
     strcpy(path, pmfe->path);
     strcat(path, "/");
     strcat(path, name);
+
     if (mkdir(path, mode) != 0)
         goto error;
 
@@ -642,21 +652,22 @@ int export_mkdir(export_t * e, uuid_t parent, const char *name, mode_t mode,
         0)
         goto error;
 
-    if (export_update_files(e, 1) != 0)
+    mfe = xmalloc(sizeof (mfentry_t));
+
+    if (mfentry_initialize(mfe, pmfe, name, path) != 0)
         goto error;
+
+    export_put_mfentry(e, mfe);
 
     pmfe->attrs.nlink++;
 
     if (mfentry_persist(pmfe) != 0) {
+        pmfe->attrs.nlink--;
         goto error;
     }
 
-    mfe = xmalloc(sizeof (mfentry_t));
-
-    if (mfentry_initialize(mfe, pmfe, name, path) != 0)
-        goto out;
-
-    export_put_mfentry(e, mfe);
+    if (export_update_files(e, 1) != 0)
+        goto error;
 
     status = 0;
     goto out;
@@ -693,13 +704,9 @@ int export_unlink(export_t * e, uuid_t fid) {
     size = mfe->attrs.size;
     mode = mfe->attrs.mode;
 
-    export_del_mfentry(e, mfe);
-
-    mfentry_release(mfe);
-    free(mfe);
-
     if (unlink(path) == -1)
         goto out;
+
     if (export_update_files(e, -1) != 0)
         goto out;
 
@@ -707,6 +714,10 @@ int export_unlink(export_t * e, uuid_t fid) {
         if (export_update_blocks
             (e, -(((int64_t) size + ROZO_BSIZE - 1) / ROZO_BSIZE)) != 0)
             goto out;
+
+    export_del_mfentry(e, mfe);
+    mfentry_release(mfe);
+    free(mfe);
 
     status = 0;
 out:
@@ -716,89 +727,122 @@ out:
 int export_rmdir(export_t * e, uuid_t fid) {
     int status = -1;
     mfentry_t *mfe = 0;
-    char path[PATH_MAX + NAME_MAX + 1];
-    mode_t mode;
     DEBUG_FUNCTION;
 
     if (!(mfe = htable_get(&e->hfids, fid))) {
         errno = ESTALE;
         goto out;
     }
-    strcpy(path, mfe->path);
-    mode = mfe->attrs.mode;
+
+    if (rmdir(mfe->path) == -1)
+        goto out;
+
+    if (export_update_files(e, -1) != 0)
+        goto out;               // XXX PROBLEM: THE DIRECTORY IS REMOVED
 
     // Update the nlink of parent
-    mfe->parent->attrs.nlink--;
+    if (mfe->parent != NULL) {
+        mfe->parent->attrs.nlink--;
+        if (mfentry_persist(mfe->parent) != 0) {
+            mfe->parent->attrs.nlink++;
+            goto out;           // XXX PROBLEM: THE DIRECTORY IS REMOVED
+        }
+    }
+
     export_del_mfentry(e, mfe);
     mfentry_release(mfe);
     free(mfe);
-    if (rmdir(path) == -1)
-        goto out;
-    if (export_update_files(e, -1) != 0)
-        goto out;
-    if (!S_ISLNK(mode))
-        if (export_update_blocks(e, ROZO_DIR_SIZE / ROZO_BSIZE) != 0)
-            goto out;
 
     status = 0;
 out:
     return status;
 }
 
-/*
-int export_symlink(export_t * e, uuid_t target, uuid_t parent,
-        const char *name, mattr_t * attrs) {
+// XXX PROBLEM: IT'S NOT POSSIBLE TO SET XATTR TO A SYMLINK
+
+int export_symlink(export_t * e, const char *link_name, uuid_t parent,
+                   const char *name, mattr_t * attrs) {
     int status = -1;
-    mfentry_t *tmfe = 0;
+    char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
-    mfentry_t *lmfe = 0;
-    char to[PATH_MAX + NAME_MAX + 1];
+    mfentry_t *mfe = 0;
+    int xerrno = errno;
     DEBUG_FUNCTION;
 
-    if (!(tmfe = htable_get(&e->hfids, target))) {
-        errno = ESTALE;
-        goto out;
-    }
     if (!(pmfe = htable_get(&e->hfids, parent))) {
         errno = ESTALE;
         goto out;
     }
 
-    strcpy(to, pmfe->path);
-    strcat(to, "/");
-    strcat(to, name);
-    status = link(tmfe->path, to);
-    lmfe = xmalloc(sizeof (mfentry_t));
-    uuid_generate(lmfe->attrs.fid);
-    lmfe->attrs.cid = 0;
-    memset(&lmfe->attrs.sids, 0, ROZO_SAFE_MAX * sizeof (uint16_t));
-    lmfe->attrs.mode = S_IFLNK | S_IRUSR | S_IWUSR | S_IXUSR;
-    lmfe->attrs.nlink = 0;
-    if ((lmfe->attrs.ctime = lmfe->attrs.atime = lmfe->attrs.mtime =
-            time(NULL)) == -1)
-        goto out;
-    lmfe->attrs.size = strlen(tmfe->path) - strlen(rindex(tmfe->path, '/'));
-    if (fsetxattr
-            (lmfe->fd, EATTRSTKEY, &attrs, sizeof (mattr_t), XATTR_CREATE) != 0)
-        goto out;
-    // TO CHANGE
-    //export_put_mfentry(e, lmfe);
-    if (export_update_files(e, 1) != 0)
-        goto out;
+    strcpy(path, pmfe->path);
+    strcat(path, "/");
+    strcat(path, name);
 
-    memcpy(attrs, &lmfe->attrs, sizeof (mattr_t));
+    if (symlink(link_name, path) != 0) {
+        severe("export_symlink failed: symlink(%s,%s) failed: %s", link_name,
+               path, strerror(errno));
+        goto out;
+    }
+
+    struct stat st;
+    if (lstat(path, &st) != 0) {
+        goto out;
+    }
+    uuid_generate(attrs->fid);
+    attrs->cid = 0;
+    memset(attrs->sids, 0, ROZO_SAFE_MAX * sizeof (uint16_t));
+    attrs->mode = st.st_mode;
+    attrs->nlink = st.st_nlink;
+
+    if ((attrs->ctime = attrs->atime = attrs->mtime = time(NULL)) == -1)
+        goto error;
+
+    attrs->size = st.st_size;
+
+    if (setxattr(path, EATTRSTKEY, attrs, sizeof (mattr_t), XATTR_CREATE) !=
+        0) {
+        severe("export_symlink failed: lsetxattr(%s) failed: %s", path,
+               strerror(errno));
+        goto error;
+    }
+
+    mfe = xmalloc(sizeof (mfentry_t));
+
+    if (mfentry_initialize(mfe, pmfe, name, path) != 0)
+        goto error;
+
+    if (export_update_files(e, 1) != 0)
+        goto error;
+
+    pmfe->attrs.nlink++;
+    if (mfentry_persist(pmfe) != 0) {
+        pmfe->attrs.nlink--;
+        goto error;
+    }
+
+    export_put_mfentry(e, mfe);
+
+    status = 0;
+    goto out;
+error:
+    xerrno = errno;
+    if (mfe) {
+        mfentry_release(mfe);
+        free(mfe);
+    }
+    if (xerrno != EEXIST) {
+        unlink(path);
+    }
 out:
     return status;
 }
- */
 
 int export_rename(export_t * e, uuid_t from, uuid_t parent, const char *name) {
     int status = -1;
     mfentry_t *fmfe = 0;
     mfentry_t *pmfe = 0;
     mfentry_t *ofmfe = 0;
-    mfkey_t *to_mfkey = 0;
-    mfkey_t *from_mfkey = 0;
+    mfentry_t *to_mfkey = 0;
     char to[PATH_MAX + NAME_MAX + 1];
     uint64_t size = 0;
     mode_t mode;
@@ -819,23 +863,25 @@ int export_rename(export_t * e, uuid_t from, uuid_t parent, const char *name) {
     strcat(to, "/");
     strcat(to, name);
 
-    // rename
     if (rename(fmfe->path, to) == -1)
         goto out;
 
     // Prepare the NEW key
-    to_mfkey = xmalloc(sizeof (mfkey_t));
+    to_mfkey = xmalloc(sizeof (mfentry_t));
     memcpy(to_mfkey->pfid, pmfe->attrs.fid, sizeof (fid_t));
     to_mfkey->name = xstrdup(name);
-
-    // Prepare the OLD key
-    from_mfkey = xmalloc(sizeof (mfkey_t));
-    memcpy(from_mfkey->pfid, fmfe->parent->attrs.fid, sizeof (fid_t));
-    from_mfkey->name = xstrdup(fmfe->name);
 
     // If the target file or directory already existed
     if ((ofmfe = htable_get(&e->h_pfids, to_mfkey))) {
 
+        if (S_ISDIR(ofmfe->attrs.mode)) {
+            // Update the nlink of new parent
+            pmfe->attrs.nlink--;
+            if (mfentry_persist(pmfe) != 0) {
+                pmfe->attrs.nlink++;
+                goto out;
+            }
+        }
         // Delete the old newpath
         size = ofmfe->attrs.size;
         mode = ofmfe->attrs.mode;
@@ -846,11 +892,29 @@ int export_rename(export_t * e, uuid_t from, uuid_t parent, const char *name) {
         if (export_update_files(e, -1) != 0)
             goto out;
 
-        if (!S_ISLNK(mode))
+        if (!S_ISLNK(mode) && !S_ISDIR(mode))
             if (export_update_blocks
                 (e, -(((int64_t) size + ROZO_BSIZE - 1) / ROZO_BSIZE)) != 0)
                 goto out;
     }
+
+    if (S_ISDIR(fmfe->attrs.mode)) {
+        // Update the nlink of new parent
+        pmfe->attrs.nlink++;
+        if (mfentry_persist(pmfe) != 0) {
+            pmfe->attrs.nlink--;
+            goto out;
+        }
+        // Update the nlink of old parent
+        fmfe->parent->attrs.nlink--;
+        if (mfentry_persist(fmfe->parent) != 0) {
+            fmfe->parent->attrs.nlink++;
+            goto out;
+        }
+    }
+
+    htable_del(&e->h_pfids, fmfe);
+
     // Change the path
     free(fmfe->path);
     fmfe->path = xstrdup(to);
@@ -858,12 +922,18 @@ int export_rename(export_t * e, uuid_t from, uuid_t parent, const char *name) {
     fmfe->name = xstrdup(name);
     // Put the new parent
     fmfe->parent = pmfe;
+    memcpy(fmfe->pfid, pmfe->attrs.fid, sizeof (fid_t));
 
-    htable_del(&e->h_pfids, from_mfkey);
-    htable_put(&e->h_pfids, to_mfkey, fmfe);
+    htable_put(&e->h_pfids, fmfe, fmfe);
 
     status = 0;
 out:
+    if (to_mfkey) {
+        if (to_mfkey->name) {
+            free(to_mfkey->name);
+        }
+        free(to_mfkey);
+    }
     return status;
 }
 
@@ -1006,8 +1076,8 @@ int export_readdir(export_t * e, fid_t fid, child_t ** children) {
     iterator = children;
 
     while ((ep = readdir(dp)) != 0) {
-        *iterator = xmalloc(sizeof (child_t));
-        (*iterator)->name = xstrdup(ep->d_name);
+        *iterator = xmalloc(sizeof (child_t));  // XXX FREE?
+        (*iterator)->name = xstrdup(ep->d_name);        // XXX FREE?
         iterator = &(*iterator)->next;
     }
 

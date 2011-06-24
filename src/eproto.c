@@ -287,7 +287,7 @@ ep_mattr_ret_t *ep_symlink_1_svc(ep_symlink_arg_t * arg, struct svc_req * req) {
         goto error;
 /*
     if (export_symlink
-            (exp, arg->target, arg->link_parent, arg->link_name,
+            (exp, arg->link, arg->parent, arg->name,
             (mattr_t *) & ret.ep_mattr_ret_t_u.attrs) != 0)
         goto error;
 */

@@ -117,6 +117,7 @@ void daemon_start(const char *name, void (*on_start) (void),
     if (on_usr1)
         daemon_on_usr1 = on_usr1;
     if (write_pid(name) != 0) {
+        fatal("write_pid failed");
         return;
     }
     signal(SIGCHLD, SIG_IGN);

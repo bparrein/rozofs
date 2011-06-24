@@ -347,17 +347,17 @@ out:
     return status;
 }
 
-int exportclt_symlink(exportclt_t * clt, fid_t target, fid_t parent,
-                      char *name, mattr_t * attrs) {
+int exportclt_symlink(exportclt_t * clt, char *link, fid_t parent, char *name,
+                      mattr_t * attrs) {
     int status = -1;
     ep_symlink_arg_t arg;
     ep_mattr_ret_t *ret = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
-    memcpy(arg.target, target, sizeof (fid_t));
-    memcpy(arg.link_parent, parent, sizeof (fid_t));
-    arg.link_name = name;
+    arg.link = link;
+    arg.name = name;
+    memcpy(arg.parent, parent, sizeof (fid_t));
     ret = ep_symlink_1(&arg, clt->rpcclt.client);
     if (ret == 0) {
         errno = EPROTO;
