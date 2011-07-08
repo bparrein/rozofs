@@ -37,7 +37,6 @@
 #include "xmalloc.h"
 #include "profile.h"
 
-
 #define hash_xor8(n)    (((n) ^ ((n)>>8) ^ ((n)>>16) ^ ((n)>>24)) & 0xff)
 #define INODE_HSIZE 256
 #define PATH_HSIZE  256

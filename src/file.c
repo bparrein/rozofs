@@ -24,7 +24,6 @@
 #include "sproto.h"
 #include "profile.h"
 
-
 static storageclt_t *lookup_mstorage(exportclt_t * e, cid_t cid, sid_t sid) {
     list_t *iterator;
     int i = 0;

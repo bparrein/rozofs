@@ -49,7 +49,7 @@ static void cluster_print(volume_storage_t * a, size_t n) {
     size_t i;
     for (i = 0; i < n; i++) {
         volume_storage_t *p = a + i;
-        printf("sid: %d, host: %s, size: %lld, free: %lld\n", p->sid, p->host,
+        printf("sid: %d, host: %s, size: %llu, free: %llu\n", p->sid, p->host,
                p->stat.size, p->stat.free);
     }
 }
@@ -268,7 +268,7 @@ int volume_print() {
     list_for_each_forward(p, &volume.mcs) {
         cluster_t *cluster = list_entry(p, cluster_t, list);
         if (printf
-            ("cluster %d, nb. of storages :%d, size: %lld, free: %lld\n",
+            ("cluster %d, nb. of storages :%d, size: %llu, free: %llu\n",
              cluster->cid, cluster->nb_ms, cluster->size, cluster->free) < 0)
             goto out;
         cluster_print(cluster->ms, cluster->nb_ms);
