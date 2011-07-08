@@ -181,7 +181,7 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
             goto out;
         }
 
-        PROFILE_MOJETTE_START
+        PROFILE_TRANSFORM_START
         // Proceed the inverse data transform for the n blocks.
         for (j = 0; j < n; j++) {
             // Fill the table of projections for the block j
@@ -201,7 +201,7 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
                               ROZO_BSIZE / rozo_inverse / sizeof (pxl_t),
                               rozo_inverse, projections);
         }
-        PROFILE_MOJETTE_INV_STOP
+        PROFILE_TRANSFORM_INV_STOP
         // Free the memory area where are stored the bins.
         for (mp = 0; mp < rozo_inverse; mp++) {
             if (bins[mp])
@@ -260,7 +260,7 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
         projections[mp].size = rozo_psizes[mp];
     }
 
-    PROFILE_MOJETTE_START
+    PROFILE_TRANSFORM_START
     /* Transform the data */
     // For each block to send
     for (i = 0; i < nmbs; i++) {
@@ -274,7 +274,7 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
                           ROZO_BSIZE / rozo_inverse / sizeof (pxl_t),
                           rozo_forward, projections);
     }
-    PROFILE_MOJETTE_FRWD_STOP
+    PROFILE_TRANSFORM_FRWD_STOP
     /* Send requests to the storage servers */
     // For each projection server
     mp = 0;
@@ -669,8 +669,7 @@ int64_t file_read(file_t * f, uint64_t off, char **buf, uint32_t len) {
         length =
             (len <=
              (f->buf_pos - (off - f->buf_from))) ? len : (f->buf_pos - (off -
-                                                                        f->
-                                                                        buf_from));
+                                                                        f->buf_from));
         *buf = f->buffer + (off - f->buf_from);
     }
 

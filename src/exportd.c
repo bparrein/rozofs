@@ -254,19 +254,17 @@ export_t *exportd_lookup_export(eid_t eid) {
 }
 
 static int exportd_initialize() {
-    //int fd;
+    int fd;
     int status;
     DEBUG_FUNCTION;
 
-    /*
-       if ((fd = open(exportd_config_file, O_RDWR)) == -1) {
-       fprintf(stderr, "exportd failed: configuration file %s: %s\n",
-       exportd_config_file, strerror(errno));
-       status = -1;
-       goto out;
-       }
-       close(fd);
-     */
+    if ((fd = open(exportd_config_file, O_RDWR)) == -1) {
+        fprintf(stderr, "exportd failed: configuration file %s: %s\n",
+                exportd_config_file, strerror(errno));
+        status = -1;
+        goto out;
+    }
+    close(fd);
 
     // initialize volume
     if (volume_initialize() != 0) {
@@ -307,8 +305,25 @@ static void on_start() {
     }
 
     sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    setsockopt(sock, SOL_TCP, TCP_NODELAY, (void *) one, sizeof (one));
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void *) one, sizeof (one));
+
+    // SET NONBLOCK
+    int value = 1;
+    int oldflags = fcntl(sock, F_GETFL, 0);
+    /* If reading the flags failed, return error indication now. */
+    if (oldflags < 0) {
+        return;
+    }
+    /* Set just the flag we want to set. */
+    if (value != 0) {
+        oldflags |= O_NONBLOCK;
+    } else {
+        oldflags &= ~O_NONBLOCK;
+    }
+    /* Store modified flag word in the descriptor. */
+    fcntl(sock, F_SETFL, oldflags);
+
+    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *) &one, sizeof (int));
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *) &one, sizeof (int));
     // XXX Buffers sizes hard coded
     exportd_svc =
         svctcp_create(sock, ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE);

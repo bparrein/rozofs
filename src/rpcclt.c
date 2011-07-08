@@ -55,8 +55,8 @@ int rpcclt_initialize(rpcclt_t * client, const char *host, unsigned long prog,
         goto out;
     }
     if (setsockopt
-        (client->sock, SOL_SOCKET, SO_REUSEADDR, (void *) &one,
-         sizeof (one)) < 0) {
+        (client->sock, SOL_SOCKET, SO_REUSEADDR, (char *) &one,
+         sizeof (int)) < 0) {
         goto out;
     }
 
@@ -69,8 +69,8 @@ int rpcclt_initialize(rpcclt_t * client, const char *host, unsigned long prog,
     }
 
     if (setsockopt
-        (client->sock, SOL_TCP, TCP_NODELAY, (void *) &one,
-         sizeof (one)) < 0) {
+        (client->sock, SOL_TCP, TCP_NODELAY, (char *) &one,
+         sizeof (int)) < 0) {
 
         goto out;
     }

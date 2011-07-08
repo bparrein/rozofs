@@ -75,8 +75,8 @@ int exportclt_unlink(exportclt_t * clt, fid_t fid);
 
 int exportclt_rmdir(exportclt_t * clt, fid_t fid);
 
-int exportclt_symlink(exportclt_t * clt, fid_t target, fid_t parent,
-                      char *name, mattr_t * attrs);
+int exportclt_symlink(exportclt_t * clt, char *link, fid_t parent, char *name,
+                      mattr_t * attrs);
 
 int exportclt_rename(exportclt_t * clt, fid_t from, fid_t parent, char *name);
 

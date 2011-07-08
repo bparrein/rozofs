@@ -136,8 +136,6 @@ typedef struct ientry {
     list_t list;
 } ientry_t;
 
-//static char host[255];
-//static char export[255];
 static exportclt_t exportclt;
 
 static htable_t htable_inode;
@@ -207,7 +205,7 @@ static struct stat *mattr_to_stat(mattr_t * attr, struct stat *st) {
     st->st_atime = attr->atime;
     st->st_mtime = attr->mtime;
     st->st_blksize = ROZO_BSIZE;
-    st->st_blocks = (attr->size) / 512 + 1;     //XXX WRONG
+    st->st_blocks = ((attr->size + 512 - 1) / 512);
     st->st_dev = 0;
     st->st_gid = getgid();
     st->st_uid = getuid();
@@ -688,16 +686,13 @@ out:
     return;
 }
 
-// XXX TODO
-
-/* Can't find a fid from path !!!!!!!!!!
 void rozofs_ll_symlink(fuse_req_t req, const char *link, fuse_ino_t parent,
-        const char *name) {
-    struct fuse_entry_param e;
-    char path[ROZO_PATH_MAX];
-    uint32_t name_len;
+                       const char *name) {
+    ientry_t *ie = 0;
+    mattr_t attrs;
+    ientry_t *nie = 0;
+    struct fuse_entry_param fep;
     struct stat stbuf;
-
     DEBUG_FUNCTION;
 
     DEBUG("symlink (%s,%lu,%s)\n", link, (unsigned long int) parent, name);
@@ -707,29 +702,39 @@ void rozofs_ll_symlink(fuse_req_t req, const char *link, fuse_ino_t parent,
         goto error;
     }
 
-    exportclt_symlink(exportclt, )
-    if (rozo_client_symlink(&rozo_client, link, inode_map(parent, name, path)) == -1) {
-        fuse_reply_err(req, errno);
-    } else {
-        memset(&e, 0, sizeof (e));
-        ientry_t * ie = NULL;
-        ie = get_inode_by_fid(inode_map(parent, name, path));
-        e.ino = ie->inode;
-        e.attr_timeout = 0.0;
-        e.entry_timeout = 0.0;
-        if (rozo_client_stat(&rozo_client, ie->path, &stbuf) == -1) {
-            fuse_reply_err(req, errno);
-        }
-        memcpy(&e.attr, &stbuf, sizeof (struct stat));
-        fuse_reply_entry(req, &e);
+    if (!(ie = htable_get(&htable_inode, &parent))) {
+        errno = ENOENT;
+        goto error;
     }
+
+    if (exportclt_symlink
+        (&exportclt, (char *) link, ie->fid, (char *) name, &attrs) != 0) {
+        if (errno == ESTALE) {
+            del_ientry(ie);
+            free(ie);
+            errno = ESTALE;
+        }
+        goto error;
+    }
+    if (!(nie = htable_get(&htable_fid, attrs.fid))) {
+        nie = xmalloc(sizeof (ientry_t));
+        memcpy(nie->fid, attrs.fid, sizeof (fid_t));
+        nie->inode = inode_idx++;
+        list_init(&nie->list);
+        put_ientry(nie);
+    }
+    memset(&fep, 0, sizeof (fep));
+    fep.ino = nie->inode;
+    fep.attr_timeout = 0.0;
+    fep.entry_timeout = 0.0;
+    memcpy(&fep.attr, mattr_to_stat(&attrs, &stbuf), sizeof (struct stat));
+    fuse_reply_entry(req, &fep);
     goto out;
 error:
     fuse_reply_err(req, errno);
 out:
     return;
 }
- */
 
 void rozofs_ll_rmdir(fuse_req_t req, fuse_ino_t parent, const char *name) {
     ientry_t *ie = 0;
@@ -1210,15 +1215,15 @@ int main(int argc, char *argv[]) {
     }
     if (conf.buf_size < 128) {
         fprintf(stderr,
-                "write cache size to low (%u MiB) - increased to 128 KiB\n",
+                "write cache size to low (%u KiB) - increased to 128 KiB\n",
                 conf.buf_size);
         conf.buf_size = 128;
     }
-    if (conf.buf_size > 4096) {
+    if (conf.buf_size > 8192) {
         fprintf(stderr,
-                "write cache size to big (%u MiB) - decresed to 4096 KiB\n",
+                "write cache size to big (%u KiB) - decresed to 8192 KiB\n",
                 conf.buf_size);
-        conf.buf_size = 4096;
+        conf.buf_size = 8192;
     }
 
     if (fuse_opt_add_arg(&args, "-o" FUSE_DEFAULT_OPTIONS) == -1) {

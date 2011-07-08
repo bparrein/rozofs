@@ -51,13 +51,13 @@ timeval *t_profile_res;
 							timeval_subtract(t_profile_res, t_profile_stop, t_profile_start ); \
 							timeval_addto(&profile_time[0], t_profile_res);
 
-#define PROFILE_MOJETTE_START gettimeofday(t_profile_start, NULL);
+#define PROFILE_TRANSFORM_START gettimeofday(t_profile_start, NULL);
 
-#define PROFILE_MOJETTE_FRWD_STOP gettimeofday(t_profile_stop, NULL); \
+#define PROFILE_TRANSFORM_FRWD_STOP gettimeofday(t_profile_stop, NULL); \
 							timeval_subtract(t_profile_res, t_profile_stop, t_profile_start ); \
 							timeval_addto(&profile_time[2], t_profile_res);
 
-#define PROFILE_MOJETTE_INV_STOP gettimeofday(t_profile_stop, NULL); \
+#define PROFILE_TRANSFORM_INV_STOP gettimeofday(t_profile_stop, NULL); \
 							timeval_subtract(t_profile_res, t_profile_stop, t_profile_start ); \
 							timeval_addto(&profile_time[3], t_profile_res);
 
@@ -85,11 +85,11 @@ timeval *t_profile_res;
 
 #define PROFILE_STORAGE_STOP
 
-#define PROFILE_MOJETTE_START
+#define PROFILE_TRANSFORM_START
 
-#define PROFILE_MOJETTE_FRWD_STOP
+#define PROFILE_TRANSFORM_FRWD_STOP
 
-#define PROFILE_MOJETTE_INV_STOP
+#define PROFILE_TRANSFORM_INV_STOP
 
 #define PROFILE_PRINT
 

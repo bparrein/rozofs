@@ -166,9 +166,9 @@ extern "C" {
 
     struct ep_symlink_arg_t {
         uint32_t eid;
-        ep_uuid_t target;
-        ep_uuid_t link_parent;
-        ep_name_t link_name;
+        ep_name_t link;
+        ep_uuid_t parent;
+        ep_name_t name;
     };
     typedef struct ep_symlink_arg_t ep_symlink_arg_t;
 

@@ -63,9 +63,9 @@ int save_profile_result(char *file_name) {
             profile_time[1].tv_sec, profile_time[1].tv_usec);
     fprintf(fd, "time spent in storage exchanges : %ld sec, %ld usec\n",
             profile_time[0].tv_sec, profile_time[0].tv_usec);
-    fprintf(fd, "time spent in mojette forward : %ld sec, %ld usec\n",
+    fprintf(fd, "time spent in transform forward : %ld sec, %ld usec\n",
             profile_time[2].tv_sec, profile_time[2].tv_usec);
-    fprintf(fd, "time spent in mojette inverse : %ld sec, %ld usec\n",
+    fprintf(fd, "time spent in transform inverse : %ld sec, %ld usec\n",
             profile_time[3].tv_sec, profile_time[3].tv_usec);
 
     close(fd);
@@ -78,9 +78,9 @@ void log_profile() {
          profile_time[1].tv_sec, profile_time[1].tv_usec);
     info("time spent in storage exchanges : %ld sec, %ld usec\n",
          profile_time[0].tv_sec, profile_time[0].tv_usec);
-    info("time spent in mojette forward : %ld sec, %ld usec\n",
+    info("time spent in transform forward : %ld sec, %ld usec\n",
          profile_time[2].tv_sec, profile_time[2].tv_usec);
-    info("time spent in mojette inverse : %ld sec, %ld usec\n",
+    info("time spent in transform inverse : %ld sec, %ld usec\n",
          profile_time[3].tv_sec, profile_time[3].tv_usec);
 }
 

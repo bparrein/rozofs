@@ -22,11 +22,11 @@ cmake_minimum_required(VERSION 2.6)
 project(rozo C)
 set(MAJOR "0")
 set(MINOR "3")
-set(REVISION "0")
+set(REVISION "2")
 
 if(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING 
-  "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." 
+  "Choose the type of build, options are: None Debug Release Profile RelWithDebInfo MinSizeRel." 
   FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
@@ -34,6 +34,10 @@ set(CMAKE_C_FLAGS_DEBUG "-g -Wall -DNDEBUGFUNCTION" CACHE STRING
     "Flags used by the C compiler during maintainer builds."
     FORCE)
 
+#
+#Profile build type allows to keep track of the time spent for each action of rozomount (e.g export exchanges, storage exchanges, transform)
+#The stat can be viewed in the syslogs when rozomount has been stopped.
+#
 SET(CMAKE_CXX_FLAGS_PROFILE "-DPROFILE -DNDEBUG")
 SET(CMAKE_C_FLAGS_PROFILE "-DPROFILE -DNDEBUG")
 
@@ -45,7 +49,7 @@ set(CONF_DIR "${CMAKE_INSTALL_PREFIX}/etc/rozo")
 set(EXPORTD_DEFAULT_CONFIG "${CONF_DIR}/export.conf")
 set(STORAGED_DEFAULT_CONFIG "${CONF_DIR}/storage.conf")
 if(NOT DAEMON_PID_DIRECTORY)
-    set(DAEMON_PID_DIRECTORY "/var/run")
+    set(DAEMON_PID_DIRECTORY "/home/sylvain")
 endif(NOT DAEMON_PID_DIRECTORY)
 if(NOT ROZO_RPC_BUFFER_SIZE)
     set(ROZO_RPC_BUFFER_SIZE 0x0)
