@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
         perror("failed to stat storage");
         exit(-1);
     }
-    printf("size: %lld, free: %lld\n", sst.size, sst.free);
+    printf("size: %llu, free: %llu\n", sst.size, sst.free);
 
     uuid_generate(fid);
     // Write some bins (15 prj)

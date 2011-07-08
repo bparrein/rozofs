@@ -84,8 +84,8 @@ int main(int argc, char **argv) {
     pmap_unset(RPC_THROUGHPUT_PROGRAM, RPC_THROUGHPUT_VERSION);
 
     sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    setsockopt(sock, SOL_TCP, TCP_NODELAY, (void *) one, sizeof (one));
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void *) one, sizeof (one));
+    setsockopt(sock, SOL_TCP, TCP_NODELAY, (char *) &one, sizeof (int));
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *) &one, sizeof (int));
 
     if ((transp = svctcp_create(sock, 0, 0)) == NULL) {
         fprintf(stderr, "%s", "cannot create tcp service.");
