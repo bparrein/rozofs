@@ -25,7 +25,7 @@ Using default values will compile rozo in Release mode and install it on /usr/lo
 
 mkdir build
 cd build
-cmake -G [-DCMAKE_INSTALL_PREFIX=/foo/bar -DCMAKE_BUILD_TYPE=Debug] "Unix Makefiles" ../
+cmake -G "Unix Makefiles" [-DCMAKE_INSTALL_PREFIX=/foo/bar -DCMAKE_BUILD_TYPE=Debug] ../
 make
 [sudo] make install
 

@@ -22,7 +22,7 @@ cmake_minimum_required(VERSION 2.6)
 project(rozo C)
 set(MAJOR "0")
 set(MINOR "3")
-set(REVISION "3")
+set(REVISION "4")
 
 if(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING 
