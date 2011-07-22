@@ -34,7 +34,6 @@ union sp_status_ret_t switch (sp_status_t status) {
 struct sp_remove_arg_t {
     uint16_t    sid;
     sp_uuid_t   fid;
-    uint8_t     tid; 
 };
 
 struct sp_write_arg_t {

@@ -1082,8 +1082,7 @@ int fuseloop(struct fuse_args *args, const char *mountpoint, int fg) {
     root->inode = inode_idx++;
     put_ientry(root);
 
-    PROFILE_INIT 
-	info("mounting - export: %s from : %s on: %s", conf.export,
+    PROFILE_INIT info("mounting - export: %s from : %s on: %s", conf.export,
                       conf.host, mountpoint);
 
     if (fg == 0) {

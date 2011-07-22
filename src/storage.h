@@ -47,7 +47,7 @@ int storage_read(storage_t * st, fid_t fid, tid_t pid, bid_t bid, uint32_t n,
 
 int storage_truncate(storage_t * st, fid_t fid, tid_t pid, bid_t bid);
 
-int storage_remove(storage_t * st, fid_t fid, tid_t pid);
+int storage_rm_file(storage_t * st, fid_t fid);
 
 int storage_stat(storage_t * st, sstat_t * sstat);
 

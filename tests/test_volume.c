@@ -10,8 +10,8 @@
 
 int main(int argc, char **argv) {
     int status = 0;
-    int cluster_nb = 3;
-    int storages_nb = 10;
+    int cluster_nb = 1;
+    int storages_nb = 8;
     int j = 0;
     int i = 0;
     volume_stat_t vstat;
@@ -39,13 +39,15 @@ int main(int argc, char **argv) {
         for (j = 0; j < storages_nb; j++) {
 
             // Add storage to cluster
-            if (volume_storage_initialize_capacity
-                (storage + j, (i * storages_nb) + j, hostnames[j],
-                 (i * 10) + j) != 0) {
+            if (mstorage_initialize
+                (storage + j, (i * storages_nb) + j, hostnames[j]) != 0) {
                 fprintf(stderr, "Can't add storage: %s\n", strerror(errno));
                 status = -1;
                 goto out;
             }
+            (storage + j)->stat.free = 10;
+            (storage + j)->stat.size = 50;
+
         }
 
         // Add cluster to volume
@@ -65,18 +67,22 @@ int main(int argc, char **argv) {
         goto out;
     }
     // Balance volume
-    if (volume_balance() != 0) {
-        fprintf(stderr, "Can't balance this volume: %s\n", strerror(errno));
-        status = -1;
-        goto out;
-    }
+    /*
+       if (volume_balance() != 0) {
+       fprintf(stderr, "Can't balance this volume: %s\n", strerror(errno));
+       status = -1;
+       goto out;
+       }
+     */
     // Print volume
-    if (volume_print() != 0) {
-        fprintf(stderr, "Can't print info about this volume: %s\n",
-                strerror(errno));
-        status = -1;
-        goto out;
-    }
+    /*
+       if (volume_print() != 0) {
+       fprintf(stderr, "Can't print info about this volume: %s\n",
+       strerror(errno));
+       status = -1;
+       goto out;
+       }
+     */
 
     uint16_t *sids = (uint16_t *) xmalloc(rozo_safe * sizeof (uint16_t));
     uint16_t *cid = (uint16_t *) xmalloc(sizeof (uint16_t));
@@ -97,16 +103,24 @@ int main(int argc, char **argv) {
     }
 
     // Stat volume
-    if (volume_stat(&vstat) != 0) {
-        fprintf(stderr, "Can't stat volume %s\n", strerror(errno));
+    (volume_stat(&vstat));
+
+    printf("Volume bsize: %d\n", vstat.bsize);
+    printf("Volume bfree: %lld\n", vstat.bfree);
+    printf("Volume size: %d\n", volume_size());
+
+    sid_t sid_look = 7;
+    volume_storage_t *result_look;
+
+    // Lookup storage volume
+    if ((result_look = lookup_volume_storage(sid_look)) == NULL) {
+        fprintf(stderr, "Can't lookup for SID: %u: %s\n", sid_look,
+                strerror(errno));
         status = -1;
         goto out;
     }
 
-    printf("Volume bsize: %d\n", vstat.bsize);
-    printf("Volume bfree: %lld\n", vstat.bfree);
-
-    printf("Volume size: %d\n", volume_size());
+    printf("lookup storage with SID %u: %s\n", sid_look, result_look->host);
 
     // Release volume
     if (volume_release() != 0) {

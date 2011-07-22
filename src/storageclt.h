@@ -46,6 +46,6 @@ int storageclt_read(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid,
 
 int storageclt_truncate(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid);
 
-int storageclt_remove(storageclt_t * clt, fid_t fid, tid_t tid);
+int storageclt_remove(storageclt_t * clt, fid_t fid);
 
 #endif

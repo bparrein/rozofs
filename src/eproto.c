@@ -51,9 +51,9 @@ ep_mount_ret_t *ep_mount_1_svc(ep_path_t * arg, struct svc_req * req) {
     DEBUG_FUNCTION;
 
     // XXX exportd_lookup_id could return export_t *
-    if (!(eid = exportd_lookup_id(*arg)))
+    if (!(eid = exports_lookup_id(*arg)))
         goto error;
-    if (!(exp = exportd_lookup_export(*eid)))
+    if (!(exp = exports_lookup_export(*eid)))
         goto error;
 
     if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0) {
@@ -110,7 +110,7 @@ ep_statfs_ret_t *ep_statfs_1_svc(uint32_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export((eid_t) * arg)))
+    if (!(exp = exports_lookup_export((eid_t) * arg)))
         goto error;
     if (export_stat(exp, (estat_t *) & ret.ep_statfs_ret_t_u.stat) != 0)
         goto error;
@@ -128,7 +128,7 @@ ep_mattr_ret_t *ep_lookup_1_svc(ep_lookup_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_lookup
         (exp, arg->parent, arg->name,
@@ -148,7 +148,7 @@ ep_mattr_ret_t *ep_getattr_1_svc(ep_mfile_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_getattr
         (exp, arg->fid, (mattr_t *) & ret.ep_mattr_ret_t_u.attrs) != 0)
@@ -167,7 +167,7 @@ ep_mattr_ret_t *ep_setattr_1_svc(ep_setattr_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_setattr(exp, arg->attrs.fid, (mattr_t *) & arg->attrs) != 0)
         goto error;
@@ -189,7 +189,7 @@ ep_readlink_ret_t *ep_readlink_1_svc(ep_mfile_arg_t * arg,
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_readlink(exp, arg->fid, ret.ep_readlink_ret_t_u.link) != 0)
         goto error;
@@ -207,7 +207,7 @@ ep_mattr_ret_t *ep_mknod_1_svc(ep_mknod_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_mknod
         (exp, arg->parent, arg->name, arg->mode,
@@ -227,7 +227,7 @@ ep_mattr_ret_t *ep_mkdir_1_svc(ep_mkdir_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_mkdir
         (exp, arg->parent, arg->name, arg->mode,
@@ -247,7 +247,7 @@ ep_status_ret_t *ep_unlink_1_svc(ep_mfile_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_unlink(exp, arg->fid) != 0)
         goto error;
@@ -265,7 +265,7 @@ ep_status_ret_t *ep_rmdir_1_svc(ep_mfile_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_rmdir(exp, arg->fid) != 0)
         goto error;
@@ -283,7 +283,7 @@ ep_mattr_ret_t *ep_symlink_1_svc(ep_symlink_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
 /*
     if (export_symlink
@@ -305,7 +305,7 @@ ep_status_ret_t *ep_rename_1_svc(ep_rename_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_rename(exp, arg->from, arg->to_parent, arg->to_name) != 0)
         goto error;
@@ -324,7 +324,7 @@ ep_readdir_ret_t *ep_readdir_1_svc(ep_mfile_arg_t * arg, struct svc_req * req) {
     DEBUG_FUNCTION;
 
     xdr_free((xdrproc_t) xdr_ep_readdir_ret_t, (char *) &ret);
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_readdir
         (exp, arg->fid, (child_t **) & ret.ep_readdir_ret_t_u.children) != 0)
@@ -343,7 +343,7 @@ ep_io_ret_t *ep_read_1_svc(ep_io_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if ((ret.ep_io_ret_t_u.length =
          export_read(exp, arg->fid, arg->offset, arg->length)) < 0)
@@ -364,7 +364,7 @@ ep_read_block_ret_t *ep_read_block_1_svc(ep_read_block_arg_t * arg,
     DEBUG_FUNCTION;
 
     xdr_free((xdrproc_t) xdr_ep_read_block_ret_t, (char *) &ret);
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     ret.ep_read_block_ret_t_u.dist.dist_len = arg->nrb;
     ret.ep_read_block_ret_t_u.dist.dist_val =
@@ -387,7 +387,7 @@ ep_io_ret_t *ep_write_1_svc(ep_io_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if ((ret.ep_io_ret_t_u.length =
          export_write(exp, arg->fid, arg->offset, arg->length)) < 0)
@@ -407,7 +407,7 @@ ep_status_ret_t *ep_write_block_1_svc(ep_write_block_arg_t * arg,
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_write_block(exp, arg->fid, arg->bid, arg->nrb, arg->dist) != 0)
         goto error;
@@ -425,7 +425,7 @@ ep_status_ret_t *ep_open_1_svc(ep_mfile_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
 
     if (export_open(exp, arg->fid) != 0)
@@ -445,7 +445,7 @@ ep_status_ret_t *ep_close_1_svc(ep_mfile_arg_t * arg, struct svc_req * req) {
     export_t *exp;
     DEBUG_FUNCTION;
 
-    if (!(exp = exportd_lookup_export(arg->eid)))
+    if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
 
     if (export_close(exp, arg->fid) != 0)

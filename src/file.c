@@ -141,7 +141,7 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
         // Nb. of received requests (at begin=0)
         int connected = 0;
         // For each projection
-        PROFILE_STORAGE_START 
+        PROFILE_STORAGE_START
 		for (mp = 0; mp < rozo_forward; mp++) {
             int mps = 0;
             int j = 0;
@@ -174,15 +174,15 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
                 break;
         }
         PROFILE_STORAGE_STOP
-        // Not enough server storage response to retrieve the file
-        if (connected < rozo_inverse) {
+            // Not enough server storage response to retrieve the file
+            if (connected < rozo_inverse) {
             errno = EIO;
             goto out;
         }
 
         PROFILE_TRANSFORM_START
-        // Proceed the inverse data transform for the n blocks.
-        for (j = 0; j < n; j++) {
+            // Proceed the inverse data transform for the n blocks.
+            for (j = 0; j < n; j++) {
             // Fill the table of projections for the block j
             // For each meta-projection
             for (mp = 0; mp < rozo_inverse; mp++) {
@@ -201,8 +201,8 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
                               rozo_inverse, projections);
         }
         PROFILE_TRANSFORM_INV_STOP
-        // Free the memory area where are stored the bins.
-        for (mp = 0; mp < rozo_inverse; mp++) {
+            // Free the memory area where are stored the bins.
+            for (mp = 0; mp < rozo_inverse; mp++) {
             if (bins[mp])
                 free(bins[mp]);
             bins[mp] = 0;
@@ -260,9 +260,9 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
     }
 
     PROFILE_TRANSFORM_START
-    /* Transform the data */
-    // For each block to send
-    for (i = 0; i < nmbs; i++) {
+        /* Transform the data */
+        // For each block to send
+        for (i = 0; i < nmbs; i++) {
         // seek bins for each projection
         for (mp = 0; mp < rozo_forward; mp++) {
             // Indicates the memory area where the transformed data must be stored
@@ -274,10 +274,10 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
                           rozo_forward, projections);
     }
     PROFILE_TRANSFORM_FRWD_STOP
-    /* Send requests to the storage servers */
-    // For each projection server
-    mp = 0;
-    PROFILE_STORAGE_START 
+        /* Send requests to the storage servers */
+        // For each projection server
+        mp = 0;
+    PROFILE_STORAGE_START
 	for (ps = 0; ps < rozo_safe; ps++) {
         // Warning: the server can be disconnected
         // but f->storages[ps].rpcclt->client != NULL
@@ -298,8 +298,8 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
             break;
     }
     PROFILE_STORAGE_STOP
-    // Not enough server storage connections to store the file
-    if (mp < rozo_forward) {
+        // Not enough server storage connections to store the file
+        if (mp < rozo_forward) {
         errno = EIO;
         goto out;
     }

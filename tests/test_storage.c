@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    if (storage_remove(&st, fid, 0) != 0) {
+    if (storage_rm_file(&st, fid) != 0) {
         perror("failed to remove pfile");
         exit(-1);
     }

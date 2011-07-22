@@ -34,7 +34,6 @@ extern "C" {
     struct sp_remove_arg_t {
         uint16_t sid;
         sp_uuid_t fid;
-        uint8_t tid;
     };
     typedef struct sp_remove_arg_t sp_remove_arg_t;
 

@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #include <limits.h>
 #include <errno.h>
@@ -41,7 +41,7 @@ sp_status_ret_t *sp_remove_1_svc(sp_remove_arg_t * args, struct svc_req * req) {
         ret.sp_status_ret_t_u.error = errno;
         goto out;
     }
-    if (storage_remove(st, args->fid, args->tid) != 0 && errno != ENOENT) {
+    if (storage_rm_file(st, args->fid) != 0 && errno != ENOENT) {
         ret.sp_status_ret_t_u.error = errno;
         goto out;
     }

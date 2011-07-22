@@ -174,7 +174,7 @@ out:
     return status;
 }
 
-int storageclt_remove(storageclt_t * clt, fid_t fid, tid_t tid) {
+int storageclt_remove(storageclt_t * clt, fid_t fid) {
     int status = -1;
     sp_status_ret_t *ret = 0;
     sp_remove_arg_t args;
@@ -182,7 +182,6 @@ int storageclt_remove(storageclt_t * clt, fid_t fid, tid_t tid) {
 
     args.sid = clt->sid;
     memcpy(args.fid, fid, sizeof (fid_t));
-    args.tid = tid;
     ret = sp_remove_1(&args, clt->rpcclt.client);
     if (ret == 0) {
         errno = EPROTO;

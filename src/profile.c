@@ -61,11 +61,10 @@ int timeval_addto(timeval * dest, timeval * toadd) {
 
 int save_profile_result(char *file_name) {
 
-    FILE * file;
+    FILE *file;
 
     // Open the output file
-    if ((file =
-         fopen(file_name,"rw")) < 0) {
+    if ((file = fopen(file_name, "rw")) < 0) {
         perror("open failed");
         return -1;
     }
@@ -86,20 +85,20 @@ int save_profile_result(char *file_name) {
 
 void log_profile() {
     info("time spent in export exchanges: %ld sec, %ld usec\n",
-            profile_time[1].tv_sec, profile_time[1].tv_usec);
+         profile_time[1].tv_sec, profile_time[1].tv_usec);
     info("time spent in storage exchanges: %ld sec, %ld usec\n",
-            profile_time[0].tv_sec, profile_time[0].tv_usec);
+         profile_time[0].tv_sec, profile_time[0].tv_usec);
     info("time spent in transform forward: %ld sec, %ld usec\n",
-            profile_time[2].tv_sec, profile_time[2].tv_usec);
+         profile_time[2].tv_sec, profile_time[2].tv_usec);
     info("time spent in transform inverse: %ld sec, %ld usec\n",
-            profile_time[3].tv_sec, profile_time[3].tv_usec);
+         profile_time[3].tv_sec, profile_time[3].tv_usec);
 }
 
 void log_storage_profile() {
     info("time spent in managing incoming requests: %ld sec, %ld usec\n",
-            profile_time[1].tv_sec, profile_time[1].tv_usec);
+         profile_time[1].tv_sec, profile_time[1].tv_usec);
     info("time spent in execution of the requests: %ld sec, %ld usec\n",
-            profile_time[0].tv_sec, profile_time[0].tv_usec);
+         profile_time[0].tv_sec, profile_time[0].tv_usec);
     info("time spent in sending the result back: %ld sec, %ld usec\n",
-            profile_time[2].tv_sec, profile_time[2].tv_usec);
+         profile_time[2].tv_sec, profile_time[2].tv_usec);
 }

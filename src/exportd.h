@@ -22,6 +22,6 @@
 
 extern long int layout;
 
-eid_t *exportd_lookup_id(ep_path_t path);
+eid_t *exports_lookup_id(ep_path_t path);
 
-export_t *exportd_lookup_export(eid_t eid);
+export_t *exports_lookup_export(eid_t eid);

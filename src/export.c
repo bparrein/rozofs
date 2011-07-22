@@ -39,10 +39,12 @@
 #include "export.h"
 #include "rozo.h"
 #include "volume.h"
+#include "storageclt.h"
 
 #define EHSIZE 2048
 
 #define EBLOCKSKEY	"user.rozo.export.blocks"
+#define ETRASHUUID	"user.rozo.export.trashid"
 #define EFILESKEY	"user.rozo.export.files"
 #define EVERSIONKEY	"user.rozo.export.version"
 #define EATTRSTKEY	"user.rozo.export.file.attrs"
@@ -50,6 +52,17 @@
 static inline char *export_map(export_t * e, const char *vpath, char *path) {
     strcpy(path, e->root);
     strcat(path, vpath);
+    return path;
+}
+
+static inline char *export_trash_map(export_t * e, fid_t fid, char *path) {
+    char fid_str[37];
+    uuid_unparse(fid, fid_str);
+    strcpy(path, e->root);
+    strcat(path, "/");
+    strcat(path, e->trashname);
+    strcat(path, "/");
+    strcat(path, fid_str);
     return path;
 }
 
@@ -77,6 +90,7 @@ out:
 }
 
 // Just check if VERSION is set.
+
 static int export_check_setup(const char *root) {
     char version[20];
 
@@ -95,6 +109,12 @@ typedef struct mfentry {
     mattr_t attrs;              // meta file attr
     list_t list;
 } mfentry_t;
+
+typedef struct rmfentry {
+    fid_t fid;
+    sid_t sids[ROZO_SAFE_MAX];
+    list_t list;
+} rmfentry_t;
 
 static int mfentry_initialize(mfentry_t * mfe, mfentry_t * parent,
                               const char *name, char *path) {
@@ -192,7 +212,69 @@ static int mfentry_cmp_fid_name(void *k1, void *k2) {
     }
 }
 
+static int export_load_rmfentry(export_t * e) {
+    int status = -1;
+    DIR *dd = NULL;
+    struct dirent *dp;
+    rmfentry_t *rmfe = NULL;
+    char trash_path[PATH_MAX + FILENAME_MAX + 1];
+
+    DEBUG_FUNCTION;
+
+    strcpy(trash_path, e->root);
+    strcat(trash_path, "/");
+    strcat(trash_path, e->trashname);
+
+    if ((dd = opendir(trash_path)) == NULL) {
+        severe("export_load_rmfentry failed: opendir failed: %s",
+               strerror(errno));
+        goto out;
+    }
+
+    while ((dp = readdir(dd)) != NULL) {
+
+        if ((strcmp(dp->d_name, ".") == 0) || (strcmp(dp->d_name, "..") == 0)) {
+            continue;
+        }
+
+        char rm_path[PATH_MAX + FILENAME_MAX + 1];
+        uuid_t rmfid;
+        mattr_t attrs;
+        uuid_parse(dp->d_name, rmfid);
+
+        if (getxattr
+            (export_trash_map(e, rmfid, rm_path), EATTRSTKEY, &attrs,
+             sizeof (mattr_t)) == -1) {
+            severe
+                ("export_load_rmfentry failed: getxattr for file %s failed: %s",
+                 export_trash_map(e, rmfid, rm_path), strerror(errno));
+        }
+
+        rmfe = xmalloc(sizeof (rmfentry_t));
+        memcpy(rmfe->fid, attrs.fid, sizeof (fid_t));
+        memcpy(rmfe->sids, attrs.sids, sizeof (sid_t) * ROZO_SAFE_MAX);
+
+        list_init(&rmfe->list);
+
+        if ((errno = pthread_rwlock_wrlock(&e->rm_lock)) != 0)
+            goto out;
+
+        list_push_front(&e->rmfiles, &rmfe->list);
+
+        if ((errno = pthread_rwlock_unlock(&e->rm_lock)) != 0)
+            goto out;
+    }
+
+    status = 0;
+out:
+    if (dd != NULL) {
+        closedir(dd);
+    }
+    return status;
+}
+
 static void export_put_mfentry(export_t * e, mfentry_t * mfe) {
+
     DEBUG_FUNCTION;
 
     htable_put(&e->hfids, mfe->attrs.fid, mfe);
@@ -202,6 +284,7 @@ static void export_put_mfentry(export_t * e, mfentry_t * mfe) {
 }
 
 static void export_del_mfentry(export_t * e, mfentry_t * mfe) {
+
     DEBUG_FUNCTION;
 
     htable_del(&e->hfids, mfe->attrs.fid);
@@ -230,6 +313,7 @@ static inline int export_update_files(export_t * e, int32_t n) {
     }
     status = 0;
 out:
+
     return status;
 }
 
@@ -258,6 +342,7 @@ static inline int export_update_blocks(export_t * e, int32_t n) {
     }
     status = 0;
 out:
+
     return status;
 }
 
@@ -267,6 +352,9 @@ int export_create(const char *root) {
     char path[PATH_MAX];
     mattr_t attrs;
     uint64_t zero = 0;
+    char trash_path[PATH_MAX + FILENAME_MAX + 1];
+    uuid_t trash_uuid;
+    char trash_str[37];
     DEBUG_FUNCTION;
 
     if (!realpath(root, path))
@@ -293,14 +381,30 @@ int export_create(const char *root) {
         != 0)
         goto out;
 
+    uuid_generate(trash_uuid);
+    uuid_unparse(trash_uuid, trash_str);
+    strcpy(trash_path, root);
+    strcat(trash_path, "/");
+    strcat(trash_path, trash_str);
+
+    if (mkdir(trash_path, O_RDWR) != 0)
+        goto out;
+
+    if (setxattr(path, ETRASHUUID, trash_uuid, sizeof (uuid_t), XATTR_CREATE)
+        != 0)
+        goto out;
+
     status = 0;
 out:
+
     return status;
 }
 
 int export_initialize(export_t * e, uint32_t eid, const char *root) {
     int status = -1;
     mfentry_t *mfe;
+    uuid_t trash_uuid;
+    char trash_str[37];
     DEBUG_FUNCTION;
 
     if (!realpath(root, e->root))
@@ -312,6 +416,13 @@ int export_initialize(export_t * e, uint32_t eid, const char *root) {
 
     e->eid = eid;
     list_init(&e->mfiles);
+    list_init(&e->rmfiles);
+
+    if ((errno = pthread_rwlock_init(&e->rm_lock, NULL)) != 0) {
+        status = -1;
+        goto out;
+    }
+
     htable_initialize(&e->hfids, EHSIZE, mfentry_hash_fid, mfentry_cmp_fid);
     htable_initialize(&e->h_pfids, EHSIZE, mfentry_hash_fid_name,
                       mfentry_cmp_fid_name);
@@ -324,21 +435,49 @@ int export_initialize(export_t * e, uint32_t eid, const char *root) {
     export_put_mfentry(e, mfe);
     memcpy(e->rfid, mfe->attrs.fid, sizeof (fid_t));
 
+    if (getxattr(root, ETRASHUUID, &(trash_uuid), sizeof (uuid_t)) == -1) {
+        severe("export_initialize failed: getxattr for file %s failed: %s",
+               root, strerror(errno));
+        goto out;
+    }
+
+    uuid_unparse(trash_uuid, trash_str);
+    strcpy(e->trashname, trash_str);
+
+    if (export_load_rmfentry(e) != 0) {
+        severe("export_initialize failed: export_load_rmfentry failed: %s",
+               strerror(errno));
+        goto out;
+    }
+
     status = 0;
 out:
+
     return status;
 }
 
 void export_release(export_t * e) {
+
     list_t *p, *q;
     DEBUG_FUNCTION;
 
     list_for_each_forward_safe(p, q, &e->mfiles) {
+
         mfentry_t *mfe = list_entry(p, mfentry_t, list);
         export_del_mfentry(e, mfe);
         mfentry_release(mfe);
         free(mfe);
     }
+
+    list_for_each_forward_safe(p, q, &e->rmfiles) {
+
+        rmfentry_t *rmfe = list_entry(p, rmfentry_t, list);
+        list_remove(&rmfe->list);
+        free(rmfe);
+    }
+
+    pthread_rwlock_destroy(&e->rm_lock);
+
     htable_release(&e->hfids);
     htable_release(&e->h_pfids);
 }
@@ -368,6 +507,7 @@ int export_stat(export_t * e, estat_t * st) {
 
     status = 0;
 out:
+
     return status;
 }
 
@@ -399,6 +539,12 @@ int export_lookup(export_t * e, fid_t parent, const char *name,
         else
             memcpy(attrs, &pmfe->parent->attrs, sizeof (mattr_t));
         status = 0;
+        goto out;
+    }
+
+    if (strcmp(name, e->trashname) == 0) {
+        errno = ENOENT;
+        status = -1;
         goto out;
     }
 
@@ -455,6 +601,7 @@ out:
     }
     if (dp)
         closedir(dp);
+
     return status;
 }
 
@@ -470,6 +617,7 @@ int export_getattr(export_t * e, fid_t fid, mattr_t * attrs) {
     memcpy(attrs, &mfe->attrs, sizeof (mattr_t));
     status = 0;
 out:
+
     return status;
 }
 
@@ -531,6 +679,7 @@ int export_setattr(export_t * e, fid_t fid, mattr_t * attrs) {
 out:
     if (fd != -1)
         close(fd);
+
     return status;
 }
 
@@ -553,6 +702,7 @@ int export_readlink(export_t * e, uuid_t fid, char link[PATH_MAX]) {
     export_unmap(e, rlink, link);
     status = 0;
 out:
+
     return status;
 }
 
@@ -614,6 +764,7 @@ error:
     }
     errno = xerrno;
 out:
+
     return status;
 }
 
@@ -682,6 +833,7 @@ error:
     }
     errno = xerrno;
 out:
+
     return status;
 }
 
@@ -690,7 +842,9 @@ out:
 int export_unlink(export_t * e, uuid_t fid) {
     int status = -1;
     mfentry_t *mfe = 0;
+    rmfentry_t *rmfe = 0;
     char path[PATH_MAX + NAME_MAX + 1];
+    char rm_path[PATH_MAX + NAME_MAX + 1];
     uint64_t size = 0;
     mode_t mode;
     DEBUG_FUNCTION;
@@ -704,8 +858,31 @@ int export_unlink(export_t * e, uuid_t fid) {
     size = mfe->attrs.size;
     mode = mfe->attrs.mode;
 
-    if (unlink(path) == -1)
+    // Put the new path for the remove file
+    // If the size is equal to 0 ? not move hum I'm not sure beacause setxattr ?
+    if (rename(path, export_trash_map(e, fid, rm_path)) == -1) {
+        severe("export_unlink failed: rename(%s,%s) failed: %s", path,
+               rm_path, strerror(errno));
         goto out;
+    }
+
+    rmfe = xmalloc(sizeof (rmfentry_t));
+    memcpy(rmfe->fid, mfe->attrs.fid, sizeof (fid_t));
+    memcpy(rmfe->sids, mfe->attrs.sids, sizeof (sid_t) * ROZO_SAFE_MAX);
+
+    list_init(&rmfe->list);
+
+    if ((errno = pthread_rwlock_wrlock(&e->rm_lock)) != 0)
+        goto out;
+
+    list_push_front(&e->rmfiles, &rmfe->list);
+
+    if ((errno = pthread_rwlock_unlock(&e->rm_lock)) != 0)
+        goto out;
+
+    export_del_mfentry(e, mfe);
+    mfentry_release(mfe);
+    free(mfe);
 
     if (export_update_files(e, -1) != 0)
         goto out;
@@ -715,12 +892,78 @@ int export_unlink(export_t * e, uuid_t fid) {
             (e, -(((int64_t) size + ROZO_BSIZE - 1) / ROZO_BSIZE)) != 0)
             goto out;
 
-    export_del_mfentry(e, mfe);
-    mfentry_release(mfe);
-    free(mfe);
+    status = 0;
+out:
+
+    return status;
+}
+
+int export_rm_bins(export_t * e) {
+    int status = -1;
+    int cnt = 0;
+    list_t *p, *q;
+    DEBUG_FUNCTION;
+
+    if ((errno = pthread_rwlock_wrlock(&e->rm_lock)) != 0)
+        goto out;
+
+    list_for_each_forward_safe(p, q, &e->rmfiles) {
+
+        rmfentry_t *entry = list_entry(p, rmfentry_t, list);
+        sid_t *it = entry->sids;
+        cnt = 0;
+
+        while (it != entry->sids + ROZO_SAFE_MAX) {
+
+            if (*it != 0) {
+                volume_storage_t *vs = NULL;
+                storageclt_t sclt;
+                if ((vs = lookup_volume_storage(*it)) == NULL) {
+                    goto out;
+                }
+                if (storageclt_initialize(&sclt, vs->host, vs->sid) != 0) {
+                    warning("failed to join: %s,  %s", vs->host,
+                            strerror(errno));
+
+                } else {
+                    if (storageclt_remove(&sclt, entry->fid) != 0) {
+                        warning("failed to remove: %s", vs->host);
+                    } else {
+                        *it = 0;
+                        cnt++;
+                    }
+                }
+                storageclt_release(&sclt);
+
+                // send a request
+                //warning("remove file for : SID: %u host: %s", vs->sid, vs->host);
+            } else {
+                cnt++;
+            }
+            it++;
+        }
+
+        if (cnt == ROZO_SAFE_MAX) {
+
+            char path[PATH_MAX + NAME_MAX + 1];
+
+            if (unlink(export_trash_map(e, entry->fid, path)) == -1) {
+                severe("export_rm_bins failed: unlink file %s failed: %s",
+                       path, strerror(errno));
+                goto out;
+            }
+
+            list_remove(&entry->list);
+            free(entry);
+        }
+    }
+
+    if ((errno = pthread_rwlock_unlock(&e->rm_lock)) != 0)
+        goto out;
 
     status = 0;
 out:
+
     return status;
 }
 
@@ -755,6 +998,7 @@ int export_rmdir(export_t * e, uuid_t fid) {
 
     status = 0;
 out:
+
     return status;
 }
 
@@ -834,6 +1078,7 @@ error:
         unlink(path);
     }
 out:
+
     return status;
 }
 
@@ -930,6 +1175,7 @@ int export_rename(export_t * e, uuid_t from, uuid_t parent, const char *name) {
 out:
     if (to_mfkey) {
         if (to_mfkey->name) {
+
             free(to_mfkey->name);
         }
         free(to_mfkey);
@@ -964,6 +1210,7 @@ int64_t export_read(export_t * e, uuid_t fid, uint64_t off, uint32_t len) {
     }
     read = off + len < mfe->attrs.size ? len : mfe->attrs.size - off;
 out:
+
     return read;
 }
 
@@ -990,6 +1237,7 @@ int export_read_block(export_t * e, uuid_t fid, uint64_t bid, uint32_t n,
 
     status = 0;
 out:
+
     return status;
 }
 
@@ -1026,6 +1274,7 @@ int64_t export_write(export_t * e, uuid_t fid, uint64_t off, uint32_t len) {
     written = len;
 
 out:
+
     return written;
 }
 
@@ -1053,6 +1302,7 @@ int export_write_block(export_t * e, uuid_t fid, uint64_t bid, uint32_t n,
     }
     status = 0;
 out:
+
     return status;
 }
 
@@ -1076,6 +1326,9 @@ int export_readdir(export_t * e, fid_t fid, child_t ** children) {
     iterator = children;
 
     while ((ep = readdir(dp)) != 0) {
+        if (strcmp(ep->d_name, e->trashname) == 0) {
+            continue;
+        }
         *iterator = xmalloc(sizeof (child_t));  // XXX FREE?
         (*iterator)->name = xstrdup(ep->d_name);        // XXX FREE?
         iterator = &(*iterator)->next;
@@ -1087,6 +1340,7 @@ int export_readdir(export_t * e, fid_t fid, child_t ** children) {
     *iterator = NULL;
     status = 0;
 out:
+
     return status;
 }
 
@@ -1116,6 +1370,7 @@ int export_open(export_t * e, fid_t fid) {
 
     status = 0;
 out:
+
     return status;
 }
 

@@ -3,7 +3,7 @@
  * It was generated using rpcgen.
  */
 
-#include "sproto.h"
+#include "../src/sproto.h"
 #include "rozo.h"
 
 bool_t xdr_sp_uuid_t(XDR * xdrs, sp_uuid_t objp) {
@@ -46,8 +46,6 @@ bool_t xdr_sp_remove_arg_t(XDR * xdrs, sp_remove_arg_t * objp) {
     if (!xdr_uint16_t(xdrs, &objp->sid))
         return FALSE;
     if (!xdr_sp_uuid_t(xdrs, objp->fid))
-        return FALSE;
-    if (!xdr_uint8_t(xdrs, &objp->tid))
         return FALSE;
     return TRUE;
 }

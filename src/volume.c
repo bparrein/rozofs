@@ -56,15 +56,27 @@ static void cluster_print(volume_storage_t * a, size_t n) {
 
 int mstorage_initialize(volume_storage_t * st, uint16_t sid,
                         const char *hostname) {
-
+    int status = -1;
     DEBUG_FUNCTION;
+
+    //XXX Check that the SID is unique
+
+    if (sid == 0) {
+        errno = EINVAL;
+        fprintf(stderr, "SID %u is invalid (SID must be greater than 0)\n",
+                sid);
+        fatal("SID %u is invalid (SID must be greater than 0)", sid);
+        goto out;
+    }
 
     st->sid = sid;
     strcpy(st->host, hostname);
     st->stat.free = 0;
     st->stat.size = 0;
 
-    return 0;
+    status = 0;
+out:
+    return status;
 }
 
 int volume_initialize() {
@@ -130,6 +142,34 @@ int volume_register(uint16_t cid, volume_storage_t * storages, uint16_t nb_ms) {
     return 0;
 }
 
+volume_storage_t *lookup_volume_storage(sid_t sid) {
+    list_t *iterator;
+    DEBUG_FUNCTION;
+
+    if ((errno = pthread_rwlock_rdlock(&volume.lock)) != 0)
+        goto out;
+
+    list_for_each_forward(iterator, &volume.mcs) {
+        cluster_t *entry = list_entry(iterator, cluster_t, list);
+        volume_storage_t *it = entry->ms;
+
+        while (it != entry->ms + entry->nb_ms) {
+            if (sid == it->sid)
+                return it;
+            it++;
+        }
+    }
+
+    if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
+        goto out;
+
+    errno = EINVAL;
+    severe("lookup_volume_storage failed: storage %u not found: %s", sid,
+           strerror(errno));
+out:
+    return NULL;
+}
+
 int volume_balance() {
     int status = -1;
     list_t *iterator;
@@ -177,6 +217,7 @@ out:
 }
 
 // what if a cluster is < rozo safe
+
 static int cluster_distribute(cluster_t * cluster, uint16_t * sids) {
     int status = -1;
     int ms_found = 0;

@@ -61,6 +61,23 @@ add_executable(transform_file
     transform_file.c
 )
 
+add_executable(test_volume
+    ../src/xmalloc.h
+    ../src/xmalloc.c
+    ../src/rozo.h
+    ../src/rozo.c
+    ../src/rpcclt.h
+    ../src/rpcclt.c
+    ../src/sproto.h
+    ../src/sprotoxdr.c
+    ../src/sprotoclt.c
+    ../src/storageclt.c
+    ../src/volume.h
+    ../src/volume.c
+    test_volume.c
+)
+target_link_libraries(test_volume ${PTHREAD_LIBRARY})
+
 add_executable(test_storage
     ../src/xmalloc.h
     ../src/xmalloc.c

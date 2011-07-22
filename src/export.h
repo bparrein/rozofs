@@ -32,7 +32,10 @@ typedef struct export {
     eid_t eid;
     char root[PATH_MAX];        // absolute path.
     fid_t rfid;                 // root fid.
+    char trashname[NAME_MAX];   // trash directory
     list_t mfiles;
+    list_t rmfiles;
+    pthread_rwlock_t rm_lock;
     htable_t hfids;             // fid indexed.
     htable_t h_pfids;           // parent fid indexed.
 } export_t;
@@ -61,6 +64,8 @@ int export_mkdir(export_t * e, fid_t parent, const char *name, mode_t mode,
                  mattr_t * attrs);
 
 int export_unlink(export_t * e, fid_t fid);
+
+int export_rm_bins(export_t * e);
 
 int export_rmdir(export_t * e, fid_t fid);
 

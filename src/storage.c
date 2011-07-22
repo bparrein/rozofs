@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
+#include <glob.h>
 
 #include "rozo.h"
 #include "log.h"
@@ -260,20 +261,60 @@ out:
     return status;
 }
 
-int storage_remove(storage_t * st, fid_t fid, tid_t pid) {
-    char path[PATH_MAX];
+int storage_rm_file(storage_t * st, fid_t fid) {
+    int status = -1;
+    char pattern[PATH_MAX];
+    char fid_str[37];
+    char **p;
     pfentry_t key;
     pfentry_t *pfe = 0;
+    pid_t pid;
+    size_t cnt;
+    glob_t glob_results;
+
     DEBUG_FUNCTION;
 
-    uuid_copy(key.fid, fid);
-    key.pid = pid;
-    if ((pfe = htable_get(&st->htable, &key))) {
-        storage_del_pfentry(st, pfe);
-        pfentry_release(pfe);
-        free(pfe);
+    if (chdir(st->root) != 0) {
+        goto out;
     }
-    return unlink(storage_map(st, fid, pid, path));
+
+    uuid_unparse(fid, fid_str);
+    strcpy(pattern, fid_str);
+    strcat(pattern, "*");
+
+    if (glob(pattern, 0, 0, &glob_results) == 0) {
+
+        for (p = glob_results.gl_pathv, cnt = glob_results.gl_pathc; cnt;
+             p++, cnt--) {
+
+            severe("unlink file %s", *p);
+
+            if (unlink(*p) == -1) {
+                severe("storage_rm_file failed: unlink file %s failed: %s",
+                       *p, strerror(errno));
+                goto out;
+            }
+
+            if (sscanf(*p, "%36s-%u.*", fid_str, &pid) != 2) {
+                severe
+                    ("storage_rm_file failed: sscanf for file %s failed: %s",
+                     *p, strerror(errno));
+                goto out;
+            }
+
+            uuid_copy(key.fid, fid);
+            key.pid = pid;
+            if ((pfe = htable_get(&st->htable, &key))) {
+                storage_del_pfentry(st, pfe);
+                pfentry_release(pfe);
+                free(pfe);
+            }
+        }
+        globfree(&glob_results);
+    }
+    status = 0;
+out:
+    return status;
 }
 
 int storage_stat(storage_t * st, sstat_t * sstat) {
