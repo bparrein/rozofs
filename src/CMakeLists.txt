@@ -106,8 +106,8 @@ add_executable(rozomount
 target_link_libraries(rozomount ${PTHREAD_LIBRARY} ${FUSE_LIBRARY} ${UUID_LIBRARY})
 
 # Install
-install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${CONF_DIR})" COMPONENT storage)
-install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${CONF_DIR})" COMPONENT export)
+install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${ROZO_CONFIG_DIR})" COMPONENT storage)
+install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${ROZO_CONFIG_DIR})" COMPONENT export)
 
 install(TARGETS storaged
     RUNTIME DESTINATION bin
@@ -116,16 +116,16 @@ install(TARGETS storaged
     COMPONENT storage
 )
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/storage.conf.sample DESTINATION etc/rozo COMPONENT storage)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/storage.conf.sample DESTINATION ${ROZO_CONFIG_DIR} COMPONENT storage)
 
 install(TARGETS exportd
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
-    COMPONENT storage
+    COMPONENT export
 )
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/export.conf.sample DESTINATION etc/rozo COMPONENT export)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/export.conf.sample DESTINATION ${ROZO_CONFIG_DIR} COMPONENT export)
 
 install(TARGETS rozomount
     RUNTIME DESTINATION bin
