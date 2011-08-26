@@ -41,7 +41,7 @@ add_executable(storaged
     daemon.c
     storaged.c
 )
-target_link_libraries(storaged ${XATTR_LIBRARY} ${UUID_LIBRARY} ${CONFIG_LIBRARY})
+target_link_libraries(storaged ${UUID_LIBRARY} ${CONFIG_LIBRARY})
 
 add_executable(exportd
     config.h
@@ -103,7 +103,7 @@ add_executable(rozomount
     rozomount.c
 )
 #pthread need by fuse 
-target_link_libraries(rozomount ${PTHREAD_LIBRARY} ${FUSE_LIBRARY} ${UUID_LIBRARY})
+target_link_libraries(rozomount ${PTHREAD_LIBRARY} ${FUSE_LIBRARY})
 
 # Install
 install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${ROZO_CONFIG_DIR})" COMPONENT storage)
