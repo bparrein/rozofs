@@ -1,0 +1,17 @@
+rozo (0.3.8-1) unstable; urgency=low
+
+  * (rozo) See hg log for changes
+
+ -- Fizians S.A.S. <rd@fizians.org>  Tue, 30 Aug 2011 18:03:33 +0200
+
+rozo (0.3.7-1) unstable; urgency=low
+
+  * (rozo) See hg log for changes 
+
+ -- Fizians S.A.S. <rd@fizians.org>  Tue, 23 Aug 2011 13:46:10 +0200
+ 
+rozo (0.3.6-1) unstable; urgency=low
+
+  * (debian) Initial release
+
+ -- Fizians S.A.S. <rd@fizians.org>  Tue, 23 Aug 2011 13:46:10 +0200

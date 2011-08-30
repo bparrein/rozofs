@@ -1,0 +1,42 @@
+This work was packaged for Debian by:
+
+    Fizians S.A.S. <rd@fizians.org> on Tue, 23 Aug 2011 13:46:10 +0200
+
+It was downloaded from:
+
+    https://bitbucket.org/fizians/rozo/downloads/rozo-0.3.6.tar.gz
+
+Upstream Author(s):
+
+    Fizians S.A.S. rd@fizians.org
+
+Copyright:
+
+    Copyright (c) 2010 Fizians SAS.
+
+License:
+
+    This package is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License version 2 as
+    published by the Free Software Foundation.
+
+    This package is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>
+
+On Debian systems, the complete text of the GNU General
+Public License version 2 can be found in "/usr/share/common-licenses/GPL-2".
+
+The Debian packaging is:
+
+    Copyright (C) 2011 Fizians S.A.S. <rd@fizians.org>
+
+you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+

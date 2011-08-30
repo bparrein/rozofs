@@ -91,6 +91,13 @@ static void daemon_handle_signal(int sig) {
             raise(SIGTERM);
         }
         break;
+    case SIGKILL:
+        if (daemon_on_stop) {
+            daemon_on_stop();
+            signal(SIGKILL, SIG_DFL);
+            raise(SIGKILL);
+        }
+        break;
     case SIGUSR1:
         if (daemon_on_usr1)
             daemon_on_usr1();
@@ -124,6 +131,7 @@ void daemon_start(const char *name, void (*on_start) (void),
     signal(SIGTSTP, SIG_IGN);
     signal(SIGTTOU, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
+    signal(SIGKILL, daemon_handle_signal);
     signal(SIGTERM, daemon_handle_signal);
     signal(SIGUSR1, daemon_handle_signal);
     on_start();

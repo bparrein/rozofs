@@ -41,7 +41,7 @@ add_executable(storaged
     daemon.c
     storaged.c
 )
-target_link_libraries(storaged ${XATTR_LIBRARY} ${UUID_LIBRARY} ${CONFIG_LIBRARY})
+target_link_libraries(storaged ${UUID_LIBRARY} ${CONFIG_LIBRARY})
 
 add_executable(exportd
     config.h
@@ -103,11 +103,11 @@ add_executable(rozomount
     rozomount.c
 )
 #pthread need by fuse 
-target_link_libraries(rozomount ${PTHREAD_LIBRARY} ${FUSE_LIBRARY} ${UUID_LIBRARY})
+target_link_libraries(rozomount ${PTHREAD_LIBRARY} ${FUSE_LIBRARY})
 
 # Install
-install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${CONF_DIR})" COMPONENT storage)
-install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${CONF_DIR})" COMPONENT export)
+install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${ROZO_CONFIG_DIR})" COMPONENT storage)
+install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${ROZO_CONFIG_DIR})" COMPONENT export)
 
 install(TARGETS storaged
     RUNTIME DESTINATION bin
@@ -116,16 +116,16 @@ install(TARGETS storaged
     COMPONENT storage
 )
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/storage.conf.sample DESTINATION etc/rozo COMPONENT storage)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/storage.conf.sample DESTINATION ${ROZO_CONFIG_DIR} COMPONENT storage)
 
 install(TARGETS exportd
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
-    COMPONENT storage
+    COMPONENT export
 )
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/export.conf.sample DESTINATION etc/rozo COMPONENT export)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/export.conf.sample DESTINATION ${ROZO_CONFIG_DIR} COMPONENT export)
 
 install(TARGETS rozomount
     RUNTIME DESTINATION bin
