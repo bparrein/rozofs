@@ -58,7 +58,7 @@ typedef struct export_entry {
     list_t list;
 } export_entry_t;
 
-static pthread_rwlock_t exports_lock;   //XXX
+static pthread_rwlock_t exports_lock;
 static list_t exports;
 
 static pthread_t bal_vol_thread;
@@ -86,6 +86,23 @@ static void *balance_volume_thread(void *v) {
     return 0;
 }
 
+int exports_remove_bins() {
+    int status = -1;
+    list_t *iterator;
+    DEBUG_FUNCTION;
+
+    list_for_each_forward(iterator, &exports) {
+        export_entry_t *entry = list_entry(iterator, export_entry_t, list);
+
+        if (export_rm_bins(&entry->export) != 0) {
+            goto out;
+        }
+    }
+    status = 0;
+out:
+    return status;
+}
+
 static void *remove_bins_thread(void *v) {
     struct timespec ts = { 35, 0 };
 
@@ -98,6 +115,50 @@ static void *remove_bins_thread(void *v) {
         nanosleep(&ts, NULL);
     }
     return 0;
+}
+
+eid_t *exports_lookup_id(ep_path_t path) {
+    list_t *iterator;
+    char export_path[PATH_MAX];
+    DEBUG_FUNCTION;
+
+    if (!realpath(path, export_path)) {
+        return NULL;
+    }
+
+    list_for_each_forward(iterator, &exports) {
+        export_entry_t *entry = list_entry(iterator, export_entry_t, list);
+        if (strcmp(entry->export.root, export_path) == 0)
+            return &entry->export.eid;
+    }
+    errno = EINVAL;
+    return NULL;
+}
+
+export_t *exports_lookup_export(eid_t eid) {
+    list_t *iterator;
+    DEBUG_FUNCTION;
+
+    list_for_each_forward(iterator, &exports) {
+        export_entry_t *entry = list_entry(iterator, export_entry_t, list);
+        if (eid == entry->export.eid)
+            return &entry->export;
+    }
+    info("export with eid %u: not found", eid);
+    errno = EINVAL;
+    return NULL;
+}
+
+int exports_initialize() {
+    int status = -1;
+    list_init(&exports);
+
+    if (pthread_rwlock_init(&exports_lock, NULL) != 0) {
+        goto out;
+    }
+    status = 0;
+out:
+    return status;
 }
 
 static int load_layout_conf(struct config_t *config) {
@@ -205,7 +266,13 @@ static int load_volume_conf(struct config_t *config) {
         cluster->ms = storage;
         cluster->nb_ms = config_setting_length(clu_set);
 
+        if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
+            goto out;
+
         list_push_back(&volume.mcs, &cluster->list);
+
+        if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
+            goto out;
     }
 
     status = 0;
@@ -231,12 +298,28 @@ static int load_exports_conf(struct config_t *config) {
         export_entry_t *export_entry =
             (export_entry_t *) xmalloc(sizeof (export_entry_t));
         const char *root;
+        uint32_t eid;
 
         if ((mfs_setting = config_setting_get_elem(export_set, i)) == NULL) {
             errno = EIO;        //XXX
             fprintf(stderr, "cant't fetche export at index %d\n", i);
             severe("cant't fetche export at index %d", i);
             goto out;
+        }
+
+        if (config_setting_lookup_int(mfs_setting, "eid", (long int *) &eid)
+            == CONFIG_FALSE) {
+            errno = ENOKEY;
+            fprintf(stderr, "cant't look up EID for export (idx=%d)\n", i);
+            fatal("cant't look up EID for export (idx=%d)", i);
+            goto out;
+        }
+
+        if (exports_lookup_export(eid) != NULL) {
+            fprintf(stderr, "cant't add export with EID %u: already exists\n",
+                    eid);
+            info("cant't add export with EID %u: already exists\n", eid);
+            continue;
         }
 
         if (config_setting_lookup_string(mfs_setting, "root", &root) ==
@@ -248,7 +331,14 @@ static int load_exports_conf(struct config_t *config) {
             goto out;
         }
 
-        if (export_initialize(&export_entry->export, i, root) != 0) {
+        if (exports_lookup_id((ep_path_t) root) != NULL) {
+            fprintf(stderr,
+                    "cant't add export with path %s: already exists\n", root);
+            info("cant't add export with path %s: already exists\n", root);
+            continue;
+        }
+
+        if (export_initialize(&export_entry->export, eid, root) != 0) {
             fprintf(stderr, "can't initialize export with path %s: %s\n",
                     root, strerror(errno));
             severe("can't initialize export with path %s: %s", root,
@@ -256,7 +346,14 @@ static int load_exports_conf(struct config_t *config) {
             goto out;
         }
 
+        if ((errno = pthread_rwlock_wrlock(&exports_lock)) != 0)
+            goto out;
+
         list_push_back(&exports, &export_entry->list);
+
+        if ((errno = pthread_rwlock_unlock(&exports_lock)) != 0)
+            goto out;
+
     }
     status = 0;
 out:
@@ -308,62 +405,6 @@ out:
     return status;
 }
 
-eid_t *exports_lookup_id(ep_path_t path) {
-    list_t *iterator;
-    DEBUG_FUNCTION;
-
-    list_for_each_forward(iterator, &exports) {
-        export_entry_t *entry = list_entry(iterator, export_entry_t, list);
-        if (strcmp(entry->export.root, path) == 0)
-            return &entry->export.eid;
-    }
-    errno = EINVAL;
-    return NULL;
-}
-
-export_t *exports_lookup_export(eid_t eid) {
-    list_t *iterator;
-    DEBUG_FUNCTION;
-
-    list_for_each_forward(iterator, &exports) {
-        export_entry_t *entry = list_entry(iterator, export_entry_t, list);
-        if (eid == entry->export.eid)
-            return &entry->export;
-    }
-    warning("export not found.");
-    errno = EINVAL;
-    return NULL;
-}
-
-int exports_remove_bins() {
-    int status = -1;
-    list_t *iterator;
-    DEBUG_FUNCTION;
-
-    list_for_each_forward(iterator, &exports) {
-        export_entry_t *entry = list_entry(iterator, export_entry_t, list);
-
-        if (export_rm_bins(&entry->export) != 0) {
-            goto out;
-        }
-    }
-    status = 0;
-out:
-    return status;
-}
-
-int exports_initialize() {
-    int status = -1;
-    list_init(&exports);
-
-    if (pthread_rwlock_init(&exports_lock, NULL) != 0) {
-        goto out;
-    }
-    status = 0;
-out:
-    return status;
-}
-
 int exports_release() {
     int status = -1;
     list_t *p, *q;
@@ -408,7 +449,7 @@ out:
     return status;
 }
 
-static int exportd_release() {
+static void exportd_release() {
 
     pthread_cancel(bal_vol_thread);
     pthread_cancel(rm_bins_thread);
@@ -493,13 +534,36 @@ static void on_stop() {
 }
 
 static void on_usr1() {
+    int fd = -1;
+    struct config_t config;
     DEBUG_FUNCTION;
 
-    // Configure volume
-    if (load_conf_file() != 0) {
-        fatal("Can't configure volume %s\n", strerror(errno));
+    config_init(&config);
+
+    if ((fd = open(exportd_config_file, O_RDWR)) == -1) {
+        fprintf(stderr, "can't load config file %s: %s\n",
+                exportd_config_file, strerror(errno));
+        fatal("can't load config file %s: %s", exportd_config_file,
+              strerror(errno));
+        goto out;
+    }
+    close(fd);
+
+    if (config_read_file(&config, exportd_config_file) == CONFIG_FALSE) {
+        errno = EIO;
+        fprintf(stderr, "can't read config file: %s at line: %d\n",
+                config_error_text(&config), config_error_line(&config));
+        fatal("can't read config file: %s at line: %d",
+              config_error_text(&config), config_error_line(&config));
+        goto out;
     }
 
+    if (load_exports_conf(&config) != 0) {
+        goto out;
+    }
+
+out:
+    config_destroy(&config);
 }
 
 static void usage() {

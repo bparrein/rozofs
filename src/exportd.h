@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #include "rozo.h"
 #include "eproto.h"
@@ -25,3 +25,5 @@ extern long int layout;
 eid_t *exports_lookup_id(ep_path_t path);
 
 export_t *exports_lookup_export(eid_t eid);
+
+int exports_remove_bins();

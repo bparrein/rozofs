@@ -54,7 +54,7 @@ static void file_disconnect(file_t * f) {
         f->storages[i]->rpcclt.client = 0;
     }
 }
-*/
+ */
 
 static int file_connect(file_t * f) {
     int i, connected;
@@ -141,8 +141,7 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
         // Nb. of received requests (at begin=0)
         int connected = 0;
         // For each projection
-        PROFILE_STORAGE_START
-		for (mp = 0; mp < rozo_forward; mp++) {
+        PROFILE_STORAGE_START for (mp = 0; mp < rozo_forward; mp++) {
             int mps = 0;
             int j = 0;
             bin_t *b;
@@ -277,8 +276,7 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
         /* Send requests to the storage servers */
         // For each projection server
         mp = 0;
-    PROFILE_STORAGE_START
-	for (ps = 0; ps < rozo_safe; ps++) {
+    PROFILE_STORAGE_START for (ps = 0; ps < rozo_safe; ps++) {
         // Warning: the server can be disconnected
         // but f->storages[ps].rpcclt->client != NULL
         // the disconnection will be detected when the request will be sent

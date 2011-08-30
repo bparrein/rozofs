@@ -19,6 +19,7 @@
 
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <stdio.h>
 #include "log.h"
 #include "profile.h"
@@ -78,7 +79,7 @@ int save_profile_result(char *file_name) {
     fprintf(file, "time spent in transform inverse: %ld sec, %ld usec\n",
             profile_time[3].tv_sec, profile_time[3].tv_usec);
 
-    close(file);
+    fclose(file);
 
     return 0;
 }

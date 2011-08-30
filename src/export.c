@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <pthread.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <attr/xattr.h>
@@ -387,7 +388,7 @@ int export_create(const char *root) {
     strcat(trash_path, "/");
     strcat(trash_path, trash_str);
 
-    if (mkdir(trash_path, O_RDWR) != 0)
+    if (mkdir(trash_path, S_IRWXU) != 0)
         goto out;
 
     if (setxattr(path, ETRASHUUID, trash_uuid, sizeof (uuid_t), XATTR_CREATE)
@@ -668,7 +669,8 @@ int export_setattr(export_t * e, fid_t fid, mattr_t * attrs) {
 
     mfe->attrs.mode = attrs->mode;
     mfe->attrs.nlink = attrs->nlink;
-    mfe->attrs.ctime = attrs->ctime;
+    mfe->attrs.ctime = time(NULL);
+    // XXX if client time != exportd time, there may be a problem.
     mfe->attrs.atime = attrs->atime;
     mfe->attrs.mtime = attrs->mtime;
 
@@ -732,7 +734,8 @@ int export_mknod(export_t * e, uuid_t parent, const char *name, mode_t mode,
         goto error;
 
     attrs->mode = mode;
-    attrs->nlink = 0;
+    attrs->nlink = 1;
+
     if ((attrs->ctime = attrs->atime = attrs->mtime = time(NULL)) == -1)
         goto error;
 
@@ -744,6 +747,11 @@ int export_mknod(export_t * e, uuid_t parent, const char *name, mode_t mode,
     mfe = xmalloc(sizeof (mfentry_t));
 
     if (mfentry_initialize(mfe, pmfe, name, path) != 0)
+        goto error;
+
+    pmfe->attrs.mtime = pmfe->attrs.ctime = time(NULL);
+
+    if (mfentry_persist(pmfe) != 0)
         goto error;
 
     export_put_mfentry(e, mfe);
@@ -811,6 +819,7 @@ int export_mkdir(export_t * e, uuid_t parent, const char *name, mode_t mode,
     export_put_mfentry(e, mfe);
 
     pmfe->attrs.nlink++;
+    pmfe->attrs.mtime = pmfe->attrs.ctime = time(NULL);
 
     if (mfentry_persist(pmfe) != 0) {
         pmfe->attrs.nlink--;
@@ -836,8 +845,6 @@ out:
 
     return status;
 }
-
-// TODO projections will be deleted by maintenance.
 
 int export_unlink(export_t * e, uuid_t fid) {
     int status = -1;
@@ -873,12 +880,20 @@ int export_unlink(export_t * e, uuid_t fid) {
     list_init(&rmfe->list);
 
     if ((errno = pthread_rwlock_wrlock(&e->rm_lock)) != 0)
-        goto out;
+        goto out;               // XXX PROBLEM: THE NODE IS RENAMED
 
     list_push_front(&e->rmfiles, &rmfe->list);
 
     if ((errno = pthread_rwlock_unlock(&e->rm_lock)) != 0)
-        goto out;
+        goto out;               // XXX PROBLEM: THE NODE IS RENAMED
+
+    // Update times of parent
+    if (mfe->parent != NULL) {
+        mfe->parent->attrs.mtime = mfe->parent->attrs.ctime = time(NULL);
+        if (mfentry_persist(mfe->parent) != 0) {
+            goto out;           // XXX PROBLEM: THE NODE IS RENAMED
+        }
+    }
 
     export_del_mfentry(e, mfe);
     mfentry_release(mfe);
@@ -983,9 +998,10 @@ int export_rmdir(export_t * e, uuid_t fid) {
     if (export_update_files(e, -1) != 0)
         goto out;               // XXX PROBLEM: THE DIRECTORY IS REMOVED
 
-    // Update the nlink of parent
+    // Update the nlink and times of parent
     if (mfe->parent != NULL) {
         mfe->parent->attrs.nlink--;
+        mfe->parent->attrs.mtime = mfe->parent->attrs.ctime = time(NULL);
         if (mfentry_persist(mfe->parent) != 0) {
             mfe->parent->attrs.nlink++;
             goto out;           // XXX PROBLEM: THE DIRECTORY IS REMOVED
@@ -998,7 +1014,6 @@ int export_rmdir(export_t * e, uuid_t fid) {
 
     status = 0;
 out:
-
     return status;
 }
 
@@ -1165,11 +1180,15 @@ int export_rename(export_t * e, uuid_t from, uuid_t parent, const char *name) {
     fmfe->path = xstrdup(to);
     free(fmfe->name);
     fmfe->name = xstrdup(name);
+    fmfe->attrs.ctime = time(NULL);
     // Put the new parent
     fmfe->parent = pmfe;
     memcpy(fmfe->pfid, pmfe->attrs.fid, sizeof (fid_t));
 
     htable_put(&e->h_pfids, fmfe, fmfe);
+
+    if (mfentry_persist(fmfe) != 0)
+        goto out;
 
     status = 0;
 out:
@@ -1262,19 +1281,21 @@ int64_t export_write(export_t * e, uuid_t fid, uint64_t off, uint32_t len) {
             goto out;
 
         mfe->attrs.size = off + len;
-
-        if (fsetxattr
-            (mfe->fd, EATTRSTKEY, &mfe->attrs, sizeof (mattr_t),
-             XATTR_REPLACE) != 0) {
-            severe("export_write failed: fsetxattr in file %s failed: %s",
-                   mfe->path, strerror(errno));
-            goto out;
-        }
     }
+
+    mfe->attrs.mtime = mfe->attrs.ctime = time(NULL);
+
+    if (fsetxattr
+        (mfe->fd, EATTRSTKEY, &mfe->attrs, sizeof (mattr_t),
+         XATTR_REPLACE) != 0) {
+        severe("export_write failed: fsetxattr in file %s failed: %s",
+               mfe->path, strerror(errno));
+        goto out;
+    }
+
     written = len;
 
 out:
-
     return written;
 }
 
@@ -1337,10 +1358,15 @@ int export_readdir(export_t * e, fid_t fid, child_t ** children) {
     if (closedir(dp) == -1)
         goto out;
 
+    mfe->attrs.atime = time(NULL);
+
+    if (mfentry_persist(mfe) != 0) {
+        goto out;
+    }
+
     *iterator = NULL;
     status = 0;
 out:
-
     return status;
 }
 

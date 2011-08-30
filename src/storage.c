@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#define _XOPEN_SOURCE 500
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -286,8 +287,6 @@ int storage_rm_file(storage_t * st, fid_t fid) {
 
         for (p = glob_results.gl_pathv, cnt = glob_results.gl_pathc; cnt;
              p++, cnt--) {
-
-            severe("unlink file %s", *p);
 
             if (unlink(*p) == -1) {
                 severe("storage_rm_file failed: unlink file %s failed: %s",

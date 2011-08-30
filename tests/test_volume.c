@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <errno.h>
+#include <inttypes.h>
 #include "rozo.h"
 #include "volume.h"
 #include "xmalloc.h"
@@ -106,7 +107,7 @@ int main(int argc, char **argv) {
     (volume_stat(&vstat));
 
     printf("Volume bsize: %d\n", vstat.bsize);
-    printf("Volume bfree: %lld\n", vstat.bfree);
+    printf("Volume bfree: %" PRIu64 "\n", vstat.bfree);
     printf("Volume size: %d\n", volume_size());
 
     sid_t sid_look = 7;

@@ -843,6 +843,8 @@ void rozofs_ll_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     struct dirbuf b;
     DEBUG_FUNCTION;
 
+    DEBUG("readdir (%lu)\n", (unsigned long int) ino);
+
     if (!(ie = htable_get(&htable_inode, &ino))) {
         errno = ENOENT;
         goto error;

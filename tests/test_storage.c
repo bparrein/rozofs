@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "rozo.h"
 #include "xmalloc.h"
@@ -20,7 +21,7 @@ int main(int argc, char **argv) {
         perror("failed to stat storage");
         exit(-1);
     }
-    printf("size: %llu, free: %llu\n", sst.size, sst.free);
+    printf("size: %" PRIu64 ", free: %" PRIu64 "\n", sst.size, sst.free);
 
     uuid_generate(fid);
     // Write some bins (15 prj)
