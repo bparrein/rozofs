@@ -5,13 +5,12 @@
 .SH NAME
 storaged \- rozo storage daemon
 .SH SYNOPSIS
-.B storaged {--help | -h } | {[{--config | -c}
-.I file
-.B ] --start | --stop}
+.B storaged 
+[options] [fichier]
 .B
 .SH DESCRIPTION
 .B storaged
-Rozo storaged daemon. Store erase code data for the
+Rozo storaged daemon. Store encoded data for the
 .BR rozo (7)
 filesystem.
 .SH OPTIONS
@@ -29,17 +28,6 @@ as configuration file default is
 .I /usr/local/etc/rozo/storage.conf
 according to install options)
 .RE
-.IP --start
-.RS
-Start the 
-.B storaged
-daemon.
-.RE
-.IP --stop
-.RS
-Stop the 
-.B storaged
-daemon.
 .SH FILES
 .I /etc/rozo/storage.conf (/usr/local/etc/rozo/storage.conf)
 .RS

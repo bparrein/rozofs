@@ -46,12 +46,6 @@
 
 #define STORAGED_PID_FILE "storaged.pid"
 
-enum command {
-    HELP,
-    START,
-    STOP
-};
-
 static char storaged_config_file[PATH_MAX] = STORAGED_DEFAULT_CONFIG;
 static int storaged_command_flag = -1;
 static storage_t *storaged_storages = 0;
@@ -208,21 +202,16 @@ static void on_stop() {
 void usage() {
     printf("Rozo storage daemon - %s\n", VERSION);
     printf
-        ("Usage: storaged {--help} | {[{--config | -c} file] --start | --stop}\n\n");
+        ("Usage: storaged [OPTIONS]\n\n");
     printf("\t-h, --help\tprint this message.\n");
     printf
         ("\t-c, --config\tconfig file to use (default *install prefix*/etc/rozo/storage.conf).\n");
-    printf("\t--start\t\tstart the daemon.\n");
-    printf("\t--stop\t\tstop the daemon\n");
-    exit(EXIT_FAILURE);
 };
 
 int main(int argc, char *argv[]) {
     int c;
     static struct option long_options[] = {
-        {"help", no_argument, &storaged_command_flag, HELP},
-        {"start", no_argument, &storaged_command_flag, START},
-        {"stop", no_argument, &storaged_command_flag, STOP},
+        {"help", no_argument, 0, 'h'},
         {"config", required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
@@ -238,7 +227,8 @@ int main(int argc, char *argv[]) {
         case 0:                //long option (manage by getopt but we don't want to be catched by default label)
             break;
         case 'h':
-            storaged_command_flag = HELP;
+            usage();
+            exit(EXIT_SUCCESS);
             break;
         case 'c':
             if (!realpath(optarg, storaged_config_file)) {
@@ -255,23 +245,12 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    switch (storaged_command_flag) {
-    case HELP:
-        usage();
-        break;
-    case START:
-        openlog("storaged", LOG_PID, LOG_DAEMON);
-        if (configure() != 0) {
-            fprintf(stderr, "load config failed: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-        daemon_start(STORAGED_PID_FILE, on_start, on_stop, NULL);
-        break;
-    case STOP:
-        daemon_stop(STORAGED_PID_FILE);
-        break;
-    default:
-        usage();
+    openlog("storaged", LOG_PID, LOG_DAEMON);
+    if (configure() != 0) {
+        fprintf(stderr, "load config failed: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
     }
+    daemon_start(STORAGED_PID_FILE, on_start, on_stop, NULL);
+
     exit(0);
 }

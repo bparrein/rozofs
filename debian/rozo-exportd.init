@@ -50,8 +50,9 @@ do_start()
 	##	$DAEMON_ARGS \
 	##	|| return 2
 
-	start-stop-daemon -S -q -x $DAEMON -t > /dev/null || return 1
-	start-stop-daemon -S -q -x $DAEMON -- $DAEMON_ARGS --start || return 2
+	#start-stop-daemon -S -q -x $DAEMON -t > /dev/null || return 1
+	#start-stop-daemon -S -q -x $DAEMON -- $DAEMON_ARGS --start || return 2
+	 start-stop-daemon --start --oknodo --name $NAME --pidfile /var/run/food.pid --startas $DAEMON -- $DAEMON_ARGS --start
 	# Add code here, if necessary, that waits for the process to be ready
 	# to handle requests from services started subsequently which depend
 	# on this one.  As a last resort, sleep for some time.
