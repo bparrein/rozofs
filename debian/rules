@@ -5,7 +5,7 @@ include /usr/share/cdbs/1/class/cmake.mk
 
 
 # Add here any variable or target overrides you need.
-CFLAGS := ""
-CXXFLAGS := ""
+CFLAGS := -O3 -DNDEBUG
+CXXFLAGS := 
 DEB_CMAKE_INSTALL_PREFIX := /usr
-DEB_CMAKE_EXTRA_FLAGS := -DCMAKE_BUILD_TYPE=Release -DSYSCONFDIR=/etc
+DEB_CMAKE_EXTRA_FLAGS := -DCMAKE_BUILD_TYPE=None -DSYSCONFDIR=/etc
