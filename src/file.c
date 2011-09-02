@@ -64,21 +64,21 @@ static int file_connect(file_t * f) {
     connected = 0;
     // Get the hostname for one sid et one cid
     for (i = 0; i < rozo_safe; i++) {
-
-        if ((f->storages[i] =
-             lookup_mstorage(f->export, f->attrs.cid, f->attrs.sids[i]))) {
-
-            if (f->storages[i]->rpcclt.client != 0) {
-                connected++;
+        while ((f->storages[i] =
+                lookup_mstorage(f->export, f->attrs.cid,
+                                f->attrs.sids[i])) == NULL) {
+            exportclt_reload(f->export);
+        }
+        if (f->storages[i]->rpcclt.client != 0) {
+            connected++;
+        } else {
+            if (storageclt_initialize
+                (f->storages[i], f->storages[i]->host,
+                 f->storages[i]->sid) != 0) {
+                warning("failed to join: %s,  %s", f->storages[i]->host,
+                        strerror(errno));
             } else {
-                if (storageclt_initialize
-                    (f->storages[i], f->storages[i]->host,
-                     f->storages[i]->sid) != 0) {
-                    warning("failed to join: %s,  %s", f->storages[i]->host,
-                            strerror(errno));
-                } else {
-                    connected++;
-                }
+                connected++;
             }
         }
     }
@@ -666,7 +666,8 @@ int64_t file_read(file_t * f, uint64_t off, char **buf, uint32_t len) {
         length =
             (len <=
              (f->buf_pos - (off - f->buf_from))) ? len : (f->buf_pos - (off -
-                                                                        f->buf_from));
+                                                                        f->
+                                                                        buf_from));
         *buf = f->buffer + (off - f->buf_from);
     }
 

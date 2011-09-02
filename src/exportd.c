@@ -144,7 +144,7 @@ export_t *exports_lookup_export(eid_t eid) {
         if (eid == entry->export.eid)
             return &entry->export;
     }
-    info("export with eid %u: not found", eid);
+
     errno = EINVAL;
     return NULL;
 }
@@ -197,26 +197,42 @@ static int load_volume_conf(struct config_t *config) {
     // For each cluster
     for (i = 0; i < config_setting_length(vol_set); i++) {
 
-        struct config_setting_t *clu_set = NULL;
+        long int cid;
+        struct config_setting_t *stor_set;
+        struct config_setting_t *clu_set;
 
         if ((clu_set = config_setting_get_elem(vol_set, i)) == NULL) {
-            errno = EIO;        //XXX
+            errno = EIO;
             fprintf(stderr, "cant't fetche cluster at index %d\n", i);
             fatal("cant't fetche cluster at index %d", i);
             goto out;
         }
 
+        if (config_setting_lookup_int(clu_set, "cid", &cid) == CONFIG_FALSE) {
+            errno = ENOKEY;
+            fprintf(stderr, "cant't look up cid for cluster (idx=%d)\n", i);
+            fatal("cant't look up cid for cluster (idx=%d)", i);
+            goto out;
+        }
+
+        if ((stor_set = config_setting_get_member(clu_set, "sids")) == NULL) {
+            errno = ENOKEY;
+            fprintf(stderr, "can't fetche sids for cluster (cid=%ld)\n", cid);
+            fatal("can't fetche sids for cluster (cid=%ld)", cid);
+            goto out;
+        }
+
         volume_storage_t *storage =
-            (volume_storage_t *) xmalloc(config_setting_length(clu_set) *
+            (volume_storage_t *) xmalloc(config_setting_length(stor_set) *
                                          sizeof (volume_storage_t));
 
-        for (j = 0; j < config_setting_length(clu_set); j++) {
+        for (j = 0; j < config_setting_length(stor_set); j++) {
 
             struct config_setting_t *mstor_set = NULL;
-            uint16_t sid;
+            long int sid;
             const char *host;
 
-            if ((mstor_set = config_setting_get_elem(clu_set, j)) == NULL) {
+            if ((mstor_set = config_setting_get_elem(stor_set, j)) == NULL) {
                 errno = EIO;    //XXX
                 fprintf(stderr,
                         "cant't fetche storage (idx=%d) in cluster (idx=%d)\n",
@@ -227,8 +243,8 @@ static int load_volume_conf(struct config_t *config) {
                 goto out;
             }
 
-            if (config_setting_lookup_int(mstor_set, "sid", (long int *) &sid)
-                == CONFIG_FALSE) {
+            if (config_setting_lookup_int(mstor_set, "sid", &sid) ==
+                CONFIG_FALSE) {
                 errno = ENOKEY;
                 fprintf(stderr,
                         "cant't look up SID for storage (idx=%d) in cluster (idx=%d)\n",
@@ -251,20 +267,40 @@ static int load_volume_conf(struct config_t *config) {
                 goto out;
             }
 
-            if (mstorage_initialize(storage + j, sid, host) != 0) {
-                fprintf(stderr, "can't add storage (SID=%u)\n", sid);
-                fatal("can't add storage (SID=%u)", sid);
+            if (mstorage_initialize(storage + j, (uint16_t) sid, host) != 0) {
+                fprintf(stderr, "can't add storage (SID=%ld)\n", sid);
+                fatal("can't add storage (SID=%ld)", sid);
                 goto out;
             }
         }
 
+        if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
+            goto out;
+
+        list_t *iterator;
+
+        list_for_each_forward(iterator, &volume.mcs) {
+            cluster_t *entry = list_entry(iterator, cluster_t, list);
+            if (cid == entry->cid) {
+                fprintf(stderr,
+                        "cant't add cluster with cid %ld: already exists\n",
+                        cid);
+                info("cant't add cluster with cid %ld: already exists", cid);
+                continue;
+            }
+        }
+
+        if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
+            goto out;
+
+
         cluster_t *cluster = (cluster_t *) xmalloc(sizeof (cluster_t));
 
-        cluster->cid = i + 1;
+        cluster->cid = (uint16_t) cid;
         cluster->free = 0;
         cluster->size = 0;
         cluster->ms = storage;
-        cluster->nb_ms = config_setting_length(clu_set);
+        cluster->nb_ms = config_setting_length(stor_set);
 
         if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
             goto out;
@@ -310,15 +346,15 @@ static int load_exports_conf(struct config_t *config) {
         if (config_setting_lookup_int(mfs_setting, "eid", (long int *) &eid)
             == CONFIG_FALSE) {
             errno = ENOKEY;
-            fprintf(stderr, "cant't look up EID for export (idx=%d)\n", i);
-            fatal("cant't look up EID for export (idx=%d)", i);
+            fprintf(stderr, "cant't look up eid for export (idx=%d)\n", i);
+            fatal("cant't look up eid for export (idx=%d)", i);
             goto out;
         }
 
         if (exports_lookup_export(eid) != NULL) {
-            fprintf(stderr, "cant't add export with EID %u: already exists\n",
+            fprintf(stderr, "cant't add export with eid %u: already exists\n",
                     eid);
-            info("cant't add export with EID %u: already exists\n", eid);
+            info("cant't add export with eid %u: already exists", eid);
             continue;
         }
 
@@ -558,9 +594,11 @@ static void on_usr1() {
         goto out;
     }
 
-    if (load_exports_conf(&config) != 0) {
+    if (load_exports_conf(&config) != 0)
         goto out;
-    }
+
+    if (load_volume_conf(&config) != 0)
+        goto out;
 
 out:
     config_destroy(&config);

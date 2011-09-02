@@ -34,6 +34,7 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
     DEBUG_FUNCTION;
 
     strcpy(clt->host, host);
+    clt->root = strdup(root);
 
     clt->retries = retries;
     clt->bufsize = bufsize;
@@ -67,7 +68,7 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
 
         mcluster_t *cluster = (mcluster_t *) xmalloc(sizeof (mcluster_t));
 
-        DEBUG("CLUSTER: %d", ep_cluster.cid);
+        DEBUG("cluster (cid: %d)", ep_cluster.cid);
 
         cluster->cid = ep_cluster.cid;
         cluster->nb_ms = ep_cluster.storages_nb;
@@ -76,7 +77,7 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
 
         for (j = 0; j < ep_cluster.storages_nb; j++) {
 
-            DEBUG("SID:%d, HOST:%s", ep_cluster.storages[j].sid,
+            DEBUG("storage (sid: %d, host: %s)", ep_cluster.storages[j].sid,
                   ep_cluster.storages[j].host);
 
             //Initialize the connection with the storage
@@ -97,6 +98,65 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
     if (rozo_initialize(clt->rl) != 0) {
         fatal("can't initialise rozo %s", strerror(errno));
         goto out;
+    }
+
+    status = 0;
+out:
+    return status;
+}
+
+int exportclt_reload(exportclt_t * clt) {
+    int status = -1;
+    ep_mount_ret_t *ret = 0;
+    int i = 0;
+    int j = 0;
+    DEBUG_FUNCTION;
+
+    ret = ep_mount_1(&clt->root, clt->rpcclt.client);
+    if (ret == 0) {
+        errno = EPROTO;
+        goto out;
+    }
+    if (ret->status == EP_FAILURE) {
+        errno = ret->ep_mount_ret_t_u.error;
+        goto out;
+    }
+    // For each cluster
+    for (i = 0; i < ret->ep_mount_ret_t_u.volume.clusters_nb; i++) {
+
+        ep_cluster_t ep_cluster = ret->ep_mount_ret_t_u.volume.clusters[i];
+        list_t *iterator;
+
+        list_for_each_forward(iterator, &clt->mcs) {
+            mcluster_t *entry = list_entry(iterator, mcluster_t, list);
+            if (ep_cluster.cid == entry->cid) {
+                info("cant't add cluster with cid %d: already exists",
+                     entry->cid);
+                continue;
+            }
+        }
+
+        mcluster_t *cluster = (mcluster_t *) xmalloc(sizeof (mcluster_t));
+
+        cluster->cid = ep_cluster.cid;
+        cluster->nb_ms = ep_cluster.storages_nb;
+
+        cluster->ms = xmalloc(ep_cluster.storages_nb * sizeof (storageclt_t));
+
+        for (j = 0; j < ep_cluster.storages_nb; j++) {
+
+            //Initialize the connection with the storage
+            if (storageclt_initialize
+                (&cluster->ms[j], ep_cluster.storages[j].host,
+                 ep_cluster.storages[j].sid) != 0) {
+                fatal("failed to join: %s,  %s", ep_cluster.storages[j].host,
+                      strerror(errno));
+                goto out;
+            }
+
+        }
+        // Add to the list
+        list_push_back(&clt->mcs, &cluster->list);
     }
 
     status = 0;
