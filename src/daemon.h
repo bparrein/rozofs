@@ -21,10 +21,6 @@
 #define _DAEMON_H
 
 void daemon_start(const char *name, void (*on_start) (void),
-                  void (*on_stop) (void), void (*on_usr1) (void));
-
-void daemon_stop(const char *name);
-
-void daemon_usr1(const char *name);
+                  void (*on_stop) (void), void (*on_hup) (void));
 
 #endif

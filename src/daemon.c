@@ -136,31 +136,3 @@ void daemon_start(const char *name, void (*on_start) (void),
     signal(SIGHUP, daemon_handle_signal);
     on_start();
 }
-
-void daemon_stop(const char *name) {
-    int pid;
-    DEBUG_FUNCTION;
-
-    if (read_pid(name, &pid) != 0) {
-        fatal("read pid failed: %s", strerror(errno));
-        return;
-    }
-    if (kill(pid, SIGTERM) != 0) {
-        fatal("kill failed: %s", strerror(errno));
-        return;
-    }
-}
-
-void daemon_hup(const char *name) {
-    int pid;
-    DEBUG_FUNCTION;
-
-    if (read_pid(name, &pid) != 0) {
-        fatal("read pid failed: %s", strerror(errno));
-        return;
-    }
-    if (kill(pid, SIGHUP) != 0) {
-        fatal("kill failed: %s", strerror(errno));
-        return;
-    }
-}

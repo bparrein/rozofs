@@ -22,7 +22,7 @@ cmake_minimum_required(VERSION 2.6)
 project(rozo C)
 set(MAJOR "0")
 set(MINOR "3")
-set(REVISION "8")
+set(REVISION "9")
 set(VERSION "${MAJOR}.${MINOR}.${REVISION}")
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${PROJECT_SOURCE_DIR}/cmake")
 

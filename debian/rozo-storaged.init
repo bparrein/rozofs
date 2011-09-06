@@ -65,7 +65,7 @@ do_stop()
 # Function that sends a SIGHUP to the daemon/service
 #
 do_reload() {
-    start-stop-daemon -K -q -o -s USR1 -p $PIDFILE -n $NAME
+    start-stop-daemon -K -q -o -s HUP -p $PIDFILE -n $NAME
     return 0
 }
 
@@ -120,7 +120,7 @@ case "$1" in
     esac
     ;;
   *)
-    echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
+    echo "Usage: $SCRIPTNAME {start|stop|status|restart|reload}" >&2
     exit 3
     ;;
 esac
