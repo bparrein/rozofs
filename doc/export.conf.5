@@ -43,9 +43,7 @@ storages of the same capacity. Use a new cluster when scaling with storage of di
 
 .B warning
 modifying or removing sid of storage servers can (will) lead to DATA LOSS !
-Adding storages is of course mandatory (use 
-.B exportd
-to reload configuration after storages being added
+Adding storages is of course mandatory.
 
 volume =
 (
@@ -86,10 +84,7 @@ volume =
 .SS exports
 exports are directory exported by 
 .B exportd
-daemon as virtual filesystems for clients. A volume can be used by several exports. Each of the exported directories
-should have been set up by 
-.B expord --create 
-.I root
+daemon as virtual filesystems for clients. A volume can be used by several exports.
 
 exports = (
     {eid = 1; root = "/path/to/foo";},

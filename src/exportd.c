@@ -43,14 +43,6 @@
 
 #define EXPORTD_PID_FILE "exportd.pid"
 
-enum command {
-    HELP,
-    CREATE,
-    START,
-    STOP,
-    RELOAD
-};
-
 long int layout;
 
 typedef struct export_entry {
@@ -65,8 +57,6 @@ static pthread_t bal_vol_thread;
 static pthread_t rm_bins_thread;
 
 static char exportd_config_file[PATH_MAX] = EXPORTD_DEFAULT_CONFIG;
-
-static int exportd_command_flag = -1;
 
 static SVCXPRT *exportd_svc = NULL;
 
@@ -569,7 +559,7 @@ static void on_stop() {
     info("stopped.");
 }
 
-static void on_usr1() {
+static void on_hup() {
     int fd = -1;
     struct config_t config;
     DEBUG_FUNCTION;
@@ -606,28 +596,20 @@ out:
 
 static void usage() {
     printf("Rozo export daemon - %s\n", VERSION);
-    printf
-        ("Usage: exportd {--help | -h } | {--create path} | {[{--config | -c} file] --start | --stop | --reload}\n\n");
+    printf("Usage: exportd [OPTIONS]\n\n");
     printf("\t-h, --help\tprint this message.\n");
     printf
         ("\t-c, --config\tconfiguration file to use (default *install prefix*/etc/rozo/export.conf).\n");
     printf("\t--create [path]\tcreate a new export environment.\n");
-    printf("\t--start\t\tstart the daemon.\n");
-    printf("\t--stop\t\tstop the daemon.\n");
     printf
         ("\t--reload\treload the configuration file (the one used at start time).\n");
-    exit(EXIT_FAILURE);
 };
 
 int main(int argc, char *argv[]) {
     int c;
     char root[PATH_MAX];
     static struct option long_options[] = {
-        {"help", no_argument, &exportd_command_flag, HELP},
-        {"create", required_argument, &exportd_command_flag, CREATE},
-        {"start", no_argument, &exportd_command_flag, START},
-        {"stop", no_argument, &exportd_command_flag, STOP},
-        {"reload", no_argument, &exportd_command_flag, RELOAD},
+        {"help", no_argument, 0, 'h'},
         {"config", required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
@@ -650,7 +632,8 @@ int main(int argc, char *argv[]) {
                 }
             break;
         case 'h':
-            exportd_command_flag = HELP;
+            usage();
+            exit(EXIT_SUCCESS);
             break;
         case 'c':
             if (!realpath(optarg, exportd_config_file)) {
@@ -666,34 +649,12 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
     }
-
-    switch (exportd_command_flag) {
-    case HELP:
-        usage();
-        break;
-    case CREATE:
-        if (export_create(root) != 0) {
-            fprintf(stderr, "exportd create failed: export path: %s: %s\n",
-                    root, strerror(errno));
-        }
-        break;
-    case START:
-        if (exportd_initialize() != 0) {
-            fprintf(stderr, "exportd start failed\n");
-            exit(EXIT_FAILURE);
-        }
-        openlog("exportd", LOG_PID, LOG_DAEMON);
-        daemon_start(EXPORTD_PID_FILE, on_start, on_stop, on_usr1);
-        break;
-    case STOP:
-        daemon_stop(EXPORTD_PID_FILE);
-        break;
-    case RELOAD:
-        daemon_usr1(EXPORTD_PID_FILE);
-        break;
-    default:
-        usage();
+    if (exportd_initialize() != 0) {
+        fprintf(stderr, "exportd start failed\n");
+        exit(EXIT_FAILURE);
     }
+    openlog("exportd", LOG_PID, LOG_DAEMON);
+    daemon_start(EXPORTD_PID_FILE, on_start, on_stop, on_hup);
 
     exit(0);
 }

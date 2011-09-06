@@ -666,8 +666,7 @@ int64_t file_read(file_t * f, uint64_t off, char **buf, uint32_t len) {
         length =
             (len <=
              (f->buf_pos - (off - f->buf_from))) ? len : (f->buf_pos - (off -
-                                                                        f->
-                                                                        buf_from));
+                                                                        f->buf_from));
         *buf = f->buffer + (off - f->buf_from);
     }
 

@@ -35,7 +35,7 @@
 /* manage only one daemon at a time */
 static void (*daemon_on_stop) (void) = NULL;
 
-static void (*daemon_on_usr1) (void) = NULL;
+static void (*daemon_on_hup) (void) = NULL;
 
 static int write_pid(const char *name) {
     int status = -1;
@@ -98,15 +98,15 @@ static void daemon_handle_signal(int sig) {
             raise(SIGKILL);
         }
         break;
-    case SIGUSR1:
-        if (daemon_on_usr1)
-            daemon_on_usr1();
+    case SIGHUP:
+        if (daemon_on_hup)
+            daemon_on_hup();
         break;
     }
 }
 
 void daemon_start(const char *name, void (*on_start) (void),
-                  void (*on_stop) (void), void (*on_usr1) (void)) {
+                  void (*on_stop) (void), void (*on_hup) (void)) {
     int pid;
     DEBUG_FUNCTION;
 
@@ -121,8 +121,8 @@ void daemon_start(const char *name, void (*on_start) (void),
     }
     if (on_stop)
         daemon_on_stop = on_stop;
-    if (on_usr1)
-        daemon_on_usr1 = on_usr1;
+    if (on_hup)
+        daemon_on_hup = on_hup;
     if (write_pid(name) != 0) {
         fatal("write_pid failed");
         return;
@@ -133,7 +133,7 @@ void daemon_start(const char *name, void (*on_start) (void),
     signal(SIGTTIN, SIG_IGN);
     signal(SIGKILL, daemon_handle_signal);
     signal(SIGTERM, daemon_handle_signal);
-    signal(SIGUSR1, daemon_handle_signal);
+    signal(SIGHUP, daemon_handle_signal);
     on_start();
 }
 
@@ -151,7 +151,7 @@ void daemon_stop(const char *name) {
     }
 }
 
-void daemon_usr1(const char *name) {
+void daemon_hup(const char *name) {
     int pid;
     DEBUG_FUNCTION;
 
@@ -159,7 +159,7 @@ void daemon_usr1(const char *name) {
         fatal("read pid failed: %s", strerror(errno));
         return;
     }
-    if (kill(pid, SIGUSR1) != 0) {
+    if (kill(pid, SIGHUP) != 0) {
         fatal("kill failed: %s", strerror(errno));
         return;
     }
