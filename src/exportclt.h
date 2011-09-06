@@ -40,6 +40,7 @@ typedef struct mcluster {
 
 typedef struct exportclt {
     char host[ROZO_HOSTNAME_MAX];
+    char *root;
     eid_t eid;
     list_t mcs;
     rozo_layout_t rl;
@@ -51,6 +52,8 @@ typedef struct exportclt {
 
 int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
                          uint32_t bufsize, uint32_t retries);
+
+int exportclt_reload(exportclt_t * clt);
 
 void exportclt_release(exportclt_t * clt);
 

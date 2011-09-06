@@ -412,8 +412,11 @@ int export_initialize(export_t * e, uint32_t eid, const char *root) {
         goto out;
     if (export_check_root(e->root) != 0)
         goto out;
-    if (export_check_setup(e->root) != 0)
-        goto out;
+    if (export_check_setup(e->root) != 0) {
+        if (export_create(root) != 0) {
+            goto out;
+        }
+    }
 
     e->eid = eid;
     list_init(&e->mfiles);

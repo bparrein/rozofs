@@ -19,47 +19,56 @@ layout = 2;
 # Use a new cluster when scaling with storage of different capacity.
 # WARNING WARNING WARNING WARNING
 # modifying or removing uuid of storage servers can (will) lead to DATA LOSS !
-volume = (
-# First cluster.
-    (
-        {sid = 01; host = "host1";},
-        {sid = 02; host = "host2";},
-        {sid = 03; host = "host3";},
-        {sid = 04; host = "host4";},
-        {sid = 05; host = "host5";},
-        {sid = 06; host = "host6";},
-        {sid = 07; host = "host7";},
-        {sid = 08; host = "host8";},
-        {sid = 09; host = "host9";},
-        {sid = 10; host = "host10";},
-        {sid = 11; host = "host11";},
-        {sid = 12; host = "host12";},
-        {sid = 13; host = "host13";},
-        {sid = 14; host = "host14";},
-        {sid = 15; host = "host15";},
-        {sid = 16; host = "host16";}
-        # ...
-    ),
-    # Second cluster.
-    (
-        {sid = 17; host = "host17";},
-        {sid = 18; host = "host18";},
-        {sid = 19; host = "host19";},
-        {sid = 20; host = "host20";},
-        {sid = 21; host = "host21";},
-        {sid = 22; host = "host22";},
-        {sid = 23; host = "host23";},
-        {sid = 24; host = "host24";},
-        {sid = 25; host = "host25";},
-        {sid = 26; host = "host26";},
-        {sid = 27; host = "host27";},
-        {sid = 28; host = "host28";},
-        {sid = 29; host = "host29";},
-        {sid = 30; host = "host30";},
-        {sid = 31; host = "host31";},
-        {sid = 32; host = "host32";}
-        # ...
-    )
+volume =
+(
+    {
+        # First cluster.
+        cid = 1;
+        sids =
+        (
+            {sid = 01; host = "host1";},
+            {sid = 02; host = "host2";},
+            {sid = 03; host = "host3";},
+            {sid = 04; host = "host4";},
+            {sid = 05; host = "host5";},
+            {sid = 06; host = "host6";},
+            {sid = 07; host = "host7";},
+            {sid = 08; host = "host8";},
+            {sid = 09; host = "host9";},
+            {sid = 10; host = "host10";},
+            {sid = 11; host = "host11";},
+            {sid = 12; host = "host12";},
+            {sid = 13; host = "host13";},
+            {sid = 14; host = "host14";},
+            {sid = 15; host = "host15";},
+            {sid = 16; host = "host16";}
+            # ...
+        );
+    },
+    {
+        # Second cluster.
+        cid = 2;
+        sids =
+        (
+            {sid = 17; host = "host17";},
+            {sid = 18; host = "host18";},
+            {sid = 19; host = "host19";},
+            {sid = 20; host = "host20";},
+            {sid = 21; host = "host21";},
+            {sid = 22; host = "host22";},
+            {sid = 23; host = "host23";},
+            {sid = 24; host = "host24";},
+            {sid = 25; host = "host25";},
+            {sid = 26; host = "host26";},
+            {sid = 27; host = "host27";},
+            {sid = 28; host = "host28";},
+            {sid = 29; host = "host29";},
+            {sid = 30; host = "host30";},
+            {sid = 31; host = "host31";},
+            {sid = 32; host = "host32";}
+            # ...
+        );
+    }
 );
 
 # exported filesystems

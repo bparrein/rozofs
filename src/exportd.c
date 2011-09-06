@@ -43,14 +43,6 @@
 
 #define EXPORTD_PID_FILE "exportd.pid"
 
-enum command {
-    HELP,
-    CREATE,
-    START,
-    STOP,
-    RELOAD
-};
-
 long int layout;
 
 typedef struct export_entry {
@@ -65,8 +57,6 @@ static pthread_t bal_vol_thread;
 static pthread_t rm_bins_thread;
 
 static char exportd_config_file[PATH_MAX] = EXPORTD_DEFAULT_CONFIG;
-
-static int exportd_command_flag = -1;
 
 static SVCXPRT *exportd_svc = NULL;
 
@@ -144,7 +134,7 @@ export_t *exports_lookup_export(eid_t eid) {
         if (eid == entry->export.eid)
             return &entry->export;
     }
-    info("export with eid %u: not found", eid);
+
     errno = EINVAL;
     return NULL;
 }
@@ -197,26 +187,42 @@ static int load_volume_conf(struct config_t *config) {
     // For each cluster
     for (i = 0; i < config_setting_length(vol_set); i++) {
 
-        struct config_setting_t *clu_set = NULL;
+        long int cid;
+        struct config_setting_t *stor_set;
+        struct config_setting_t *clu_set;
 
         if ((clu_set = config_setting_get_elem(vol_set, i)) == NULL) {
-            errno = EIO;        //XXX
+            errno = EIO;
             fprintf(stderr, "cant't fetche cluster at index %d\n", i);
             fatal("cant't fetche cluster at index %d", i);
             goto out;
         }
 
+        if (config_setting_lookup_int(clu_set, "cid", &cid) == CONFIG_FALSE) {
+            errno = ENOKEY;
+            fprintf(stderr, "cant't look up cid for cluster (idx=%d)\n", i);
+            fatal("cant't look up cid for cluster (idx=%d)", i);
+            goto out;
+        }
+
+        if ((stor_set = config_setting_get_member(clu_set, "sids")) == NULL) {
+            errno = ENOKEY;
+            fprintf(stderr, "can't fetche sids for cluster (cid=%ld)\n", cid);
+            fatal("can't fetche sids for cluster (cid=%ld)", cid);
+            goto out;
+        }
+
         volume_storage_t *storage =
-            (volume_storage_t *) xmalloc(config_setting_length(clu_set) *
+            (volume_storage_t *) xmalloc(config_setting_length(stor_set) *
                                          sizeof (volume_storage_t));
 
-        for (j = 0; j < config_setting_length(clu_set); j++) {
+        for (j = 0; j < config_setting_length(stor_set); j++) {
 
             struct config_setting_t *mstor_set = NULL;
-            uint16_t sid;
+            long int sid;
             const char *host;
 
-            if ((mstor_set = config_setting_get_elem(clu_set, j)) == NULL) {
+            if ((mstor_set = config_setting_get_elem(stor_set, j)) == NULL) {
                 errno = EIO;    //XXX
                 fprintf(stderr,
                         "cant't fetche storage (idx=%d) in cluster (idx=%d)\n",
@@ -227,8 +233,8 @@ static int load_volume_conf(struct config_t *config) {
                 goto out;
             }
 
-            if (config_setting_lookup_int(mstor_set, "sid", (long int *) &sid)
-                == CONFIG_FALSE) {
+            if (config_setting_lookup_int(mstor_set, "sid", &sid) ==
+                CONFIG_FALSE) {
                 errno = ENOKEY;
                 fprintf(stderr,
                         "cant't look up SID for storage (idx=%d) in cluster (idx=%d)\n",
@@ -251,20 +257,40 @@ static int load_volume_conf(struct config_t *config) {
                 goto out;
             }
 
-            if (mstorage_initialize(storage + j, sid, host) != 0) {
-                fprintf(stderr, "can't add storage (SID=%u)\n", sid);
-                fatal("can't add storage (SID=%u)", sid);
+            if (mstorage_initialize(storage + j, (uint16_t) sid, host) != 0) {
+                fprintf(stderr, "can't add storage (SID=%ld)\n", sid);
+                fatal("can't add storage (SID=%ld)", sid);
                 goto out;
             }
         }
 
+        if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
+            goto out;
+
+        list_t *iterator;
+
+        list_for_each_forward(iterator, &volume.mcs) {
+            cluster_t *entry = list_entry(iterator, cluster_t, list);
+            if (cid == entry->cid) {
+                fprintf(stderr,
+                        "cant't add cluster with cid %ld: already exists\n",
+                        cid);
+                info("cant't add cluster with cid %ld: already exists", cid);
+                continue;
+            }
+        }
+
+        if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
+            goto out;
+
+
         cluster_t *cluster = (cluster_t *) xmalloc(sizeof (cluster_t));
 
-        cluster->cid = i + 1;
+        cluster->cid = (uint16_t) cid;
         cluster->free = 0;
         cluster->size = 0;
         cluster->ms = storage;
-        cluster->nb_ms = config_setting_length(clu_set);
+        cluster->nb_ms = config_setting_length(stor_set);
 
         if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
             goto out;
@@ -310,15 +336,15 @@ static int load_exports_conf(struct config_t *config) {
         if (config_setting_lookup_int(mfs_setting, "eid", (long int *) &eid)
             == CONFIG_FALSE) {
             errno = ENOKEY;
-            fprintf(stderr, "cant't look up EID for export (idx=%d)\n", i);
-            fatal("cant't look up EID for export (idx=%d)", i);
+            fprintf(stderr, "cant't look up eid for export (idx=%d)\n", i);
+            fatal("cant't look up eid for export (idx=%d)", i);
             goto out;
         }
 
         if (exports_lookup_export(eid) != NULL) {
-            fprintf(stderr, "cant't add export with EID %u: already exists\n",
+            fprintf(stderr, "cant't add export with eid %u: already exists\n",
                     eid);
-            info("cant't add export with EID %u: already exists\n", eid);
+            info("cant't add export with eid %u: already exists", eid);
             continue;
         }
 
@@ -533,7 +559,7 @@ static void on_stop() {
     info("stopped.");
 }
 
-static void on_usr1() {
+static void on_hup() {
     int fd = -1;
     struct config_t config;
     DEBUG_FUNCTION;
@@ -558,9 +584,11 @@ static void on_usr1() {
         goto out;
     }
 
-    if (load_exports_conf(&config) != 0) {
+    if (load_exports_conf(&config) != 0)
         goto out;
-    }
+
+    if (load_volume_conf(&config) != 0)
+        goto out;
 
 out:
     config_destroy(&config);
@@ -568,28 +596,20 @@ out:
 
 static void usage() {
     printf("Rozo export daemon - %s\n", VERSION);
-    printf
-        ("Usage: exportd {--help | -h } | {--create path} | {[{--config | -c} file] --start | --stop | --reload}\n\n");
+    printf("Usage: exportd [OPTIONS]\n\n");
     printf("\t-h, --help\tprint this message.\n");
     printf
         ("\t-c, --config\tconfiguration file to use (default *install prefix*/etc/rozo/export.conf).\n");
     printf("\t--create [path]\tcreate a new export environment.\n");
-    printf("\t--start\t\tstart the daemon.\n");
-    printf("\t--stop\t\tstop the daemon.\n");
     printf
         ("\t--reload\treload the configuration file (the one used at start time).\n");
-    exit(EXIT_FAILURE);
 };
 
 int main(int argc, char *argv[]) {
     int c;
     char root[PATH_MAX];
     static struct option long_options[] = {
-        {"help", no_argument, &exportd_command_flag, HELP},
-        {"create", required_argument, &exportd_command_flag, CREATE},
-        {"start", no_argument, &exportd_command_flag, START},
-        {"stop", no_argument, &exportd_command_flag, STOP},
-        {"reload", no_argument, &exportd_command_flag, RELOAD},
+        {"help", no_argument, 0, 'h'},
         {"config", required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
@@ -612,7 +632,8 @@ int main(int argc, char *argv[]) {
                 }
             break;
         case 'h':
-            exportd_command_flag = HELP;
+            usage();
+            exit(EXIT_SUCCESS);
             break;
         case 'c':
             if (!realpath(optarg, exportd_config_file)) {
@@ -628,34 +649,12 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
     }
-
-    switch (exportd_command_flag) {
-    case HELP:
-        usage();
-        break;
-    case CREATE:
-        if (export_create(root) != 0) {
-            fprintf(stderr, "exportd create failed: export path: %s: %s\n",
-                    root, strerror(errno));
-        }
-        break;
-    case START:
-        if (exportd_initialize() != 0) {
-            fprintf(stderr, "exportd start failed\n");
-            exit(EXIT_FAILURE);
-        }
-        openlog("exportd", LOG_PID, LOG_DAEMON);
-        daemon_start(EXPORTD_PID_FILE, on_start, on_stop, on_usr1);
-        break;
-    case STOP:
-        daemon_stop(EXPORTD_PID_FILE);
-        break;
-    case RELOAD:
-        daemon_usr1(EXPORTD_PID_FILE);
-        break;
-    default:
-        usage();
+    if (exportd_initialize() != 0) {
+        fprintf(stderr, "exportd start failed\n");
+        exit(EXIT_FAILURE);
     }
+    openlog("exportd", LOG_PID, LOG_DAEMON);
+    daemon_start(EXPORTD_PID_FILE, on_start, on_stop, on_hup);
 
     exit(0);
 }

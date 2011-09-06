@@ -5,11 +5,13 @@
 .SH NAME
 exportd \- rozo export daemon
 .SH SYNOPSIS
-.B exportd {--help | -h } | {--create
-.I path
-.B } | {[{--config | -c}
+.B exportd
+[
+.I options
+]
+[
 .I file
-.B ] --start | --stop | --reload}
+]
 .B
 .SH DESCRIPTION
 .B exportd
@@ -21,7 +23,6 @@ filesystem.
 .RS
 Print help.
 .RE
-.IP "--create path"
 .RS
 Set up a the given 
 .I path
@@ -38,20 +39,6 @@ as configuration file default is
 .I /usr/local/etc/rozo/export.conf
 according to install options)
 .RE
-.IP --start
-.RS
-Start the 
-.B exportd
-daemon.
-.RE
-.IP --stop
-.RS
-Stop the 
-.B exportd
-daemon.
-.RE
-.IP --reload
-Reload the configuration file (the one used at start up, you can just add an exported directory).
 .SH FILES
 .I /etc/rozo/export.conf (/usr/local/etc/rozo/export.conf)
 .RS
