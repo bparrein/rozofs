@@ -201,8 +201,7 @@ static void on_stop() {
 
 void usage() {
     printf("Rozo storage daemon - %s\n", VERSION);
-    printf
-        ("Usage: storaged [OPTIONS]\n\n");
+    printf("Usage: storaged [OPTIONS]\n\n");
     printf("\t-h, --help\tprint this message.\n");
     printf
         ("\t-c, --config\tconfig file to use (default *install prefix*/etc/rozo/storage.conf).\n");
