@@ -131,5 +131,5 @@ set(CPACK_COMPONENT_HEADERS_DESCRIPTION "storaged")
 # Sources
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${ROZO_SOURCE_PACKAGE_FILE_NAME}")
 set(CPACK_SOURCE_GENERATOR "TGZ")
-set(CPACK_SOURCE_IGNORE_FILES "/build/;tags;/CMakeFiles/;/_CPack_Packages/;/\\\\.hg/;CMakeCache.txt;Makefile;\\\\.vim$;\\\\.swp$;uninstall.cmake$;cmake_install.cmake;CPackConfig.cmake;CPackSourceConfig.cmake;~$;tags;/nbproject/;.hgignore;.dep.inc;/\\\\.settings")
+set(CPACK_SOURCE_IGNORE_FILES "test_fuse.sh$;exportd$;config.h$;rozomount$;sample$;storaged$;.mk$;throughput_server$;throughput$;test_list$;test_storage$;transform_file$;test_htable$;test_transform$;test_volume$;test_dist$;install_manifest.txt;package.cmake;/build/;tags;/CMakeFiles/;/_CPack_Packages/;/\\\\.hg/;CMakeCache.txt;Makefile$;\\\\.vim$;\\\\.swp$;uninstall.cmake$;cmake_install.cmake;CPackConfig.cmake;CPackSourceConfig.cmake;~$;tags;/nbproject/;.hgignore;.dep.inc;/\\\\.settings")
 include(CPack)

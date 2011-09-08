@@ -20,7 +20,7 @@ Description: Rozo filesystem (storage package).
 
 Package: rozo-rozomount
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libfuse (>= 2.8.4-1.1)
+Depends: ${shlibs:Depends}, ${misc:Depends}, libfuse2 (>= 2.8.4-1.1)
 Description: Rozo filesystem (rozomount package).
  Rozo is a scale-out NAS using erasure coding on multiple backends.
 

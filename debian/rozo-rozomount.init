@@ -12,6 +12,12 @@
 # Author: Fizians S.A.S. <rd@fizians.org>
 
 PATH=/sbin:/bin
+DESC=rozomount             # Introduce a short description here
+NAME=rozomount             # Introduce the short server's name here
+DAEMON=/bin/mount.rozofs  # Introduce the server's location here
+DAEMON_ARGS=""             # Arguments to run the daemon with
+SCRIPTNAME=/etc/init.d/$NAME
+
 . /lib/init/vars.sh
 
 . /lib/lsb/init-functions
@@ -19,7 +25,7 @@ PATH=/sbin:/bin
 SCRIPTNAME=/etc/init.d/$NAME
 
 # Exit if the package is not installed
-[ -x $DAEMON ] || exit 0
+#[ -x $DAEMON ] || exit 0
 
 # Read configuration variable file if it is present
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
@@ -36,44 +42,41 @@ SCRIPTNAME=/etc/init.d/$NAME
 #
 do_start()
 {
-	[ -f /etc/fstab ] || return
-	#
-	# Read through fstab line by line. If it is ROZO, mount it
-	#
+        [ -f /etc/fstab ] || return
+        #
+        # Read through fstab line by line. If it is ROZO, mount it
+        #
 
-	exec 9<&0 </etc/fstab
+        #exec 9<&0 </etc/fstab
 
-	waitnfs=
-	while read DEV MTPT FSTYPE OPTS REST
-	do
-		if [[ "$DEV" == "rozomount" ]]; then
-			mount $MTPT
-		fi
-	done
+        #while read DEV MTPT FSTYPE OPTS REST
+        #do
+                #if [[ "$DEV" == "rozomount" ]]; then
+                #       mount $MTPT
+                #fi
+        #done
 
-	exec 0<&9 9<&-
+        #exec 0<&9 9<&-
+
+        mount -a -t rozofs
 }
 
 case "$1" in
   start)
     [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC " "$NAME"
     do_start
-    case "$?" in
-		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-	esac
   ;;
   stop)
-	;;
+  ;;
   status|reload|restart|force-reload)
        echo "Error: argument '$1' not supported" >&2
        exit 3
        ;;
 
   *)
-	echo "Usage: $SCRIPTNAME {start|stop}" >&2
-	exit 3
-	;;
+        echo "Usage: $SCRIPTNAME {start|stop}" >&2
+        exit 3
+        ;;
 esac
 
-:
+: exit 0
