@@ -1,13 +1,13 @@
 /*
   Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
-  This file is part of Rozo.
+  This file is part of Rozofs.
 
-  Rozo is free software; you can redistribute it and/or modify
+  Rozofs is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3 of the License,
   or (at your option) any later version.
 
-  Rozo is distributed in the hope that it will be useful, but
+  Rozofs is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
@@ -68,9 +68,9 @@ out:
     return st;
 }
 
-static void storaged_initialize(rozo_layout_t layout, uint16_t nrstorages) {
+static void storaged_initialize(rozofs_layout_t layout, uint16_t nrstorages) {
     DEBUG_FUNCTION;
-    rozo_initialize(layout);
+    rozofs_initialize(layout);
     storaged_nrstorages = nrstorages;
     storaged_storages = xmalloc(nrstorages * sizeof (storage_t));
 }
@@ -164,8 +164,8 @@ static void on_start() {
     fcntl(sock, F_SETFL, oldflags);
 
     if ((storaged_svc =
-         svctcp_create(sock, ROZO_RPC_BUFFER_SIZE,
-                       ROZO_RPC_BUFFER_SIZE)) == NULL) {
+         svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE,
+                       ROZOFS_RPC_BUFFER_SIZE)) == NULL) {
         fatal("can't create service.");
         return;
     }
@@ -194,17 +194,17 @@ static void on_stop() {
         storaged_svc = NULL;
     }
     storaged_release();
-    rozo_release();
+    rozofs_release();
 
     info("stopped.");
 }
 
 void usage() {
-    printf("Rozo storage daemon - %s\n", VERSION);
+    printf("Rozofs storage daemon - %s\n", VERSION);
     printf("Usage: storaged [OPTIONS]\n\n");
     printf("\t-h, --help\tprint this message.\n");
     printf
-        ("\t-c, --config\tconfig file to use (default *install prefix*/etc/rozo/storage.conf).\n");
+        ("\t-c, --config\tconfig file to use (default *install prefix*/etc/rozofs/storage.conf).\n");
 };
 
 int main(int argc, char *argv[]) {

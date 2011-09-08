@@ -1,13 +1,13 @@
 /*
   Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
-  This file is part of Rozo.
+  This file is part of Rozofs.
 
-  Rozo is free software; you can redistribute it and/or modify
+  Rozofs is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3 of the License,
   or (at your option) any later version.
 
-  Rozo is distributed in the hope that it will be useful, but
+  Rozofs is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
@@ -21,14 +21,14 @@
 #ifndef _EXPORTCLT_H
 #define _EXPORTCLT_H
 
-#include "rozo.h"
+#include "rozofs.h"
 #include "rpcclt.h"
 #include "dist.h"
 #include "storageclt.h"
 
 //typedef struct mstorage {
 //    sid_t sid;
-//    char host[ROZO_HOSTNAME_MAX];
+//    char host[ROZOFS_HOSTNAME_MAX];
 //} mstorage_t;
 
 typedef struct mcluster {
@@ -39,11 +39,11 @@ typedef struct mcluster {
 } mcluster_t;
 
 typedef struct exportclt {
-    char host[ROZO_HOSTNAME_MAX];
+    char host[ROZOFS_HOSTNAME_MAX];
     char *root;
     eid_t eid;
     list_t mcs;
-    rozo_layout_t rl;
+    rozofs_layout_t rl;
     fid_t rfid;
     uint32_t bufsize;
     uint32_t retries;

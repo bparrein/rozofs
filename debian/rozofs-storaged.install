@@ -1,5 +1,5 @@
 /usr/bin/storaged
-/etc/rozo/storage.conf.sample
-debian/storage.conf /etc/rozo/
+/etc/rozofs/storage.conf.sample
+debian/storage.conf /etc/rozofs/
 /usr/share/man/man5/storage.conf.5
 /usr/share/man/man8/storaged.8

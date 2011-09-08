@@ -1,13 +1,13 @@
 /*
  Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
- This file is part of Rozo.
+ This file is part of Rozofs.
 
- Rozo is free software; you can redistribute it and/or modify
+ Rozofs is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
  by the Free Software Foundation; either version 3 of the License,
  or (at your option) any later version.
 
- Rozo is distributed in the hope that it will be useful, but
+ Rozofs is distributed in the hope that it will be useful, but
  WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  General Public License for more details.
@@ -30,7 +30,7 @@
 #include <sys/statfs.h>
 #include <glob.h>
 
-#include "rozo.h"
+#include "rozofs.h"
 #include "log.h"
 #include "list.h"
 #include "xmalloc.h"
@@ -207,10 +207,10 @@ int storage_write(storage_t * st, fid_t fid, tid_t pid, bid_t bid, uint32_t n,
     if (!(pfe = storage_find_pfentry(st, fid, pid)))
         goto out;
 
-    count = n * rozo_psizes[pid] * sizeof (bin_t);
+    count = n * rozofs_psizes[pid] * sizeof (bin_t);
     if (pwrite
         (pfe->fd, bins, count,
-         (off_t) bid * (off_t) rozo_psizes[pid] * (off_t) sizeof (bin_t)) !=
+         (off_t) bid * (off_t) rozofs_psizes[pid] * (off_t) sizeof (bin_t)) !=
         count) {
         severe("storage_write failed: pwrite in file %s failed: %s",
                storage_map(st, fid, pid, path), strerror(errno));
@@ -233,11 +233,11 @@ int storage_read(storage_t * st, fid_t fid, tid_t pid, bid_t bid, uint32_t n,
     if (!(pfe = storage_find_pfentry(st, fid, pid)))
         goto out;
 
-    count = n * rozo_psizes[pid] * sizeof (bin_t);
+    count = n * rozofs_psizes[pid] * sizeof (bin_t);
 
     if (pread
         (pfe->fd, bins, count,
-         (off_t) bid * (off_t) rozo_psizes[pid] * (off_t) sizeof (bin_t)) !=
+         (off_t) bid * (off_t) rozofs_psizes[pid] * (off_t) sizeof (bin_t)) !=
         count) {
         severe("storage_read failed: pread in file %s failed: %s",
                storage_map(st, fid, pid, path), strerror(errno));
@@ -257,7 +257,7 @@ int storage_truncate(storage_t * st, fid_t fid, tid_t pid, bid_t bid) {
     if (!(pfe = storage_find_pfentry(st, fid, pid)))
         goto out;
     status =
-        ftruncate(pfe->fd, (bid + 1) * rozo_psizes[pid] * sizeof (bin_t));
+        ftruncate(pfe->fd, (bid + 1) * rozofs_psizes[pid] * sizeof (bin_t));
 out:
     return status;
 }

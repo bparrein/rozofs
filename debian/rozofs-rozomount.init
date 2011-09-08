@@ -1,6 +1,6 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:          rozo-rozomount
+# Provides:          rozofs-rozofsmount
 # Required-Start:    $network $local_fs
 # Required-Stop:
 # Default-Start:     2 3 4 5
@@ -12,9 +12,9 @@
 # Author: Fizians S.A.S. <rd@fizians.org>
 
 PATH=/sbin:/bin
-DESC=rozomount             # Introduce a short description here
-NAME=rozomount             # Introduce the short server's name here
-DAEMON=/bin/mount.rozofs  # Introduce the server's location here
+DESC=rozofsmount             # Introduce a short description here
+NAME=rozofsmount             # Introduce the short server's name here
+DAEMON=/bin/mount.rozofsfs  # Introduce the server's location here
 DAEMON_ARGS=""             # Arguments to run the daemon with
 SCRIPTNAME=/etc/init.d/$NAME
 
@@ -44,21 +44,21 @@ do_start()
 {
         [ -f /etc/fstab ] || return
         #
-        # Read through fstab line by line. If it is ROZO, mount it
+        # Read through fstab line by line. If it is ROZOFS, mount it
         #
 
         #exec 9<&0 </etc/fstab
 
         #while read DEV MTPT FSTYPE OPTS REST
         #do
-                #if [[ "$DEV" == "rozomount" ]]; then
+                #if [[ "$DEV" == "rozofsmount" ]]; then
                 #       mount $MTPT
                 #fi
         #done
 
         #exec 0<&9 9<&-
 
-        mount -a -t rozofs
+        mount -a -t rozofsfs
 }
 
 case "$1" in

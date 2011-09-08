@@ -4,13 +4,13 @@
  */
 
 #include "../src/eproto.h"
-#include "rozo.h"
+#include "rozofs.h"
 
 bool_t xdr_ep_uuid_t(XDR * xdrs, ep_uuid_t objp) {
     register int32_t *buf;
 
     if (!xdr_vector
-        (xdrs, (char *) objp, ROZO_UUID_SIZE, sizeof (u_char),
+        (xdrs, (char *) objp, ROZOFS_UUID_SIZE, sizeof (u_char),
          (xdrproc_t) xdr_u_char))
         return FALSE;
     return TRUE;
@@ -19,7 +19,7 @@ bool_t xdr_ep_uuid_t(XDR * xdrs, ep_uuid_t objp) {
 bool_t xdr_ep_name_t(XDR * xdrs, ep_name_t * objp) {
     register int32_t *buf;
 
-    if (!xdr_string(xdrs, objp, ROZO_FILENAME_MAX))
+    if (!xdr_string(xdrs, objp, ROZOFS_FILENAME_MAX))
         return FALSE;
     return TRUE;
 }
@@ -27,7 +27,7 @@ bool_t xdr_ep_name_t(XDR * xdrs, ep_name_t * objp) {
 bool_t xdr_ep_path_t(XDR * xdrs, ep_path_t * objp) {
     register int32_t *buf;
 
-    if (!xdr_string(xdrs, objp, ROZO_PATH_MAX))
+    if (!xdr_string(xdrs, objp, ROZOFS_PATH_MAX))
         return FALSE;
     return TRUE;
 }
@@ -36,7 +36,7 @@ bool_t xdr_ep_link_t(XDR * xdrs, ep_link_t objp) {
     register int32_t *buf;
 
     if (!xdr_vector
-        (xdrs, (char *) objp, ROZO_PATH_MAX, sizeof (char),
+        (xdrs, (char *) objp, ROZOFS_PATH_MAX, sizeof (char),
          (xdrproc_t) xdr_char))
         return FALSE;
     return TRUE;
@@ -46,7 +46,7 @@ bool_t xdr_ep_host_t(XDR * xdrs, ep_host_t objp) {
     register int32_t *buf;
 
     if (!xdr_vector
-        (xdrs, (char *) objp, ROZO_HOSTNAME_MAX, sizeof (char),
+        (xdrs, (char *) objp, ROZOFS_HOSTNAME_MAX, sizeof (char),
          (xdrproc_t) xdr_char))
         return FALSE;
     return TRUE;
@@ -95,7 +95,7 @@ bool_t xdr_ep_cluster_t(XDR * xdrs, ep_cluster_t * objp) {
     if (!xdr_uint8_t(xdrs, &objp->storages_nb))
         return FALSE;
     if (!xdr_vector
-        (xdrs, (char *) objp->storages, ROZO_STORAGES_MAX,
+        (xdrs, (char *) objp->storages, ROZOFS_STORAGES_MAX,
          sizeof (ep_storage_t), (xdrproc_t) xdr_ep_storage_t))
         return FALSE;
     return TRUE;
@@ -114,7 +114,7 @@ bool_t xdr_ep_volume_t(XDR * xdrs, ep_volume_t * objp) {
     if (!xdr_uint8_t(xdrs, &objp->clusters_nb))
         return FALSE;
     if (!xdr_vector
-        (xdrs, (char *) objp->clusters, ROZO_CLUSTERS_MAX,
+        (xdrs, (char *) objp->clusters, ROZOFS_CLUSTERS_MAX,
          sizeof (ep_cluster_t), (xdrproc_t) xdr_ep_cluster_t))
         return FALSE;
     return TRUE;
@@ -149,7 +149,7 @@ bool_t xdr_ep_mattr_t(XDR * xdrs, ep_mattr_t * objp) {
     if (!xdr_uint16_t(xdrs, &objp->cid))
         return FALSE;
     if (!xdr_vector
-        (xdrs, (char *) objp->sids, ROZO_SAFE_MAX, sizeof (uint16_t),
+        (xdrs, (char *) objp->sids, ROZOFS_SAFE_MAX, sizeof (uint16_t),
          (xdrproc_t) xdr_uint16_t))
         return FALSE;
     if (!xdr_uint32_t(xdrs, &objp->mode))

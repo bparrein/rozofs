@@ -1,5 +1,5 @@
 #!/bin/sh
-# preinst script for rozo
+# preinst script for rozofs
 #
 # see: dh_installdeb(1)
 
@@ -15,10 +15,7 @@ set -e
 
 
 case "$1" in
-    install)
-    ;;
-
-    upgrade)
+    install|upgrade)
     ;;
 
     abort-upgrade)

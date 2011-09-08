@@ -5,7 +5,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <inttypes.h>
-#include "rozo.h"
+#include "rozofs.h"
 #include "volume.h"
 #include "xmalloc.h"
 
@@ -21,8 +21,8 @@ int main(int argc, char **argv) {
         "server5", "server6", "server7", "server8", "server9", "server10"
     };
 
-    // Initialize rozo
-    rozo_initialize(LAYOUT_4_6_8);
+    // Initialize rozofs
+    rozofs_initialize(LAYOUT_4_6_8);
 
     // Initialize volume
     if (volume_initialize() != 0) {
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
        }
      */
 
-    uint16_t *sids = (uint16_t *) xmalloc(rozo_safe * sizeof (uint16_t));
+    uint16_t *sids = (uint16_t *) xmalloc(rozofs_safe * sizeof (uint16_t));
     uint16_t *cid = (uint16_t *) xmalloc(sizeof (uint16_t));
 
     // Distribute volume
@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
 
         printf("CID: %d\n", *cid);
 
-        for (i = 0; i < rozo_safe; i++) {
+        for (i = 0; i < rozofs_safe; i++) {
             uint16_t *p = sids + i;
             printf("sid: %d\n", *p);
         }

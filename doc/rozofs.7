@@ -1,9 +1,9 @@
 .\" Process this file with
 .\" groff -man -Tascii storaged.8
 .\"
-.TH rozo 7 "DECEMBER 2010" Rozo "User Manuals"
+.TH rozofs 7 "DECEMBER 2010" Rozofs "User Manuals"
 .SH NAME
-rozo \- a short description of rozo cloud filesystem
+rozofs \- a short description of rozofs cloud filesystem
 
 .SH DESCRIPTION
 
@@ -28,15 +28,15 @@ While lots of public cloud storage offers exist, private clouds only are able to
 
 The main benefits of this architectural approach are a lower cost and a scalable-on-demand storagespace.
 
-.SS Why Rozo
+.SS Why Rozofs
 
-In a typical corporate cloud storage offer the reliability of the overall system is obtained by making several copies of each data to be stored, thus increasing considerably the requireddisk/space volume. Thanks to its innovative technology Fizians’s Rozo Cloud Filesystem offers the same level of reliability through less than one copy. The data to be stored is translated into several chunks and distributed in such a way that it can be retrieved even if several pieces are unavailable. These savings regarding disk space translates to savings in terms of expense.
+In a typical corporate cloud storage offer the reliability of the overall system is obtained by making several copies of each data to be stored, thus increasing considerably the requireddisk/space volume. Thanks to its innovative technology Fizians’s Rozofs Cloud Filesystem offers the same level of reliability through less than one copy. The data to be stored is translated into several chunks and distributed in such a way that it can be retrieved even if several pieces are unavailable. These savings regarding disk space translates to savings in terms of expense.
 
 Though, at first glance, such savings made at his primary level could be considered limited (disks are getting cheaper and cheaper each year), IT financial managers view it from a diferent standpoint for two reasons. Firstly, now not only gigabytes but also terabytes and petabytes are to be stored and secondly, cost of acquisition is not Total Cost of Ownership! More capacity means more devices, more energy, more cooling, more maintenance, more people and finally more trouble and more expenses.
 
 .SS At a glance
 
-ROZO is a POSIX compliant cloud filesystem providing an easy way to scale to petabytes storage with optimized raw capacity usage on heterogenous comodity hardware. ROZO was designed to let customers take avantage of corporate cloud storage model with simplicity:
+ROZOFS is a POSIX compliant cloud filesystem providing an easy way to scale to petabytes storage with optimized raw capacity usage on heterogenous comodity hardware. ROZOFS was designed to let customers take avantage of corporate cloud storage model with simplicity:
 
     - Use well known file level that fits most business cases.
     - Reuse existing network or storage resources.
@@ -55,10 +55,10 @@ And more secure without the multiple copies drawback:
     - Higher data confidentiality.
     - Higher security.
 
-Rozo is made of three components :
+Rozofs is made of three components :
     1) exportd deamon : running on a dedicated host, provides data integrity and consistency throw meta data management.
     2) storaged deamon : running on commodity hardware with flexible back-end stores erase coded data.
-    3) rozomount : provides access through a mountable filesystem (can be used on storage hosts or on any other host)
+    3) rozofsmount : provides access through a mountable filesystem (can be used on storage hosts or on any other host)
 
 .SH AUTHOR
 Fizians <http://www.fizians.org>
@@ -67,4 +67,4 @@ Fizians <http://www.fizians.org>
 .BR export.conf (5),
 .BR storaged (8),
 .BR storage.conf (5),
-.BR rozomount (8)
+.BR rozofsmount (8)

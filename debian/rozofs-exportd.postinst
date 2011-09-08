@@ -1,5 +1,5 @@
 #!/bin/sh
-# postinst script for rozo
+# postinst script for rozofs
 #
 # see: dh_installdeb(1)
 

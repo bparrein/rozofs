@@ -1,13 +1,13 @@
 /*
   Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
-  This file is part of Rozo.
+  This file is part of Rozofs.
 
-  Rozo is free software; you can redistribute it and/or modify
+  Rozofs is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3 of the License,
   or (at your option) any later version.
 
-  Rozo is distributed in the hope that it will be useful, but
+  Rozofs is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
@@ -85,7 +85,7 @@ sp_read_ret_t *sp_read_1_svc(sp_read_arg_t * args, struct svc_req * req) {
         ret.sp_read_ret_t_u.error = errno;
         goto out;
     }
-    psize = rozo_psizes[args->tid];
+    psize = rozofs_psizes[args->tid];
     ret.sp_read_ret_t_u.bins.bins_len = args->nrb * psize * sizeof (bin_t);
     ret.sp_read_ret_t_u.bins.bins_val =
         (char *) xmalloc(args->nrb * psize * sizeof (bin_t));

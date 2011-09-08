@@ -1,9 +1,9 @@
 .\" Process this file with
 .\" groff -man -Tascii exportd.8
 .\"
-.TH EXPORT.CONF 5 "DECEMBER 2010" Rozo "User Manuals"
+.TH EXPORT.CONF 5 "DECEMBER 2010" Rozofs "User Manuals"
 .SH NAME
-export.conf \- rozo export daemon configuration file
+export.conf \- rozofs export daemon configuration file
 .SH DESCRIPTION
 .B export.conf
 is manage throw 
@@ -13,7 +13,7 @@ is manage throw
 grammar.
 
 .SS layout
-Transform layout used by rozo. Data will be transform in 
+Transform layout used by rozofs. Data will be transform in 
 .B forward
 chunks, only 
 .B inverse 
@@ -27,7 +27,7 @@ Valid layouts are :
    - 2 : inverse = 8, forward = 12, safe = 16
 
 .SS volume
-A volume in Rozo is made by a list of storages managed by a
+A volume in Rozofs is made by a list of storages managed by a
 .B storaged
 deamon on dedicate hosts. A storage in this file is an sid (uint16_t)
 and an ip or dns name to reach the 
@@ -92,7 +92,7 @@ exports = (
 );
 
 .SH FILES
-.I /etc/rozo/export.conf (/usr/local/etc/rozo/export.conf)
+.I /etc/rozofs/export.conf (/usr/local/etc/rozofs/export.conf)
 .RS
 The system wide configuration file.
 .\".SH ENVIRONMENT
@@ -101,6 +101,6 @@ The system wide configuration file.
 .SH AUTHOR
 Fizians <http://www.fizians.com>
 .SH "SEE ALSO"
-.BR rozo (7),
+.BR rozofs (7),
 .BR exportd (8)
 

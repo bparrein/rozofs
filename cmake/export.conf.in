@@ -3,7 +3,7 @@
 #
 
 #
-# Transform layout used by rozo. Data will be transform in *forward* chunks,
+# Transform layout used by rozofs. Data will be transform in *forward* chunks,
 # only *inverse* of them will be need to reconstruct, and they will be 
 # distributed over *safe* storages.  
 # Valid layouts are :

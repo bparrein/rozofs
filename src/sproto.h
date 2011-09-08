@@ -13,9 +13,9 @@
 extern "C" {
 #endif
 
-#include "rozo.h"
+#include "rozofs.h"
 
-    typedef u_char sp_uuid_t[ROZO_UUID_SIZE];
+    typedef u_char sp_uuid_t[ROZOFS_UUID_SIZE];
 
     enum sp_status_t {
         SP_SUCCESS = 0,

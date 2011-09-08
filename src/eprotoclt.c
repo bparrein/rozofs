@@ -5,7 +5,7 @@
 
 #include <memory.h>             /* for memset */
 #include "../src/eproto.h"
-#include "rozo.h"
+#include "rozofs.h"
 
 /* Default timeout can be changed using clnt_control() */
 static struct timeval TIMEOUT = { 25, 0 };

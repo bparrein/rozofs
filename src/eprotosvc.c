@@ -15,7 +15,7 @@
 #ifndef SIG_PF
 #define SIG_PF void(*)(int)
 #endif
-#include "rozo.h"
+#include "rozofs.h"
 
 void export_program_1(struct svc_req *rqstp, register SVCXPRT * transp) {
     union {

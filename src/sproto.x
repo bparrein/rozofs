@@ -1,13 +1,13 @@
 /*
   Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
-  This file is part of Rozo.
+  This file is part of Rozofs.
 
-  Rozo is free software; you can redistribute it and/or modify
+  Rozofs is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3 of the License,
   or (at your option) any later version.
 
-  Rozo is distributed in the hope that it will be useful, but
+  Rozofs is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
@@ -17,9 +17,9 @@
   <http://www.gnu.org/licenses/>.
 */
 
-%#include "rozo.h"
+%#include "rozofs.h"
 
-typedef unsigned char sp_uuid_t[ROZO_UUID_SIZE];
+typedef unsigned char sp_uuid_t[ROZOFS_UUID_SIZE];
 
 enum sp_status_t {
     SP_SUCCESS = 0,

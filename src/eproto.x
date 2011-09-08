@@ -1,13 +1,13 @@
 /*
   Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
-  This file is part of Rozo.
+  This file is part of Rozofs.
 
-  Rozo is free software; you can redistribute it and/or modify
+  Rozofs is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3 of the License,
   or (at your option) any later version.
 
-  Rozo is distributed in the hope that it will be useful, but
+  Rozofs is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
@@ -17,16 +17,16 @@
   <http://www.gnu.org/licenses/>.
 */
 
-%#include "rozo.h"
+%#include "rozofs.h"
 
 /*
  * Common types
  */
-typedef unsigned char   ep_uuid_t[ROZO_UUID_SIZE];
-typedef string          ep_name_t<ROZO_FILENAME_MAX>;
-typedef string          ep_path_t<ROZO_PATH_MAX>;
-typedef char            ep_link_t[ROZO_PATH_MAX];
-typedef char            ep_host_t[ROZO_HOSTNAME_MAX];
+typedef unsigned char   ep_uuid_t[ROZOFS_UUID_SIZE];
+typedef string          ep_name_t<ROZOFS_FILENAME_MAX>;
+typedef string          ep_path_t<ROZOFS_PATH_MAX>;
+typedef char            ep_link_t[ROZOFS_PATH_MAX];
+typedef char            ep_host_t[ROZOFS_HOSTNAME_MAX];
  
 enum ep_status_t {
     EP_SUCCESS = 0,
@@ -46,15 +46,15 @@ struct ep_storage_t {
 struct ep_cluster_t {
     uint16_t        cid;
     uint8_t         storages_nb;
-    ep_storage_t    storages[ROZO_STORAGES_MAX];
+    ep_storage_t    storages[ROZOFS_STORAGES_MAX];
 };
 
 struct ep_volume_t {
     uint32_t        eid;
     ep_uuid_t       rfid;   /*root fid*/
-    int             rl;     /* rozo layout */
+    int             rl;     /* rozofs layout */
     uint8_t         clusters_nb;
-    ep_cluster_t    clusters[ROZO_CLUSTERS_MAX];
+    ep_cluster_t    clusters[ROZOFS_CLUSTERS_MAX];
 };
 
 union ep_mount_ret_t switch (ep_status_t status) {
@@ -66,7 +66,7 @@ union ep_mount_ret_t switch (ep_status_t status) {
 struct ep_mattr_t {
     ep_uuid_t   fid;
     uint16_t    cid;
-    uint16_t    sids[ROZO_SAFE_MAX];
+    uint16_t    sids[ROZOFS_SAFE_MAX];
     uint32_t    mode;
     uint16_t    nlink;
     uint64_t    ctime;
@@ -173,7 +173,7 @@ struct ep_storage_t {
 
 struct ep_attr_t {
     ep_uuid_t       fid;
-    ep_storage_t    storages[ROZO_SAFE];
+    ep_storage_t    storages[ROZOFS_SAFE];
 };
 
 union ep_attr_ret_t switch (ep_status_t status) {

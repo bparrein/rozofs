@@ -1,27 +1,27 @@
 .\" Process this file with
 .\" groff -man -Tascii exportd.8
 .\"
-.TH ROZOMOUNT 8 "JUNE 2011" Rozo "User Manuals"
+.TH ROZOFSMOUNT 8 "JUNE 2011" Rozofs "User Manuals"
 .SH NAME
-rozomount \- rozo fuse mount
+rozofsmount \- rozofs fuse mount
 .SH SYNOPSIS
-.B rozomount
+.B rozofsmount
 [\fB\-f\fP]
 [\fB\-H\fP \fIEXPORT_HOST\fP]
 [\fB\-E\fP \fIEXPORT_PATH\fP]
 [\fB\-o\fP \fIopt\fP[,\fIopt\fP]...]
 \fImountpoint\fP
 .PP
-.B rozomount
+.B rozofsmount
 \fB\-h\fP|\fB\-\-help\fP
 .PP
-.B rozomount
+.B rozofsmount
 \fB\-V\fP|\fB\-\-version\fP
 .PP
 .SH DESCRIPTION
-.B rozomount
+.B rozofsmount
 Mount a 
-.BR rozo (7) 
+.BR rozofs (7) 
 filesystem exported by
 .BR exportd (8)
 .PP
@@ -38,20 +38,20 @@ FUSE options:
 \fB\-f\fP
 foreground operation
 .PP
-Rozo options:
+Rozofs options:
 .TP
 \fB\-H\fP \fIEXPORT_HOST\fP, \fB\-o exporthost=\fP\fIEXPORT_HOST\fP
-Address (or dns name) where exportd deamon is running (default is rozoexport).
+Address (or dns name) where exportd deamon is running (default is rozofsexport).
 .TP
 \fB\-E\fP \fIEXPORT_PATH\fP, \fB-o exportpath=\fP\fIEXPORT_PATH\fP
 Root path of an export see
 .BR exportd (8)
-for further details. (default is /home/rozo).
+for further details. (default is /home/rozofs).
 .TP
-\fB\-o rozobufsize=\fP\fIN\fP
+\fB\-o rozofsbufsize=\fP\fIN\fP
 specify size of I/O buffer in KiB (in range: 128..8192 - default: 256)
 .TP
-\fB\-o rozomaxretry=\fP\fIN\fP
+\fB\-o rozofsmaxretry=\fP\fIN\fP
 specify number of retries before I/O error is returned (default: 5)
 .PP
 .SH "REPORTING BUGS"
@@ -59,21 +59,21 @@ Report bugs to <bugs@fizians.org>.
 .SH COPYRIGHT
 Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
 
-Rozo is free software; you can redistribute it and/or modify
+Rozofs is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published
 by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Rozo is distributed in the hope that it will be useful, but
+Rozofs is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with rozo.  If not, see <http://www.gnu.org/licenses/>.
+along with rozofs.  If not, see <http://www.gnu.org/licenses/>.
 .SH AUTHOR
 Fizians <http://www.fizians.org>
 .SH "SEE ALSO"
-.BR rozo (7),
+.BR rozofs (7),
 .BR exportd (8),
 .BR storaged (8)

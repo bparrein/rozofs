@@ -1,9 +1,9 @@
 .\" Process this file with
 .\" groff -man -Tascii exportd.8
 .\"
-.TH STORAGE.CONF 5 "DECEMBER 2010" Rozo "User Manuals"
+.TH STORAGE.CONF 5 "DECEMBER 2010" Rozofs "User Manuals"
 .SH NAME
-storage.conf \- rozo storage daemon configuration file
+storage.conf \- rozofs storage daemon configuration file
 .SH DESCRIPTION
 .B storage.conf
 is manage throw 
@@ -12,7 +12,7 @@ is manage throw
 .B libconfig
 grammar.
 .SS storages
-A storage in Rozo is directory used by a
+A storage in Rozofs is directory used by a
 .B storaged
 deamon to store erase coded data.
 
@@ -22,7 +22,7 @@ deamon.
 can manage several storages.
 
 .SS layout
-Transform layout used by rozo. Data will be transform in 
+Transform layout used by rozofs. Data will be transform in 
 .B forward
 chunks, only 
 .B inverse 
@@ -50,7 +50,7 @@ storages = (
 );
 
 .SH FILES
-.I /etc/rozo/storage.conf (/usr/local/etc/rozo/storage.conf)
+.I /etc/rozofs/storage.conf (/usr/local/etc/rozofs/storage.conf)
 .RS
 The system wide configuration file.
 .\".SH ENVIRONMENT
@@ -59,6 +59,6 @@ The system wide configuration file.
 .SH AUTHOR
 Fizians <http://www.fizians.com>
 .SH "SEE ALSO"
-.BR rozo (7),
+.BR rozofs (7),
 .BR storaged (8)
 

@@ -1,13 +1,13 @@
 /*
   Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
-  This file is part of Rozo.
+  This file is part of Rozofs.
 
-  Rozo is free software; you can redistribute it and/or modify
+  Rozofs is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3 of the License,
   or (at your option) any later version.
 
-  Rozo is distributed in the hope that it will be useful, but
+  Rozofs is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
@@ -35,7 +35,7 @@ int storageclt_initialize(storageclt_t * clt, const char *host, sid_t sid) {
 
     if (rpcclt_initialize
         (&clt->rpcclt, host, STORAGE_PROGRAM, STORAGE_VERSION,
-         ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE) != 0) {
+         ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
         int xerrno = errno;
         storageclt_release(clt);
         errno = xerrno;
@@ -87,7 +87,7 @@ int storageclt_write(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid,
     args.tid = tid;
     args.bid = bid;
     args.nrb = nrb;
-    args.bins.bins_len = nrb * rozo_psizes[tid] * sizeof (bin_t);
+    args.bins.bins_len = nrb * rozofs_psizes[tid] * sizeof (bin_t);
     args.bins.bins_val = (char *) bins;
     ret = sp_write_1(&args, clt->rpcclt.client);
     if (ret == 0) {

@@ -1,9 +1,9 @@
 .\" Process this file with
 .\" groff -man -Tascii storaged.8
 .\"
-.TH storaged 8 "DECEMBER 2010" Rozo "User Manuals"
+.TH storaged 8 "DECEMBER 2010" Rozofs "User Manuals"
 .SH NAME
-storaged \- rozo storage daemon
+storaged \- rozofs storage daemon
 .SH SYNOPSIS
 .B storaged 
 [
@@ -14,8 +14,8 @@ storaged \- rozo storage daemon
 .B
 .SH DESCRIPTION
 .B storaged
-Rozo storaged daemon. Store encoded data for the
-.BR rozo (7)
+Rozofs storaged daemon. Store encoded data for the
+.BR rozofs (7)
 filesystem.
 .SH OPTIONS
 .IP "-h, --help"
@@ -27,13 +27,13 @@ Print help.
 Use 
 .I file
 as configuration file default is
-.I /etc/rozo/storage.conf
+.I /etc/rozofs/storage.conf
 (or
-.I /usr/local/etc/rozo/storage.conf
+.I /usr/local/etc/rozofs/storage.conf
 according to install options)
 .RE
 .SH FILES
-.I /etc/rozo/storage.conf (/usr/local/etc/rozo/storage.conf)
+.I /etc/rozofs/storage.conf (/usr/local/etc/rozofs/storage.conf)
 .RS
 The system wide configuration file. See
 .BR storage.conf (5)
@@ -59,24 +59,24 @@ Report bugs to <bugs@fizians.org>.
 .SH COPYRIGHT
 Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
 
-Rozo is free software; you can redistribute it and/or modify
+Rozofs is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published
 by the Free Software Foundation; either version 3 of the License,
 or (at your option) any later version.
 
-Rozo is distributed in the hope that it will be useful, but
+Rozofs is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with rozo.  If not, see <http://www.gnu.org/licenses/>.
+along with rozofs.  If not, see <http://www.gnu.org/licenses/>.
 .SH AUTHOR
 Fizians <http://www.fizians.org>
 .SH "SEE ALSO"
-.BR rozo (7),
+.BR rozofs (7),
 .BR storage.conf (5),
 .BR exportd (8),
-.BR rozomount (8)
+.BR rozofsmount (8)
 
 

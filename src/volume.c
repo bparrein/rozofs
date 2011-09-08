@@ -1,13 +1,13 @@
 /*
   Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
-  This file is part of Rozo.
+  This file is part of Rozofs.
 
-  Rozo is free software; you can redistribute it and/or modify
+  Rozofs is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3 of the License,
   or (at your option) any later version.
 
-  Rozo is distributed in the hope that it will be useful, but
+  Rozofs is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
@@ -25,11 +25,11 @@
 #include <limits.h>
 #include <stdio.h>
 #include <uuid/uuid.h>
-#include "rozo.h"
+#include "rozofs.h"
 #include "log.h"
 #include "list.h"
 #include "xmalloc.h"
-#include "rozo.h"
+#include "rozofs.h"
 #include "volume.h"
 #include <pthread.h>
 #include "storageclt.h"
@@ -217,7 +217,7 @@ out:
     return status;
 }
 
-// what if a cluster is < rozo safe
+// what if a cluster is < rozofs safe
 
 static int cluster_distribute(cluster_t * cluster, uint16_t * sids) {
     int status = -1;
@@ -229,7 +229,7 @@ static int cluster_distribute(cluster_t * cluster, uint16_t * sids) {
         volume_storage_t *p = (cluster->ms) + i;
         if (p->stat.free != 0)
             sids[ms_found++] = p->sid;
-        if (ms_found == rozo_safe) {
+        if (ms_found == rozofs_safe) {
             status = 0;
             break;
         }
@@ -280,16 +280,16 @@ void volume_stat(volume_stat_t * stat) {
     list_t *iterator;
     DEBUG_FUNCTION;
 
-    stat->bsize = ROZO_BSIZE;
+    stat->bsize = ROZOFS_BSIZE;
     stat->bfree = 0;
 
     list_for_each_forward(iterator, &volume.mcs) {
         stat->bfree +=
-            list_entry(iterator, cluster_t, list)->free / ROZO_BSIZE;
+            list_entry(iterator, cluster_t, list)->free / ROZOFS_BSIZE;
     }
     stat->bfree =
-        (long double) stat->bfree / ((double) rozo_forward /
-                                     (double) rozo_inverse);
+        (long double) stat->bfree / ((double) rozofs_forward /
+                                     (double) rozofs_inverse);
 }
 
 int volume_print() {

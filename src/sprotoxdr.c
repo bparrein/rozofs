@@ -4,13 +4,13 @@
  */
 
 #include "../src/sproto.h"
-#include "rozo.h"
+#include "rozofs.h"
 
 bool_t xdr_sp_uuid_t(XDR * xdrs, sp_uuid_t objp) {
     register int32_t *buf;
 
     if (!xdr_vector
-        (xdrs, (char *) objp, ROZO_UUID_SIZE, sizeof (u_char),
+        (xdrs, (char *) objp, ROZOFS_UUID_SIZE, sizeof (u_char),
          (xdrproc_t) xdr_u_char))
         return FALSE;
     return TRUE;

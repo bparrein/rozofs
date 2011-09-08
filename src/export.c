@@ -1,13 +1,13 @@
 /*
   Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
-  This file is part of Rozo.
+  This file is part of Rozofs.
 
-  Rozo is free software; you can redistribute it and/or modify
+  Rozofs is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3 of the License,
   or (at your option) any later version.
 
-  Rozo is distributed in the hope that it will be useful, but
+  Rozofs is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
@@ -38,17 +38,17 @@
 #include "xmalloc.h"
 #include "list.h"
 #include "export.h"
-#include "rozo.h"
+#include "rozofs.h"
 #include "volume.h"
 #include "storageclt.h"
 
 #define EHSIZE 2048
 
-#define EBLOCKSKEY	"user.rozo.export.blocks"
-#define ETRASHUUID	"user.rozo.export.trashid"
-#define EFILESKEY	"user.rozo.export.files"
-#define EVERSIONKEY	"user.rozo.export.version"
-#define EATTRSTKEY	"user.rozo.export.file.attrs"
+#define EBLOCKSKEY	"user.rozofs.export.blocks"
+#define ETRASHUUID	"user.rozofs.export.trashid"
+#define EFILESKEY	"user.rozofs.export.files"
+#define EVERSIONKEY	"user.rozofs.export.version"
+#define EATTRSTKEY	"user.rozofs.export.file.attrs"
 
 static inline char *export_map(export_t * e, const char *vpath, char *path) {
     strcpy(path, e->root);
@@ -113,7 +113,7 @@ typedef struct mfentry {
 
 typedef struct rmfentry {
     fid_t fid;
-    sid_t sids[ROZO_SAFE_MAX];
+    sid_t sids[ROZOFS_SAFE_MAX];
     list_t list;
 } rmfentry_t;
 
@@ -253,7 +253,7 @@ static int export_load_rmfentry(export_t * e) {
 
         rmfe = xmalloc(sizeof (rmfentry_t));
         memcpy(rmfe->fid, attrs.fid, sizeof (fid_t));
-        memcpy(rmfe->sids, attrs.sids, sizeof (sid_t) * ROZO_SAFE_MAX);
+        memcpy(rmfe->sids, attrs.sids, sizeof (sid_t) * ROZOFS_SAFE_MAX);
 
         list_init(&rmfe->list);
 
@@ -372,12 +372,12 @@ int export_create(const char *root) {
         goto out;
     uuid_generate(attrs.fid);
     attrs.cid = 0;
-    memset(attrs.sids, 0, ROZO_SAFE_MAX * sizeof (sid_t));
+    memset(attrs.sids, 0, ROZOFS_SAFE_MAX * sizeof (sid_t));
     attrs.mode = S_IFDIR | S_IRUSR | S_IWUSR | S_IXUSR;
     attrs.nlink = 2;
     if ((attrs.ctime = attrs.atime = attrs.mtime = time(NULL)) == -1)
         goto out;
-    attrs.size = ROZO_DIR_SIZE;
+    attrs.size = ROZOFS_DIR_SIZE;
     if (setxattr(path, EATTRSTKEY, &attrs, sizeof (mattr_t), XATTR_CREATE)
         != 0)
         goto out;
@@ -492,7 +492,7 @@ int export_stat(export_t * e, estat_t * st) {
     volume_stat_t vstat;
     DEBUG_FUNCTION;
 
-    st->bsize = ROZO_BSIZE;
+    st->bsize = ROZOFS_BSIZE;
     if (statfs(e->root, &stfs) != 0)
         goto out;
     st->namemax = stfs.f_namelen;
@@ -503,7 +503,7 @@ int export_stat(export_t * e, estat_t * st) {
     st->bfree = vstat.bfree;
     // blocks store in EBLOCKSKEY is the number of currently stored blocks
     // blocks in estat_t is the total number of blocks (see struct statvfs)
-    // rozofs does not have a constant total number of blocks
+    // rozofsfs does not have a constant total number of blocks
     // it depends on usage made of storage (through other services)
     st->blocks += st->bfree;
     if (getxattr(e->root, EFILESKEY, &(st->files), sizeof (uint64_t)) == -1)
@@ -639,8 +639,8 @@ int export_setattr(export_t * e, fid_t fid, mattr_t * attrs) {
     // XXX IS IT POSSIBLE WITH A DIRECTORY?
     if (mfe->attrs.size != attrs->size) {
 
-        uint64_t nrb_new = ((attrs->size + ROZO_BSIZE - 1) / ROZO_BSIZE);
-        uint64_t nrb_old = ((mfe->attrs.size + ROZO_BSIZE - 1) / ROZO_BSIZE);
+        uint64_t nrb_new = ((attrs->size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE);
+        uint64_t nrb_old = ((mfe->attrs.size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE);
 
         // Open the file descriptor
         if ((fd = open(mfe->path, O_RDWR)) < 0) {
@@ -801,14 +801,14 @@ int export_mkdir(export_t * e, uuid_t parent, const char *name, mode_t mode,
 
     uuid_generate(attrs->fid);
     attrs->cid = 0;
-    memset(attrs->sids, 0, ROZO_SAFE_MAX * sizeof (uint16_t));
+    memset(attrs->sids, 0, ROZOFS_SAFE_MAX * sizeof (uint16_t));
     attrs->mode = mode;
     attrs->nlink = 2;
 
     if ((attrs->ctime = attrs->atime = attrs->mtime = time(NULL)) == -1)
         goto error;
 
-    attrs->size = ROZO_BSIZE;
+    attrs->size = ROZOFS_BSIZE;
 
     if (setxattr(path, EATTRSTKEY, attrs, sizeof (mattr_t), XATTR_CREATE) !=
         0)
@@ -878,7 +878,7 @@ int export_unlink(export_t * e, uuid_t fid) {
 
     rmfe = xmalloc(sizeof (rmfentry_t));
     memcpy(rmfe->fid, mfe->attrs.fid, sizeof (fid_t));
-    memcpy(rmfe->sids, mfe->attrs.sids, sizeof (sid_t) * ROZO_SAFE_MAX);
+    memcpy(rmfe->sids, mfe->attrs.sids, sizeof (sid_t) * ROZOFS_SAFE_MAX);
 
     list_init(&rmfe->list);
 
@@ -907,7 +907,7 @@ int export_unlink(export_t * e, uuid_t fid) {
 
     if (!S_ISLNK(mode))
         if (export_update_blocks
-            (e, -(((int64_t) size + ROZO_BSIZE - 1) / ROZO_BSIZE)) != 0)
+            (e, -(((int64_t) size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE)) != 0)
             goto out;
 
     status = 0;
@@ -931,7 +931,7 @@ int export_rm_bins(export_t * e) {
         sid_t *it = entry->sids;
         cnt = 0;
 
-        while (it != entry->sids + ROZO_SAFE_MAX) {
+        while (it != entry->sids + ROZOFS_SAFE_MAX) {
 
             if (*it != 0) {
                 volume_storage_t *vs = NULL;
@@ -961,7 +961,7 @@ int export_rm_bins(export_t * e) {
             it++;
         }
 
-        if (cnt == ROZO_SAFE_MAX) {
+        if (cnt == ROZOFS_SAFE_MAX) {
 
             char path[PATH_MAX + NAME_MAX + 1];
 
@@ -1052,7 +1052,7 @@ int export_symlink(export_t * e, const char *link_name, uuid_t parent,
     }
     uuid_generate(attrs->fid);
     attrs->cid = 0;
-    memset(attrs->sids, 0, ROZO_SAFE_MAX * sizeof (uint16_t));
+    memset(attrs->sids, 0, ROZOFS_SAFE_MAX * sizeof (uint16_t));
     attrs->mode = st.st_mode;
     attrs->nlink = st.st_nlink;
 
@@ -1157,7 +1157,7 @@ int export_rename(export_t * e, uuid_t from, uuid_t parent, const char *name) {
 
         if (!S_ISLNK(mode) && !S_ISDIR(mode))
             if (export_update_blocks
-                (e, -(((int64_t) size + ROZO_BSIZE - 1) / ROZO_BSIZE)) != 0)
+                (e, -(((int64_t) size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE)) != 0)
                 goto out;
     }
 
@@ -1279,8 +1279,8 @@ int64_t export_write(export_t * e, uuid_t fid, uint64_t off, uint32_t len) {
 
         if (export_update_blocks
             (e,
-             (((off + len - mfe->attrs.size) + ROZO_BSIZE -
-               1) / ROZO_BSIZE)) != 0)
+             (((off + len - mfe->attrs.size) + ROZOFS_BSIZE -
+               1) / ROZOFS_BSIZE)) != 0)
             goto out;
 
         mfe->attrs.size = off + len;

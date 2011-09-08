@@ -64,8 +64,8 @@ add_executable(transform_file
 add_executable(test_volume
     ../src/xmalloc.h
     ../src/xmalloc.c
-    ../src/rozo.h
-    ../src/rozo.c
+    ../src/rozofs.h
+    ../src/rozofs.c
     ../src/rpcclt.h
     ../src/rpcclt.c
     ../src/sproto.h
@@ -81,8 +81,8 @@ target_link_libraries(test_volume ${PTHREAD_LIBRARY})
 add_executable(test_storage
     ../src/xmalloc.h
     ../src/xmalloc.c
-    ../src/rozo.h
-    ../src/rozo.c
+    ../src/rozofs.h
+    ../src/rozofs.c
     ../src/htable.h
     ../src/htable.c
     ../src/storage.h

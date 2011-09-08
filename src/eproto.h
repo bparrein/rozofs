@@ -13,17 +13,17 @@
 extern "C" {
 #endif
 
-#include "rozo.h"
+#include "rozofs.h"
 
-    typedef u_char ep_uuid_t[ROZO_UUID_SIZE];
+    typedef u_char ep_uuid_t[ROZOFS_UUID_SIZE];
 
     typedef char *ep_name_t;
 
     typedef char *ep_path_t;
 
-    typedef char ep_link_t[ROZO_PATH_MAX];
+    typedef char ep_link_t[ROZOFS_PATH_MAX];
 
-    typedef char ep_host_t[ROZO_HOSTNAME_MAX];
+    typedef char ep_host_t[ROZOFS_HOSTNAME_MAX];
 
     enum ep_status_t {
         EP_SUCCESS = 0,
@@ -48,7 +48,7 @@ extern "C" {
     struct ep_cluster_t {
         uint16_t cid;
         uint8_t storages_nb;
-        ep_storage_t storages[ROZO_STORAGES_MAX];
+        ep_storage_t storages[ROZOFS_STORAGES_MAX];
     };
     typedef struct ep_cluster_t ep_cluster_t;
 
@@ -57,7 +57,7 @@ extern "C" {
         ep_uuid_t rfid;
         int rl;
         uint8_t clusters_nb;
-        ep_cluster_t clusters[ROZO_CLUSTERS_MAX];
+        ep_cluster_t clusters[ROZOFS_CLUSTERS_MAX];
     };
     typedef struct ep_volume_t ep_volume_t;
 
@@ -73,7 +73,7 @@ extern "C" {
     struct ep_mattr_t {
         ep_uuid_t fid;
         uint16_t cid;
-        uint16_t sids[ROZO_SAFE_MAX];
+        uint16_t sids[ROZOFS_SAFE_MAX];
         uint32_t mode;
         uint16_t nlink;
         uint64_t ctime;

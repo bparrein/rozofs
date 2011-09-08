@@ -1,8 +1,8 @@
-Rozo cloud filesystem : A clustered NAS using erasure coding.
+Rozofs cloud filesystem : A clustered NAS using erasure coding.
 
 * WARNING *
-Rozo is currently on heavy developpement and release at alpha stage 
-Don't use rozo under production environment 
+Rozofs is currently on heavy developpement and release at alpha stage 
+Don't use rozofs under production environment 
 * WARNING *
 
 Note : [xxx] are optional, <xxx> are parameters
@@ -21,7 +21,7 @@ Requirements
 
 Quick start
 -----------
-Using default values will compile rozo in Release mode and install it on /usr/local
+Using default values will compile rozofs in Release mode and install it on /usr/local
 
 mkdir build
 cd build
@@ -50,11 +50,11 @@ Start
     1 ) install exportd on a host
     2 ) install storaged on multiple hosts
     3 ) create exported directory with exportd --create
-    4 ) fill in export.conf (/etc/rozo or /usr/local/etc/rozo accordind to CMAKE_INSTALL_PREFIX)
+    4 ) fill in export.conf (/etc/rozofs or /usr/local/etc/rozofs accordind to CMAKE_INSTALL_PREFIX)
     5 ) fill in all storage.conf
     6 ) [sudo] exportd --start
     7 ) [sudo] storaged --start
-    8 ) wherever you want : [sudo] rozomount -H <the_host_running_exportd> -E <the export_name> <the_mount_dir>
+    8 ) wherever you want : [sudo] rozofsmount -H <the_host_running_exportd> -E <the export_name> <the_mount_dir>
 
 Stop
 ----

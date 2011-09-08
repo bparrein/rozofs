@@ -1,13 +1,13 @@
 /*
   Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
-  This file is part of Rozo.
+  This file is part of Rozofs.
 
-  Rozo is free software; you can redistribute it and/or modify
+  Rozofs is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3 of the License,
   or (at your option) any later version.
 
-  Rozo is distributed in the hope that it will be useful, but
+  Rozofs is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
@@ -49,7 +49,7 @@ static void file_disconnect(file_t * f) {
     DEBUG_FUNCTION;
 
     // Free the export
-    for (i = 0; i < rozo_safe; i++) {
+    for (i = 0; i < rozofs_safe; i++) {
         storageclt_release(f->storages[i]);
         f->storages[i]->rpcclt.client = 0;
     }
@@ -63,7 +63,7 @@ static int file_connect(file_t * f) {
     // Nb. of storage servers connected
     connected = 0;
     // Get the hostname for one sid et one cid
-    for (i = 0; i < rozo_safe; i++) {
+    for (i = 0; i < rozofs_safe; i++) {
         while ((f->storages[i] =
                 lookup_mstorage(f->export, f->attrs.cid,
                                 f->attrs.sids[i])) == NULL) {
@@ -84,7 +84,7 @@ static int file_connect(file_t * f) {
     }
 
     // Not enough server storage connections to retrieve the file
-    if (connected < rozo_forward) {
+    if (connected < rozofs_forward) {
         errno = EIO;
         return -1;
     }
@@ -109,11 +109,11 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
     uint16_t *psizes;
     DEBUG_FUNCTION;
 
-    bins = xcalloc(rozo_inverse, sizeof (bin_t *));
-    projections = xmalloc(rozo_inverse * sizeof (projection_t));
-    angles = xmalloc(rozo_inverse * sizeof (angle_t));
-    psizes = xmalloc(rozo_inverse * sizeof (uint16_t));
-    memset(data, 0, nmbs * ROZO_BSIZE);
+    bins = xcalloc(rozofs_inverse, sizeof (bin_t *));
+    projections = xmalloc(rozofs_inverse * sizeof (projection_t));
+    angles = xmalloc(rozofs_inverse * sizeof (angle_t));
+    psizes = xmalloc(rozofs_inverse * sizeof (uint16_t));
+    memset(data, 0, nmbs * ROZOFS_BSIZE);
     dist = xmalloc(nmbs * sizeof (dist_t));
 
     if (exportclt_read_block(f->export, f->fid, bid, nmbs, dist) != 0)
@@ -141,12 +141,12 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
         // Nb. of received requests (at begin=0)
         int connected = 0;
         // For each projection
-        PROFILE_STORAGE_START for (mp = 0; mp < rozo_forward; mp++) {
+        PROFILE_STORAGE_START for (mp = 0; mp < rozofs_forward; mp++) {
             int mps = 0;
             int j = 0;
             bin_t *b;
             // Find the host for projection mp
-            for (mps = 0; mps < rozo_safe; mps++) {
+            for (mps = 0; mps < rozofs_safe; mps++) {
                 if (dist_is_set(*dist_iterator, mps) && j == mp) {
                     break;
                 } else {        // Try with the next storage server
@@ -157,24 +157,24 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
             if (!f->storages[mps]->rpcclt.client)
                 continue;
 
-            b = xmalloc(n * rozo_psizes[mp] * sizeof (bin_t));
+            b = xmalloc(n * rozofs_psizes[mp] * sizeof (bin_t));
             if (storageclt_read(f->storages[mps], f->fid, mp, bid + i, n, b)
                 != 0) {
                 free(b);
                 continue;
             }
             bins[connected] = b;
-            angles[connected].p = rozo_angles[mp].p;
-            angles[connected].q = rozo_angles[mp].q;
-            psizes[connected] = rozo_psizes[mp];
+            angles[connected].p = rozofs_angles[mp].p;
+            angles[connected].q = rozofs_angles[mp].q;
+            psizes[connected] = rozofs_psizes[mp];
 
             // Increment the number of received requests
-            if (++connected == rozo_inverse)
+            if (++connected == rozofs_inverse)
                 break;
         }
         PROFILE_STORAGE_STOP
             // Not enough server storage response to retrieve the file
-            if (connected < rozo_inverse) {
+            if (connected < rozofs_inverse) {
             errno = EIO;
             goto out;
         }
@@ -184,7 +184,7 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
             for (j = 0; j < n; j++) {
             // Fill the table of projections for the block j
             // For each meta-projection
-            for (mp = 0; mp < rozo_inverse; mp++) {
+            for (mp = 0; mp < rozofs_inverse; mp++) {
                 // It's really important to specify the angles and sizes here
                 // because the data inverse function sorts the projections.
                 projections[mp].angle.p = angles[mp].p;
@@ -194,14 +194,14 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
             }
 
             // Inverse data for the block j
-            transform_inverse((pxl_t *) (data + (ROZO_BSIZE * (i + j))),
-                              rozo_inverse,
-                              ROZO_BSIZE / rozo_inverse / sizeof (pxl_t),
-                              rozo_inverse, projections);
+            transform_inverse((pxl_t *) (data + (ROZOFS_BSIZE * (i + j))),
+                              rozofs_inverse,
+                              ROZOFS_BSIZE / rozofs_inverse / sizeof (pxl_t),
+                              rozofs_inverse, projections);
         }
         PROFILE_TRANSFORM_INV_STOP
             // Free the memory area where are stored the bins.
-            for (mp = 0; mp < rozo_inverse; mp++) {
+            for (mp = 0; mp < rozofs_inverse; mp++) {
             if (bins[mp])
                 free(bins[mp]);
             bins[mp] = 0;
@@ -216,7 +216,7 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
 out:
     // Free the memory area where are stored the bins used by the inverse transform
     if (bins) {
-        for (mp = 0; mp < rozo_inverse; mp++)
+        for (mp = 0; mp < rozofs_inverse; mp++)
             if (bins[mp])
                 free(bins[mp]);
         free(bins);
@@ -245,17 +245,17 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
     uint32_t i = 0;
     DEBUG_FUNCTION;
 
-    projections = xmalloc(rozo_forward * sizeof (projection_t));
-    bins = xcalloc(rozo_forward, sizeof (bin_t *));
-    angles = xmalloc(rozo_forward * sizeof (angle_t));
-    psizes = xmalloc(rozo_forward * sizeof (uint16_t));
+    projections = xmalloc(rozofs_forward * sizeof (projection_t));
+    bins = xcalloc(rozofs_forward, sizeof (bin_t *));
+    angles = xmalloc(rozofs_forward * sizeof (angle_t));
+    psizes = xmalloc(rozofs_forward * sizeof (uint16_t));
 
     // For each projection
-    for (mp = 0; mp < rozo_forward; mp++) {
-        bins[mp] = xmalloc(rozo_psizes[mp] * nmbs * sizeof (bin_t));
-        projections[mp].angle.p = rozo_angles[mp].p;
-        projections[mp].angle.q = rozo_angles[mp].q;
-        projections[mp].size = rozo_psizes[mp];
+    for (mp = 0; mp < rozofs_forward; mp++) {
+        bins[mp] = xmalloc(rozofs_psizes[mp] * nmbs * sizeof (bin_t));
+        projections[mp].angle.p = rozofs_angles[mp].p;
+        projections[mp].angle.q = rozofs_angles[mp].q;
+        projections[mp].size = rozofs_psizes[mp];
     }
 
     PROFILE_TRANSFORM_START
@@ -263,20 +263,20 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
         // For each block to send
         for (i = 0; i < nmbs; i++) {
         // seek bins for each projection
-        for (mp = 0; mp < rozo_forward; mp++) {
+        for (mp = 0; mp < rozofs_forward; mp++) {
             // Indicates the memory area where the transformed data must be stored
-            projections[mp].bins = bins[mp] + (rozo_psizes[mp] * i);
+            projections[mp].bins = bins[mp] + (rozofs_psizes[mp] * i);
         }
         // Apply the erasure code transform for the block i
-        transform_forward((pxl_t *) (data + (i * ROZO_BSIZE)), rozo_inverse,
-                          ROZO_BSIZE / rozo_inverse / sizeof (pxl_t),
-                          rozo_forward, projections);
+        transform_forward((pxl_t *) (data + (i * ROZOFS_BSIZE)), rozofs_inverse,
+                          ROZOFS_BSIZE / rozofs_inverse / sizeof (pxl_t),
+                          rozofs_forward, projections);
     }
     PROFILE_TRANSFORM_FRWD_STOP
         /* Send requests to the storage servers */
         // For each projection server
         mp = 0;
-    PROFILE_STORAGE_START for (ps = 0; ps < rozo_safe; ps++) {
+    PROFILE_STORAGE_START for (ps = 0; ps < rozofs_safe; ps++) {
         // Warning: the server can be disconnected
         // but f->storages[ps].rpcclt->client != NULL
         // the disconnection will be detected when the request will be sent
@@ -292,12 +292,12 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
 
         dist_set_true(dist, ps);
 
-        if (++mp == rozo_forward)
+        if (++mp == rozofs_forward)
             break;
     }
     PROFILE_STORAGE_STOP
         // Not enough server storage connections to store the file
-        if (mp < rozo_forward) {
+        if (mp < rozofs_forward) {
         errno = EIO;
         goto out;
     }
@@ -309,7 +309,7 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
     status = 0;
 out:
     if (bins) {
-        for (mp = 0; mp < rozo_inverse; mp++)
+        for (mp = 0; mp < rozofs_inverse; mp++)
             if (bins[mp])
                 free(bins[mp]);
         free(bins);
@@ -343,17 +343,17 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
     if ((length = exportclt_read(f->export, f->fid, off, len)) < 0)
         goto out;
 
-    first = off / ROZO_BSIZE;
-    foffset = off % ROZO_BSIZE;
+    first = off / ROZOFS_BSIZE;
+    foffset = off % ROZOFS_BSIZE;
     last =
-        (off + length) / ROZO_BSIZE + ((off + length) % ROZO_BSIZE ==
+        (off + length) / ROZOFS_BSIZE + ((off + length) % ROZOFS_BSIZE ==
                                        0 ? -1 : 0);
-    loffset = (off + length) - last * ROZO_BSIZE;
+    loffset = (off + length) - last * ROZOFS_BSIZE;
 
     // if our read is one block only
     if (first == last) {
-        char block[ROZO_BSIZE];
-        memset(block, 0, ROZO_BSIZE);
+        char block[ROZOFS_BSIZE];
+        memset(block, 0, ROZOFS_BSIZE);
         retry = 0;
         while (read_blocks(f, first, 1, block) != 0 &&
                retry++ < f->export->retries) {
@@ -365,8 +365,8 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
         memcpy(buf, &block[foffset], length);
     } else {
         char *bufp;
-        char block[ROZO_BSIZE];
-        memset(block, 0, ROZO_BSIZE);
+        char block[ROZOFS_BSIZE];
+        memset(block, 0, ROZOFS_BSIZE);
         bufp = buf;
         if (foffset != 0) {
             retry = 0;
@@ -377,11 +377,11 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
                     goto out;
                 }
             }
-            memcpy(buf, &block[foffset], ROZO_BSIZE - foffset);
+            memcpy(buf, &block[foffset], ROZOFS_BSIZE - foffset);
             first++;
-            bufp += ROZO_BSIZE - foffset;
+            bufp += ROZOFS_BSIZE - foffset;
         }
-        if (loffset != ROZO_BSIZE) {
+        if (loffset != ROZOFS_BSIZE) {
             retry = 0;
             while (read_blocks(f, last, 1, block) != 0 &&
                    retry++ < f->export->retries) {
@@ -390,7 +390,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
                     goto out;
                 }
             }
-            memcpy(bufp + ROZO_BSIZE * (last - first), block, loffset);
+            memcpy(bufp + ROZOFS_BSIZE * (last - first), block, loffset);
             last--;
         }
         // Read the others
@@ -426,32 +426,32 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
 
     length = len;
     // Nb. of the first block to write
-    first = off / ROZO_BSIZE;
+    first = off / ROZOFS_BSIZE;
     // Offset (in bytes) for the first block
-    foffset = off % ROZO_BSIZE;
+    foffset = off % ROZOFS_BSIZE;
     // Nb. of the last block to write
     last =
-        (off + length) / ROZO_BSIZE + ((off + length) % ROZO_BSIZE ==
+        (off + length) / ROZOFS_BSIZE + ((off + length) % ROZOFS_BSIZE ==
                                        0 ? -1 : 0);
     // Offset (in bytes) for the last block
-    loffset = (off + length) - last * ROZO_BSIZE;
+    loffset = (off + length) - last * ROZOFS_BSIZE;
 
     // Is it neccesary to read the first block ?
-    if (first <= (f->attrs.size / ROZO_BSIZE) && foffset != 0)
+    if (first <= (f->attrs.size / ROZOFS_BSIZE) && foffset != 0)
         fread = 1;
     else
         fread = 0;
 
     // Is it neccesary to read the last block ?
-    if (last < (f->attrs.size / ROZO_BSIZE) && loffset != ROZO_BSIZE)
+    if (last < (f->attrs.size / ROZOFS_BSIZE) && loffset != ROZOFS_BSIZE)
         lread = 1;
     else
         lread = 0;
 
     // If we must write only one block
     if (first == last) {
-        char block[ROZO_BSIZE];
-        memset(block, 0, ROZO_BSIZE);
+        char block[ROZOFS_BSIZE];
+        memset(block, 0, ROZOFS_BSIZE);
 
         // If it's neccesary to read this block (first == last)
         if (fread == 1 || lread == 1) {
@@ -475,9 +475,9 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
         }
     } else {                    // If we must write more than one block
         const char *bufp;
-        char block[ROZO_BSIZE];
+        char block[ROZOFS_BSIZE];
 
-        memset(block, 0, ROZO_BSIZE);
+        memset(block, 0, ROZOFS_BSIZE);
         bufp = buf;
         // Manage the first and last blocks if needed
         if (foffset != 0) {
@@ -492,7 +492,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
                     }
                 }
             }
-            memcpy(&block[foffset], buf, ROZO_BSIZE - foffset);
+            memcpy(&block[foffset], buf, ROZOFS_BSIZE - foffset);
             retry = 0;
             while (write_blocks(f, first, 1, block) != 0 &&
                    retry++ < f->export->retries) {
@@ -502,10 +502,10 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
                 }
             }
             first++;
-            bufp += ROZO_BSIZE - foffset;
+            bufp += ROZOFS_BSIZE - foffset;
         }
 
-        if (loffset != ROZO_BSIZE) {
+        if (loffset != ROZOFS_BSIZE) {
             // If we need to read the last block
             if (lread == 1) {
                 retry = 0;
@@ -517,7 +517,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
                     }
                 }
             }
-            memcpy(block, bufp + ROZO_BSIZE * (last - first), loffset);
+            memcpy(block, bufp + ROZOFS_BSIZE * (last - first), loffset);
             retry = 0;
             while (write_blocks(f, last, 1, block) != 0 &&
                    retry++ < f->export->retries) {
@@ -556,7 +556,7 @@ file_t *file_open(exportclt_t * e, fid_t fid, mode_t mode) {
     f = xmalloc(sizeof (file_t));
 
     memcpy(f->fid, fid, sizeof (fid_t));
-    f->storages = xmalloc(rozo_safe * sizeof (storageclt_t *));
+    f->storages = xmalloc(rozofs_safe * sizeof (storageclt_t *));
     if (exportclt_getattr(e, fid, &f->attrs) != 0)
         goto error;
 

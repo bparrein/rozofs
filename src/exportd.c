@@ -1,13 +1,13 @@
 /*
   Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
-  This file is part of Rozo.
+  This file is part of Rozofs.
 
-  Rozo is free software; you can redistribute it and/or modify
+  Rozofs is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3 of the License,
   or (at your option) any later version.
 
-  Rozo is distributed in the hope that it will be useful, but
+  Rozofs is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
@@ -162,10 +162,10 @@ static int load_layout_conf(struct config_t *config) {
         goto out;
     }
 
-    if (rozo_initialize(layout) != 0) {
-        fprintf(stderr, "can't initialise rozo layout: %s\n",
+    if (rozofs_initialize(layout) != 0) {
+        fprintf(stderr, "can't initialise rozofs layout: %s\n",
                 strerror(errno));
-        fatal("can't initialise rozo layout: %s", strerror(errno));
+        fatal("can't initialise rozofs layout: %s", strerror(errno));
         goto out;
     }
     status = 0;
@@ -482,7 +482,7 @@ static void exportd_release() {
 
     exports_release();
     volume_release();
-    rozo_release();
+    rozofs_release();
 }
 
 static void on_start() {
@@ -512,7 +512,7 @@ static void on_start() {
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *) &one, sizeof (int));
     // XXX Buffers sizes hard coded
     exportd_svc =
-        svctcp_create(sock, ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE);
+        svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE);
     if (exportd_svc == NULL) {
         fatal("can't create service %s", strerror(errno));
         return;
@@ -595,11 +595,11 @@ out:
 }
 
 static void usage() {
-    printf("Rozo export daemon - %s\n", VERSION);
+    printf("Rozofs export daemon - %s\n", VERSION);
     printf("Usage: exportd [OPTIONS]\n\n");
     printf("\t-h, --help\tprint this message.\n");
     printf
-        ("\t-c, --config\tconfiguration file to use (default *install prefix*/etc/rozo/export.conf).\n");
+        ("\t-c, --config\tconfiguration file to use (default *install prefix*/etc/rozofs/export.conf).\n");
     printf("\t--create [path]\tcreate a new export environment.\n");
     printf
         ("\t--reload\treload the configuration file (the one used at start time).\n");

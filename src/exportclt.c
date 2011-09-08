@@ -1,13 +1,13 @@
 /*
   Copyright (c) 2010 Fizians SAS. <http://www.fizians.com>
-  This file is part of Rozo.
+  This file is part of Rozofs.
 
-  Rozo is free software; you can redistribute it and/or modify
+  Rozofs is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3 of the License,
   or (at your option) any later version.
 
-  Rozo is distributed in the hope that it will be useful, but
+  Rozofs is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
@@ -18,7 +18,7 @@
  */
 
 #include <errno.h>
-#include "rozo.h"
+#include "rozofs.h"
 #include "log.h"
 #include "xmalloc.h"
 #include "eproto.h"
@@ -41,7 +41,7 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
 
     if (rpcclt_initialize
         (&clt->rpcclt, host, EXPORT_PROGRAM, EXPORT_VERSION,
-         ROZO_RPC_BUFFER_SIZE, ROZO_RPC_BUFFER_SIZE) != 0)
+         ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0)
         goto out;
 
     ret = ep_mount_1(&root, clt->rpcclt.client);
@@ -94,9 +94,9 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
         list_push_back(&clt->mcs, &cluster->list);
     }
 
-    // Initialize rozo
-    if (rozo_initialize(clt->rl) != 0) {
-        fatal("can't initialise rozo %s", strerror(errno));
+    // Initialize rozofs
+    if (rozofs_initialize(clt->rl) != 0) {
+        fatal("can't initialise rozofs %s", strerror(errno));
         goto out;
     }
 
