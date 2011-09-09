@@ -14,7 +14,7 @@
 PATH=/sbin:/bin
 DESC=rozofsmount             # Introduce a short description here
 NAME=rozofsmount             # Introduce the short server's name here
-DAEMON=/bin/mount.rozofsfs  # Introduce the server's location here
+DAEMON=/bin/mount.rozofs  # Introduce the server's location here
 DAEMON_ARGS=""             # Arguments to run the daemon with
 SCRIPTNAME=/etc/init.d/$NAME
 
@@ -58,7 +58,7 @@ do_start()
 
         #exec 0<&9 9<&-
 
-        mount -a -t rozofsfs
+        mount -a -t rozofs
 }
 
 case "$1" in

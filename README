@@ -49,17 +49,17 @@ Start
 
     1 ) install exportd on a host
     2 ) install storaged on multiple hosts
-    3 ) create exported directory with exportd --create
+    3 ) create exported directory (mkdir)
     4 ) fill in export.conf (/etc/rozofs or /usr/local/etc/rozofs accordind to CMAKE_INSTALL_PREFIX)
     5 ) fill in all storage.conf
-    6 ) [sudo] exportd --start
-    7 ) [sudo] storaged --start
+    6 ) [sudo] exportd
+    7 ) [sudo] storaged
     8 ) wherever you want : [sudo] rozofsmount -H <the_host_running_exportd> -E <the export_name> <the_mount_dir>
 
 Stop
 ----
-    1) [sudo] exportd --stop
-    2) [sudo] storaged --stop
+    1) [sudo] killall exportd
+    2) [sudo] killall storaged
     3) [sudo] umount <the_mount_dir>
 
 BUGS

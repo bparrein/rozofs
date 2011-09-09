@@ -503,7 +503,7 @@ int export_stat(export_t * e, estat_t * st) {
     st->bfree = vstat.bfree;
     // blocks store in EBLOCKSKEY is the number of currently stored blocks
     // blocks in estat_t is the total number of blocks (see struct statvfs)
-    // rozofsfs does not have a constant total number of blocks
+    // rozofs does not have a constant total number of blocks
     // it depends on usage made of storage (through other services)
     st->blocks += st->bfree;
     if (getxattr(e->root, EFILESKEY, &(st->files), sizeof (uint64_t)) == -1)
@@ -640,7 +640,8 @@ int export_setattr(export_t * e, fid_t fid, mattr_t * attrs) {
     if (mfe->attrs.size != attrs->size) {
 
         uint64_t nrb_new = ((attrs->size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE);
-        uint64_t nrb_old = ((mfe->attrs.size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE);
+        uint64_t nrb_old =
+            ((mfe->attrs.size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE);
 
         // Open the file descriptor
         if ((fd = open(mfe->path, O_RDWR)) < 0) {
@@ -1157,7 +1158,8 @@ int export_rename(export_t * e, uuid_t from, uuid_t parent, const char *name) {
 
         if (!S_ISLNK(mode) && !S_ISDIR(mode))
             if (export_update_blocks
-                (e, -(((int64_t) size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE)) != 0)
+                (e,
+                 -(((int64_t) size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE)) != 0)
                 goto out;
     }
 
@@ -1409,6 +1411,7 @@ int export_close(export_t * e, fid_t fid) {
     DEBUG_FUNCTION;
 
     if (!(mfe = htable_get(&e->hfids, fid))) {
+        warning("big problem");
         errno = ESTALE;
         goto out;
     }

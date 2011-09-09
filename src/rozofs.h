@@ -26,7 +26,7 @@
 
 #define ROZOFS_UUID_SIZE 16
 #define ROZOFS_HOSTNAME_MAX 128
-#define ROZOFS_BSIZE 8192         // could it be export specific ?
+#define ROZOFS_BSIZE 8192       // could it be export specific ?
 #define ROZOFS_SAFE_MAX 16
 #define ROZOFS_DIR_SIZE 4096
 #define ROZOFS_PATH_MAX 4096
@@ -58,7 +58,7 @@ typedef struct sstat {
 typedef struct mattr {
     fid_t fid;
     cid_t cid;                  // 0 for non regular files
-    sid_t sids[ROZOFS_SAFE_MAX];  // not used for non regular files
+    sid_t sids[ROZOFS_SAFE_MAX];        // not used for non regular files
     uint32_t mode;
     uint16_t nlink;
     uint64_t ctime;

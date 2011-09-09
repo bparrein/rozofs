@@ -80,7 +80,7 @@ enum {
 
 #define MYFS_OPT(t, p, v) { t, offsetof(struct rozofsmnt_conf, p), v }
 
-static struct fuse_opt rozofsfs_opts[] = {
+static struct fuse_opt rozofs_opts[] = {
     MYFS_OPT("exporthost=%s", host, 0),
     MYFS_OPT("exportpath=%s", export, 0),
     MYFS_OPT("rozofsbufsize=%u", buf_size, 0),
@@ -225,20 +225,20 @@ static mattr_t *stat_to_mattr(struct stat *st, mattr_t * attr, int to_set) {
     return attr;
 }
 
-static void rozofsfs_ll_init(void *userdata, struct fuse_conn_info *conn) {
+static void rozofs_ll_init(void *userdata, struct fuse_conn_info *conn) {
     int *piped = (int *) userdata;
     char s;
     (void) conn;
     if (piped[1] >= 0) {
         s = 0;
         if (write(piped[1], &s, 1) != 1) {
-            warning("rozofsfs_ll_init: pipe write error: %s", strerror(errno));
+            warning("rozofs_ll_init: pipe write error: %s", strerror(errno));
         }
         close(piped[1]);
     }
 }
 
-void rozofsfs_ll_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
+void rozofs_ll_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
                      mode_t mode, dev_t rdev) {
     ientry_t *ie = 0;
     ientry_t *nie = 0;
@@ -287,7 +287,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
+void rozofs_ll_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
                      mode_t mode) {
     ientry_t *ie = 0;
     ientry_t *nie = 0;
@@ -339,7 +339,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_rename(fuse_req_t req, fuse_ino_t parent, const char *name,
+void rozofs_ll_rename(fuse_req_t req, fuse_ino_t parent, const char *name,
                       fuse_ino_t newparent, const char *newname) {
     ientry_t *pie = 0;
     ientry_t *npie = 0;
@@ -391,7 +391,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_readlink(fuse_req_t req, fuse_ino_t ino) {
+void rozofs_ll_readlink(fuse_req_t req, fuse_ino_t ino) {
     char *target = 0;
     ientry_t *ie = NULL;
     DEBUG_FUNCTION;
@@ -418,7 +418,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi) {
+void rozofs_ll_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi) {
     file_t *file;
     ientry_t *ie = 0;
     DEBUG_FUNCTION;
@@ -446,7 +446,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
+void rozofs_ll_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                     struct fuse_file_info *fi) {
     size_t length = 0;
     char *buff;
@@ -479,7 +479,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_write(fuse_req_t req, fuse_ino_t ino, const char *buf,
+void rozofs_ll_write(fuse_req_t req, fuse_ino_t ino, const char *buf,
                      size_t size, off_t off, struct fuse_file_info *fi) {
     size_t length = 0;
     ientry_t *ie = 0;
@@ -508,7 +508,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_flush(fuse_req_t req, fuse_ino_t ino,
+void rozofs_ll_flush(fuse_req_t req, fuse_ino_t ino,
                      struct fuse_file_info *fi) {
     file_t *f;
     ientry_t *ie = 0;
@@ -545,12 +545,12 @@ out:
     return;
 }
 
-void rozofsfs_ll_access(fuse_req_t req, fuse_ino_t ino, int mask) {
+void rozofs_ll_access(fuse_req_t req, fuse_ino_t ino, int mask) {
     DEBUG_FUNCTION;
     fuse_reply_err(req, 0);
 }
 
-void rozofsfs_ll_release(fuse_req_t req, fuse_ino_t ino,
+void rozofs_ll_release(fuse_req_t req, fuse_ino_t ino,
                        struct fuse_file_info *fi) {
     file_t *f;
     ientry_t *ie = 0;
@@ -570,6 +570,15 @@ void rozofsfs_ll_release(fuse_req_t req, fuse_ino_t ino,
 
     memcpy(f->fid, ie->fid, sizeof (fid_t));
 
+    if (file_flush(f) != 0) {
+        if (errno == ESTALE) {
+            del_ientry(ie);
+            free(ie);
+            errno = ESTALE;
+        }
+        goto error;
+    }
+
     if (file_close(&exportclt, f) != 0) {
         goto error;
     }
@@ -582,7 +591,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_statfs(fuse_req_t req, fuse_ino_t ino) {
+void rozofs_ll_statfs(fuse_req_t req, fuse_ino_t ino) {
     (void) ino;
     estat_t estat;
     struct statvfs st;
@@ -607,7 +616,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_getattr(fuse_req_t req, fuse_ino_t ino,
+void rozofs_ll_getattr(fuse_req_t req, fuse_ino_t ino,
                        struct fuse_file_info *fi) {
     struct stat stbuf;
     (void) fi;
@@ -643,7 +652,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *stbuf,
+void rozofs_ll_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *stbuf,
                        int to_set, struct fuse_file_info *fi) {
     ientry_t *ie = 0;
     struct stat o_stbuf;
@@ -685,7 +694,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_symlink(fuse_req_t req, const char *link, fuse_ino_t parent,
+void rozofs_ll_symlink(fuse_req_t req, const char *link, fuse_ino_t parent,
                        const char *name) {
     ientry_t *ie = 0;
     mattr_t attrs;
@@ -735,7 +744,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_rmdir(fuse_req_t req, fuse_ino_t parent, const char *name) {
+void rozofs_ll_rmdir(fuse_req_t req, fuse_ino_t parent, const char *name) {
     ientry_t *ie = 0;
     ientry_t *ie2 = 0;
     mattr_t attrs;
@@ -774,7 +783,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_unlink(fuse_req_t req, fuse_ino_t parent, const char *name) {
+void rozofs_ll_unlink(fuse_req_t req, fuse_ino_t parent, const char *name) {
     ientry_t *ie = 0;
     ientry_t *ie2 = 0;
     mattr_t attrs;
@@ -836,7 +845,7 @@ static int reply_buf_limited(fuse_req_t req, const char *buf, size_t bufsize,
         return fuse_reply_buf(req, NULL, 0);
 }
 
-void rozofsfs_ll_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
+void rozofs_ll_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                        struct fuse_file_info *fi) {
     ientry_t *ie = 0;
     child_t *child, *iterator, *free_it;
@@ -900,7 +909,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_lookup(fuse_req_t req, fuse_ino_t parent, const char *name) {
+void rozofs_ll_lookup(fuse_req_t req, fuse_ino_t parent, const char *name) {
     struct fuse_entry_param fep;
     ientry_t *ie = 0;
     ientry_t *nie = 0;
@@ -948,7 +957,7 @@ out:
     return;
 }
 
-void rozofsfs_ll_create(fuse_req_t req, fuse_ino_t parent, const char *name,
+void rozofs_ll_create(fuse_req_t req, fuse_ino_t parent, const char *name,
                       mode_t mode, struct fuse_file_info *fi) {
     ientry_t *ie = 0;
     ientry_t *nie = 0;
@@ -1014,42 +1023,42 @@ out:
 }
 
 static struct fuse_lowlevel_ops rozofs_ll_operations = {
-    .init = rozofsfs_ll_init,
-    //.destroy = rozofsfs_ll_destroy,
-    .lookup = rozofsfs_ll_lookup,
-    //.forget = rozofsfs_ll_forget,
-    .getattr = rozofsfs_ll_getattr,
-    .setattr = rozofsfs_ll_setattr,
-    .readlink = rozofsfs_ll_readlink,
-    .mknod = rozofsfs_ll_mknod,
-    .mkdir = rozofsfs_ll_mkdir,
-    .unlink = rozofsfs_ll_unlink,
-    .rmdir = rozofsfs_ll_rmdir,
-    //.symlink = rozofsfs_ll_symlink,
-    .rename = rozofsfs_ll_rename,
-    .open = rozofsfs_ll_open,
-    //.link = rozofsfs_ll_link,
-    .read = rozofsfs_ll_read,
-    .write = rozofsfs_ll_write,
-    .flush = rozofsfs_ll_flush,
-    .release = rozofsfs_ll_release,
-    //.opendir = rozofsfs_ll_opendir,
-    .readdir = rozofsfs_ll_readdir,
-    //.releasedir = rozofsfs_ll_releasedir,
-    //.fsyncdir = rozofsfs_ll_fsyncdir,
-    //.chmod = rozofsfs_ll_chmod,
-    .statfs = rozofsfs_ll_statfs,
-    //.setxattr = rozofsfs_ll_setxattr,
-    //.getxattr = rozofsfs_ll_getxattr,
-    //.listxattr = rozofsfs_ll_listxattr,
-    //.removexattr = rozofsfs_ll_removexattr,
-    //.access = rozofsfs_ll_access,
-    //.create = rozofsfs_ll_create,
-    //.getlk = rozofsfs_ll_getlk,
-    //.setlk = rozofsfs_ll_setlk,
-    //.bmap = rozofsfs_ll_bmap,
-    //.ioctl = rozofsfs_ll_ioctl,
-    //.poll = rozofsfs_ll_poll,
+    .init = rozofs_ll_init,
+    //.destroy = rozofs_ll_destroy,
+    .lookup = rozofs_ll_lookup,
+    //.forget = rozofs_ll_forget,
+    .getattr = rozofs_ll_getattr,
+    .setattr = rozofs_ll_setattr,
+    .readlink = rozofs_ll_readlink,
+    .mknod = rozofs_ll_mknod,
+    .mkdir = rozofs_ll_mkdir,
+    .unlink = rozofs_ll_unlink,
+    .rmdir = rozofs_ll_rmdir,
+    //.symlink = rozofs_ll_symlink,
+    .rename = rozofs_ll_rename,
+    .open = rozofs_ll_open,
+    //.link = rozofs_ll_link,
+    .read = rozofs_ll_read,
+    .write = rozofs_ll_write,
+    .flush = rozofs_ll_flush,
+    .release = rozofs_ll_release,
+    //.opendir = rozofs_ll_opendir,
+    .readdir = rozofs_ll_readdir,
+    //.releasedir = rozofs_ll_releasedir,
+    //.fsyncdir = rozofs_ll_fsyncdir,
+    //.chmod = rozofs_ll_chmod,
+    .statfs = rozofs_ll_statfs,
+    //.setxattr = rozofs_ll_setxattr,
+    //.getxattr = rozofs_ll_getxattr,
+    //.listxattr = rozofs_ll_listxattr,
+    //.removexattr = rozofs_ll_removexattr,
+    //.access = rozofs_ll_access,
+    //.create = rozofs_ll_create,
+    //.getlk = rozofs_ll_getlk,
+    //.setlk = rozofs_ll_setlk,
+    //.bmap = rozofs_ll_bmap,
+    //.ioctl = rozofs_ll_ioctl,
+    //.poll = rozofs_ll_poll,
 };
 
 int fuseloop(struct fuse_args *args, const char *mountpoint, int fg) {
@@ -1198,7 +1207,7 @@ int main(int argc, char *argv[]) {
     conf.max_retry = 5;
     conf.buf_size = 0;
 
-    if (fuse_opt_parse(&args, &conf, rozofsfs_opts, myfs_opt_proc) < 0) {
+    if (fuse_opt_parse(&args, &conf, rozofs_opts, myfs_opt_proc) < 0) {
         exit(1);
     }
 

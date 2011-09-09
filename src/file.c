@@ -268,7 +268,8 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
             projections[mp].bins = bins[mp] + (rozofs_psizes[mp] * i);
         }
         // Apply the erasure code transform for the block i
-        transform_forward((pxl_t *) (data + (i * ROZOFS_BSIZE)), rozofs_inverse,
+        transform_forward((pxl_t *) (data + (i * ROZOFS_BSIZE)),
+                          rozofs_inverse,
                           ROZOFS_BSIZE / rozofs_inverse / sizeof (pxl_t),
                           rozofs_forward, projections);
     }
@@ -347,7 +348,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
     foffset = off % ROZOFS_BSIZE;
     last =
         (off + length) / ROZOFS_BSIZE + ((off + length) % ROZOFS_BSIZE ==
-                                       0 ? -1 : 0);
+                                         0 ? -1 : 0);
     loffset = (off + length) - last * ROZOFS_BSIZE;
 
     // if our read is one block only
@@ -432,7 +433,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
     // Nb. of the last block to write
     last =
         (off + length) / ROZOFS_BSIZE + ((off + length) % ROZOFS_BSIZE ==
-                                       0 ? -1 : 0);
+                                         0 ? -1 : 0);
     // Offset (in bytes) for the last block
     loffset = (off + length) - last * ROZOFS_BSIZE;
 
