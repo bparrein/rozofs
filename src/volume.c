@@ -51,12 +51,12 @@ static void cluster_print(volume_storage_t * a, size_t n) {
     for (i = 0; i < n; i++) {
         volume_storage_t *p = a + i;
         printf("sid: %d, host: %s, size: %" PRIu64 ", free: %" PRIu64 "\n",
-               p->sid, p->host, p->stat.size, p->stat.free);
+                p->sid, p->host, p->stat.size, p->stat.free);
     }
 }
 
 int mstorage_initialize(volume_storage_t * st, uint16_t sid,
-                        const char *hostname) {
+        const char *hostname) {
     int status = -1;
     DEBUG_FUNCTION;
 
@@ -145,6 +145,7 @@ int volume_register(uint16_t cid, volume_storage_t * storages, uint16_t nb_ms) {
 
 volume_storage_t *lookup_volume_storage(sid_t sid) {
     list_t *iterator;
+    volume_storage_t* vol = NULL;
     DEBUG_FUNCTION;
 
     if ((errno = pthread_rwlock_rdlock(&volume.lock)) != 0)
@@ -155,8 +156,10 @@ volume_storage_t *lookup_volume_storage(sid_t sid) {
         volume_storage_t *it = entry->ms;
 
         while (it != entry->ms + entry->nb_ms) {
-            if (sid == it->sid)
-                return it;
+            if (sid == it->sid) {
+                vol = it;
+                break;
+            }
             it++;
         }
     }
@@ -166,9 +169,9 @@ volume_storage_t *lookup_volume_storage(sid_t sid) {
 
     errno = EINVAL;
     severe("lookup_volume_storage failed: storage %u not found: %s", sid,
-           strerror(errno));
+            strerror(errno));
 out:
-    return NULL;
+    return vol;
 }
 
 int volume_balance() {
@@ -204,7 +207,7 @@ int volume_balance() {
         }
 
         qsort(entry->ms, entry->nb_ms, sizeof (volume_storage_t),
-              volume_storage_compare);
+                volume_storage_compare);
     }
 
     list_sort(&volume.mcs, cluster_compare_capacity);
@@ -285,11 +288,11 @@ void volume_stat(volume_stat_t * stat) {
 
     list_for_each_forward(iterator, &volume.mcs) {
         stat->bfree +=
-            list_entry(iterator, cluster_t, list)->free / ROZOFS_BSIZE;
+                list_entry(iterator, cluster_t, list)->free / ROZOFS_BSIZE;
     }
     stat->bfree =
-        (long double) stat->bfree / ((double) rozofs_forward /
-                                     (double) rozofs_inverse);
+            (long double) stat->bfree / ((double) rozofs_forward /
+            (double) rozofs_inverse);
 }
 
 int volume_print() {
@@ -310,9 +313,9 @@ int volume_print() {
     list_for_each_forward(p, &volume.mcs) {
         cluster_t *cluster = list_entry(p, cluster_t, list);
         if (printf
-            ("cluster %d, nb. of storages :%d, size: %" PRIu64 ", free: %"
-             PRIu64 "\n", cluster->cid, cluster->nb_ms, cluster->size,
-             cluster->free) < 0)
+                ("cluster %d, nb. of storages :%d, size: %" PRIu64 ", free: %"
+                PRIu64 "\n", cluster->cid, cluster->nb_ms, cluster->size,
+                cluster->free) < 0)
             goto out;
         cluster_print(cluster->ms, cluster->nb_ms);
     }
