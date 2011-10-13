@@ -84,8 +84,10 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
             if (storageclt_initialize
                 (&cluster->ms[j], ep_cluster.storages[j].host,
                  ep_cluster.storages[j].sid) != 0) {
-                fprintf(stderr,"failed to join: %s, %s\n", ep_cluster.storages[j].host,
-                      strerror(errno));
+                fprintf(stderr,
+                        "warning failed to join storage (SID: %d): %s, %s\n",
+                        ep_cluster.storages[j].sid,
+                        ep_cluster.storages[j].host, strerror(errno));
             }
 
         }
