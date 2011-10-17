@@ -234,7 +234,7 @@ out:
 
 static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
                         const char *data) {
-    int status;
+    int status = -1;
     projection_t *projections;  // Table of projections used to transform data
     bin_t **bins;
     angle_t *angles;
@@ -667,8 +667,7 @@ int64_t file_read(file_t * f, uint64_t off, char **buf, uint32_t len) {
         length =
             (len <=
              (f->buf_pos - (off - f->buf_from))) ? len : (f->buf_pos - (off -
-                                                                        f->
-                                                                        buf_from));
+                                                                        f->buf_from));
         *buf = f->buffer + (off - f->buf_from);
     }
 

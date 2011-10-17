@@ -50,7 +50,7 @@ void storageclt_release(storageclt_t * clt) {
     DEBUG_FUNCTION;
     if (clt && clt->rpcclt.client)
         rpcclt_release(&clt->rpcclt);
-}
+    }
 
 int storageclt_stat(storageclt_t * clt, sstat_t * st) {
     int status = -1;
@@ -93,8 +93,8 @@ int storageclt_write(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid,
     if (ret == 0) {
         storageclt_release(clt);
         warning
-            ("storageclt_write failed: storage write failed (no response from storage server: %s)",
-             clt->host);
+            ("storageclt_write failed: storage write failed (bid : %lu, nrbd: %u) (no response from storage server: %s)",
+             bid, nrb, clt->host);
         errno = EPROTO;
         goto out;
     }

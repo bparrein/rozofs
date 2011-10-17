@@ -932,7 +932,7 @@ int export_rm_bins(export_t * e) {
         sid_t *it = entry->sids;
         cnt = 0;
 
-        while (it != entry->sids + ROZOFS_SAFE_MAX) {
+        while (it != entry->sids + rozofs_safe) {
 
             if (*it != 0) {
                 volume_storage_t *vs = NULL;
@@ -962,7 +962,7 @@ int export_rm_bins(export_t * e) {
             it++;
         }
 
-        if (cnt == ROZOFS_SAFE_MAX) {
+        if (cnt == rozofs_safe) {
 
             char path[PATH_MAX + NAME_MAX + 1];
 
@@ -1254,8 +1254,8 @@ int export_read_block(export_t * e, uuid_t fid, uint64_t bid, uint32_t n,
          pread(mfe->fd, d, n * sizeof (dist_t),
                bid * sizeof (dist_t))) != n * sizeof (dist_t)) {
         severe
-            ("export_read_block failed: pread in file %s failed: %s just %d bytes for %d blocks ",
-             mfe->path, strerror(errno), nrb, n);
+            ("export_read_block failed: (bid: %lu, n: %u) pread in file %s failed: %s just %d bytes for %d blocks ",
+             bid, n, mfe->path, strerror(errno), nrb, n);
         goto out;
     }
 

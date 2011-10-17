@@ -145,7 +145,7 @@ int volume_register(uint16_t cid, volume_storage_t * storages, uint16_t nb_ms) {
 
 volume_storage_t *lookup_volume_storage(sid_t sid) {
     list_t *iterator;
-    volume_storage_t *vol = NULL;
+    volume_storage_t *stor = NULL;
     DEBUG_FUNCTION;
 
     if ((errno = pthread_rwlock_rdlock(&volume.lock)) != 0)
@@ -157,7 +157,7 @@ volume_storage_t *lookup_volume_storage(sid_t sid) {
 
         while (it != entry->ms + entry->nb_ms) {
             if (sid == it->sid) {
-                vol = it;
+                stor = it;
                 break;
             }
             it++;
@@ -167,11 +167,14 @@ volume_storage_t *lookup_volume_storage(sid_t sid) {
     if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
         goto out;
 
-    errno = EINVAL;
-    severe("lookup_volume_storage failed: storage %u not found: %s", sid,
-           strerror(errno));
+    if (stor == NULL) {
+        errno = EINVAL;
+        severe("lookup_volume_storage failed: storage %u not found: %s", sid,
+               strerror(errno));
+    }
+
 out:
-    return vol;
+    return stor;
 }
 
 int volume_balance() {
