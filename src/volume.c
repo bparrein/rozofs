@@ -143,9 +143,8 @@ int volume_register(uint16_t cid, volume_storage_t * storages, uint16_t nb_ms) {
     return 0;
 }
 
-volume_storage_t *lookup_volume_storage(sid_t sid) {
+char *lookup_volume_storage(sid_t sid, char *host) {
     list_t *iterator;
-    volume_storage_t *stor = NULL;
     DEBUG_FUNCTION;
 
     if ((errno = pthread_rwlock_rdlock(&volume.lock)) != 0)
@@ -157,7 +156,7 @@ volume_storage_t *lookup_volume_storage(sid_t sid) {
 
         while (it != entry->ms + entry->nb_ms) {
             if (sid == it->sid) {
-                stor = it;
+                strcpy(host, it->host);
                 break;
             }
             it++;
@@ -167,20 +166,17 @@ volume_storage_t *lookup_volume_storage(sid_t sid) {
     if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
         goto out;
 
-    if (stor == NULL) {
-        errno = EINVAL;
-        severe("lookup_volume_storage failed: storage %u not found: %s", sid,
-               strerror(errno));
-    }
-
 out:
-    return stor;
+    return host;
 }
 
 int volume_balance() {
     int status = -1;
     list_t *iterator;
     DEBUG_FUNCTION;
+
+    if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
+        goto out;
 
     list_for_each_forward(iterator, &volume.mcs) {
         cluster_t *entry = list_entry(iterator, cluster_t, list);
@@ -206,18 +202,10 @@ int volume_balance() {
             it++;
         }
 
-        if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
-            goto out;
-
         qsort(entry->ms, entry->nb_ms, sizeof (volume_storage_t),
               volume_storage_compare);
 
-        if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
-            goto out;
     }
-
-    if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
-        goto out;
 
     list_sort(&volume.mcs, cluster_compare_capacity);
 

@@ -34,7 +34,7 @@ int storageclt_initialize(storageclt_t * clt, const char *host, sid_t sid) {
     clt->sid = sid;
 
     if (rpcclt_initialize
-        (&clt->rpcclt, host, STORAGE_PROGRAM, STORAGE_VERSION,
+        (&clt->rpcclt, clt->host, STORAGE_PROGRAM, STORAGE_VERSION,
          ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
         int xerrno = errno;
         storageclt_release(clt);
@@ -50,7 +50,7 @@ void storageclt_release(storageclt_t * clt) {
     DEBUG_FUNCTION;
     if (clt && clt->rpcclt.client)
         rpcclt_release(&clt->rpcclt);
-    }
+}
 
 int storageclt_stat(storageclt_t * clt, sstat_t * st) {
     int status = -1;
@@ -194,6 +194,6 @@ int storageclt_remove(storageclt_t * clt, fid_t fid) {
     status = 0;
 out:
     if (ret)
-        xdr_free((xdrproc_t) xdr_sp_read_ret_t, (char *) ret);
+        xdr_free((xdrproc_t) xdr_sp_status_ret_t, (char *) ret);
     return status;
 }

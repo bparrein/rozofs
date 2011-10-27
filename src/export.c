@@ -935,27 +935,23 @@ int export_rm_bins(export_t * e) {
         while (it != entry->sids + rozofs_safe) {
 
             if (*it != 0) {
-                volume_storage_t *vs = NULL;
+                char host[ROZOFS_HOSTNAME_MAX];
                 storageclt_t sclt;
-                if ((vs = lookup_volume_storage(*it)) == NULL) {
-                    goto out;
-                }
-                if (storageclt_initialize(&sclt, vs->host, vs->sid) != 0) {
-                    warning("failed to join: %s,  %s", vs->host,
-                            strerror(errno));
+
+                lookup_volume_storage(*it, host);
+
+                if (storageclt_initialize(&sclt, host, *it) != 0) {
+                    warning("failed to join: %s,  %s", host, strerror(errno));
 
                 } else {
                     if (storageclt_remove(&sclt, entry->fid) != 0) {
-                        warning("failed to remove: %s", vs->host);
+                        warning("failed to remove: %s", host);
                     } else {
                         *it = 0;
                         cnt++;
                     }
                 }
                 storageclt_release(&sclt);
-
-                // send a request
-                //warning("remove file for : SID: %u host: %s", vs->sid, vs->host);
             } else {
                 cnt++;
             }
@@ -1411,7 +1407,6 @@ int export_close(export_t * e, fid_t fid) {
     DEBUG_FUNCTION;
 
     if (!(mfe = htable_get(&e->hfids, fid))) {
-        warning("big problem");
         errno = ESTALE;
         goto out;
     }

@@ -64,7 +64,7 @@ int volume_register(uint16_t cid, volume_storage_t * storages,
 
 int volume_balance();
 
-volume_storage_t *lookup_volume_storage(sid_t sid);
+char *lookup_volume_storage(sid_t sid, char *host);
 
 int volume_distribute(uint16_t * cid, uint16_t * sids);
 

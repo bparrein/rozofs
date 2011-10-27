@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
         goto out;
     }
     // Add clusters and storages
-    for (i = 0; i < cluster_nb; i++) {
+    for (i = 1; i <= cluster_nb; i++) {
 
         volume_storage_t *storage =
             (volume_storage_t *) xmalloc(storages_nb *
@@ -110,18 +110,13 @@ int main(int argc, char **argv) {
     printf("Volume bfree: %" PRIu64 "\n", vstat.bfree);
     printf("Volume size: %d\n", volume_size());
 
-    sid_t sid_look = 7;
+    sid_t sid_look = 8;
     volume_storage_t *result_look;
 
-    // Lookup storage volume
-    if ((result_look = lookup_volume_storage(sid_look)) == NULL) {
-        fprintf(stderr, "Can't lookup for SID: %u: %s\n", sid_look,
-                strerror(errno));
-        status = -1;
-        goto out;
-    }
+    char host[ROZOFS_HOSTNAME_MAX];
 
-    printf("lookup storage with SID %u: %s\n", sid_look, result_look->host);
+    printf("lookup storage with SID %u: %s\n", sid_look,
+           lookup_volume_storage(sid_look, host));
 
     // Release volume
     if (volume_release() != 0) {
