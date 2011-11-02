@@ -81,29 +81,27 @@ out:
 }
 
 int volume_initialize() {
-    int status = 0;
+    int status = -1;
     DEBUG_FUNCTION;
 
     list_init(&volume.mcs);
 
     if ((errno = pthread_rwlock_init(&volume.lock, NULL)) != 0) {
-        status = -1;
         goto out;
     }
 
+    status = 0;
 out:
     return status;
 }
 
 int volume_release() {
-    int status = 0;
+    int status = -1;
     list_t *p, *q;
     DEBUG_FUNCTION;
 
-    if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0) {
-        status = -1;
+    if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
         goto out;
-    }
 
     list_for_each_forward_safe(p, q, &volume.mcs) {
         cluster_t *entry = list_entry(p, cluster_t, list);
@@ -112,16 +110,13 @@ int volume_release() {
         free(entry);
     }
 
-    if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0) {
-        status = -1;
+    if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
         goto out;
-    }
 
-    if ((errno = pthread_rwlock_destroy(&volume.lock)) != 0) {
-        status = -1;
+    if ((errno = pthread_rwlock_destroy(&volume.lock)) != 0)
         goto out;
-    }
 
+    status = 0;
 out:
     return status;
 }

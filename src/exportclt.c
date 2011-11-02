@@ -276,7 +276,7 @@ int exportclt_setattr(exportclt_t * clt, fid_t fid, mattr_t * attrs) {
     status = 0;
 out:
     if (ret)
-        xdr_free((xdrproc_t) xdr_ep_status_ret_t, (char *) ret);
+        xdr_free((xdrproc_t) xdr_ep_mattr_ret_t, (char *) ret);
     return status;
 }
 
