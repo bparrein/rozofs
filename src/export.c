@@ -923,7 +923,7 @@ int export_rm_bins(export_t * e) {
     list_t *p, *q;
     DEBUG_FUNCTION;
 
-    if ((errno = pthread_rwlock_wrlock(&e->rm_lock)) != 0)
+    if ((errno = pthread_rwlock_trywrlock(&e->rm_lock)) != 0)
         goto out;
 
     list_for_each_forward_safe(p, q, &e->rmfiles) {
@@ -978,7 +978,6 @@ int export_rm_bins(export_t * e) {
 
     status = 0;
 out:
-
     return status;
 }
 

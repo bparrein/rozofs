@@ -42,7 +42,7 @@ RUNNING
 Requirements
 ------------
     - a running portmap see portmap(8)
-    - extend attributes on used file system (exports and storages) see mount(8) and fstab(5)
+    - extend attributes on used file system (export and storages) see mount(8) and fstab(5)
 
 Start
 -----
@@ -50,7 +50,7 @@ Start
     1 ) install exportd on a host
     2 ) install storaged on multiple hosts
     3 ) create exported directory (mkdir)
-    4 ) fill in export.conf (/etc/rozofs or /usr/local/etc/rozofs accordind to CMAKE_INSTALL_PREFIX)
+    4 ) fill in export.conf (/etc/rozofs or /usr/local/etc/rozofs according to CMAKE_INSTALL_PREFIX)
     5 ) fill in all storage.conf
     6 ) [sudo] exportd
     7 ) [sudo] storaged

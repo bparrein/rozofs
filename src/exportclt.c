@@ -183,10 +183,23 @@ void exportclt_release(exportclt_t * clt) {
 int exportclt_stat(exportclt_t * clt, estat_t * st) {
     int status = -1;
     ep_statfs_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
-    PROFILE_EXPORT_START ret = ep_statfs_1(&clt->eid, clt->rpcclt.client);
-    PROFILE_EXPORT_STOP if (ret == 0) {
+    PROFILE_EXPORT_START;
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_statfs_1(&clt->eid, clt->rpcclt.client)))) {
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+    PROFILE_EXPORT_STOP;
+
+    if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -207,13 +220,27 @@ int exportclt_lookup(exportclt_t * clt, fid_t parent, char *name,
     int status = -1;
     ep_lookup_arg_t arg;
     ep_mattr_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.parent, parent, sizeof (uuid_t));
     arg.name = name;
-    PROFILE_EXPORT_START ret = ep_lookup_1(&arg, clt->rpcclt.client);
-    PROFILE_EXPORT_STOP if (ret == 0) {
+    PROFILE_EXPORT_START;
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_lookup_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+    PROFILE_EXPORT_STOP;
+
+    if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -233,12 +260,26 @@ int exportclt_getattr(exportclt_t * clt, fid_t fid, mattr_t * attrs) {
     int status = -1;
     ep_mfile_arg_t arg;
     ep_mattr_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.fid, fid, sizeof (uuid_t));
-    PROFILE_EXPORT_START ret = ep_getattr_1(&arg, clt->rpcclt.client);
-    PROFILE_EXPORT_STOP if (ret == 0) {
+    PROFILE_EXPORT_START;
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_getattr_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+    PROFILE_EXPORT_STOP;
+
+    if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -258,13 +299,26 @@ int exportclt_setattr(exportclt_t * clt, fid_t fid, mattr_t * attrs) {
     int status = -1;
     ep_setattr_arg_t arg;
     ep_mattr_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(&arg.attrs, attrs, sizeof (mattr_t));
     memcpy(arg.attrs.fid, fid, sizeof (fid_t));
-    PROFILE_EXPORT_START ret = ep_setattr_1(&arg, clt->rpcclt.client);
-    PROFILE_EXPORT_STOP if (ret == 0) {
+    PROFILE_EXPORT_START;
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_setattr_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+    PROFILE_EXPORT_STOP;
+    if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -284,11 +338,24 @@ int exportclt_readlink(exportclt_t * clt, fid_t fid, char link[PATH_MAX]) {
     int status = -1;
     ep_mfile_arg_t arg;
     ep_readlink_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(&arg.fid, fid, sizeof (uuid_t));
-    ret = ep_readlink_1(&arg, clt->rpcclt.client);
+
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_readlink_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+
     if (ret == 0) {
         errno = EPROTO;
         goto out;
@@ -310,13 +377,26 @@ int exportclt_mknod(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
     int status = -1;
     ep_mknod_arg_t arg;
     ep_mattr_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.parent, parent, sizeof (uuid_t));
     arg.name = name;
     arg.mode = mode;
-    ret = ep_mknod_1(&arg, clt->rpcclt.client);
+
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_mknod_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+
     if (ret == 0) {
         errno = EPROTO;
         goto out;
@@ -338,13 +418,26 @@ int exportclt_mkdir(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
     int status = -1;
     ep_mkdir_arg_t arg;
     ep_mattr_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.parent, parent, sizeof (uuid_t));
     arg.name = name;
     arg.mode = mode;
-    ret = ep_mkdir_1(&arg, clt->rpcclt.client);
+
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_mkdir_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+
     if (ret == 0) {
         errno = EPROTO;
         goto out;
@@ -365,11 +458,24 @@ int exportclt_unlink(exportclt_t * clt, fid_t fid) {
     int status = -1;
     ep_mfile_arg_t arg;
     ep_status_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.fid, fid, sizeof (uuid_t));
-    ret = ep_unlink_1(&arg, clt->rpcclt.client);
+
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_unlink_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+
     if (ret == 0) {
         errno = EPROTO;
         goto out;
@@ -389,11 +495,24 @@ int exportclt_rmdir(exportclt_t * clt, fid_t fid) {
     int status = -1;
     ep_mfile_arg_t arg;
     ep_status_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.fid, fid, sizeof (uuid_t));
-    ret = ep_rmdir_1(&arg, clt->rpcclt.client);
+
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_rmdir_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+
     if (ret == 0) {
         errno = EPROTO;
         goto out;
@@ -414,13 +533,26 @@ int exportclt_symlink(exportclt_t * clt, char *link, fid_t parent, char *name,
     int status = -1;
     ep_symlink_arg_t arg;
     ep_mattr_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     arg.link = link;
     arg.name = name;
     memcpy(arg.parent, parent, sizeof (fid_t));
-    ret = ep_symlink_1(&arg, clt->rpcclt.client);
+
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_symlink_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+
     if (ret == 0) {
         errno = EPROTO;
         goto out;
@@ -441,13 +573,26 @@ int exportclt_rename(exportclt_t * clt, fid_t from, fid_t parent, char *name) {
     int status = -1;
     ep_rename_arg_t arg;
     ep_status_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.from, from, sizeof (fid_t));
     memcpy(arg.to_parent, parent, sizeof (fid_t));
     arg.to_name = name;
-    ret = ep_rename_1(&arg, clt->rpcclt.client);
+
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_rename_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+
     if (ret == 0) {
         errno = EPROTO;
         goto out;
@@ -468,14 +613,29 @@ int64_t exportclt_read(exportclt_t * clt, fid_t fid, uint64_t off,
     int64_t lenght = -1;
     ep_io_arg_t arg;
     ep_io_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.fid, fid, sizeof (fid_t));
     arg.offset = off;
     arg.length = len;
-    PROFILE_EXPORT_START ret = ep_read_1(&arg, clt->rpcclt.client);
-    PROFILE_EXPORT_STOP if (ret == 0) {
+    PROFILE_EXPORT_START;
+
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_read_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+
+    PROFILE_EXPORT_STOP;
+    if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -495,14 +655,27 @@ int exportclt_read_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
     int status = -1;
     ep_read_block_arg_t arg;
     ep_read_block_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.fid, fid, sizeof (fid_t));
     arg.bid = bid;
     arg.nrb = n;
-    PROFILE_EXPORT_START ret = ep_read_block_1(&arg, clt->rpcclt.client);
-    PROFILE_EXPORT_STOP if (ret == 0) {
+    PROFILE_EXPORT_START;
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_read_block_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+    PROFILE_EXPORT_STOP;
+    if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -523,14 +696,27 @@ int64_t exportclt_write(exportclt_t * clt, fid_t fid, uint64_t off,
     int64_t lenght = -1;
     ep_io_arg_t arg;
     ep_io_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.fid, fid, sizeof (fid_t));
     arg.offset = off;
     arg.length = len;
-    PROFILE_EXPORT_START ret = ep_write_1(&arg, clt->rpcclt.client);
-    PROFILE_EXPORT_STOP if (ret == 0) {
+    PROFILE_EXPORT_START;
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_write_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+    PROFILE_EXPORT_STOP;
+    if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -550,6 +736,7 @@ int exportclt_write_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
     int status = -1;
     ep_write_block_arg_t arg;
     ep_status_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
@@ -559,8 +746,20 @@ int exportclt_write_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
     //arg.dist.dist_len = n;
     //arg.dist.dist_val = d;
     arg.dist = d;
-    PROFILE_EXPORT_START ret = ep_write_block_1(&arg, clt->rpcclt.client);
-    PROFILE_EXPORT_STOP if (ret == 0) {
+    PROFILE_EXPORT_START;
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_write_block_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+    PROFILE_EXPORT_STOP;
+    if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -579,14 +778,27 @@ int exportclt_readdir(exportclt_t * clt, fid_t fid, child_t ** children) {
     int status = -1;
     ep_mfile_arg_t arg;
     ep_readdir_ret_t *ret = 0;
+    int retry = 0;
     ep_children_t it1;
     child_t **it2;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.fid, fid, sizeof (fid_t));
-    PROFILE_EXPORT_START ret = ep_readdir_1(&arg, clt->rpcclt.client);
-    PROFILE_EXPORT_STOP if (ret == 0) {
+    PROFILE_EXPORT_START;
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_readdir_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+    PROFILE_EXPORT_STOP;
+    if (ret == 0) {
         errno = EPROTO;
         goto out;
     }
@@ -616,12 +828,24 @@ int exportclt_open(exportclt_t * clt, fid_t fid) {
     int status = -1;
     ep_mfile_arg_t arg;
     ep_status_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.fid, fid, sizeof (fid_t));
 
-    ret = ep_open_1(&arg, clt->rpcclt.client);
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_open_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+
     if (ret == 0) {
         errno = EPROTO;
         goto out;
@@ -642,12 +866,24 @@ int exportclt_close(exportclt_t * clt, fid_t fid) {
     int status = -1;
     ep_mfile_arg_t arg;
     ep_status_ret_t *ret = 0;
+    int retry = 0;
     DEBUG_FUNCTION;
 
     arg.eid = clt->eid;
     memcpy(arg.fid, fid, sizeof (fid_t));
 
-    ret = ep_close_1(&arg, clt->rpcclt.client);
+    while ((retry++ < clt->retries) &&
+           (!(clt->rpcclt.client) ||
+            !(ret = ep_close_1(&arg, clt->rpcclt.client)))) {
+
+        if (rpcclt_initialize
+            (&clt->rpcclt, clt->host, EXPORT_PROGRAM, EXPORT_VERSION,
+             ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+            rpcclt_release(&clt->rpcclt);
+            errno = EPROTO;
+        }
+    }
+
     if (ret == 0) {
         errno = EPROTO;
         goto out;

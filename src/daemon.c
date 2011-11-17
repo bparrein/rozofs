@@ -116,7 +116,7 @@ void daemon_start(const char *name, void (*on_start) (void),
         return;
     }
     if (daemon(0, 0) != 0) {
-        perror("daemon failed");
+        fprintf(stderr, "daemon failed");
         return;
     }
     if (on_stop)
@@ -124,7 +124,7 @@ void daemon_start(const char *name, void (*on_start) (void),
     if (on_hup)
         daemon_on_hup = on_hup;
     if (write_pid(name) != 0) {
-        fatal("write_pid failed");
+        fprintf(stderr, "write_pid failed");
         return;
     }
     signal(SIGCHLD, SIG_IGN);

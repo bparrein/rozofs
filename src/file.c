@@ -141,7 +141,8 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
         // Nb. of received requests (at begin=0)
         int connected = 0;
         // For each projection
-        PROFILE_STORAGE_START for (mp = 0; mp < rozofs_forward; mp++) {
+        PROFILE_STORAGE_START;
+        for (mp = 0; mp < rozofs_forward; mp++) {
             int mps = 0;
             int j = 0;
             bin_t *b;
@@ -172,16 +173,16 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
             if (++connected == rozofs_inverse)
                 break;
         }
-        PROFILE_STORAGE_STOP
-            // Not enough server storage response to retrieve the file
-            if (connected < rozofs_inverse) {
+        PROFILE_STORAGE_STOP;
+        // Not enough server storage response to retrieve the file
+        if (connected < rozofs_inverse) {
             errno = EIO;
             goto out;
         }
 
-        PROFILE_TRANSFORM_START
-            // Proceed the inverse data transform for the n blocks.
-            for (j = 0; j < n; j++) {
+        PROFILE_TRANSFORM_START;
+        // Proceed the inverse data transform for the n blocks.
+        for (j = 0; j < n; j++) {
             // Fill the table of projections for the block j
             // For each meta-projection
             for (mp = 0; mp < rozofs_inverse; mp++) {
@@ -199,9 +200,9 @@ static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
                               ROZOFS_BSIZE / rozofs_inverse / sizeof (pxl_t),
                               rozofs_inverse, projections);
         }
-        PROFILE_TRANSFORM_INV_STOP
-            // Free the memory area where are stored the bins.
-            for (mp = 0; mp < rozofs_inverse; mp++) {
+        PROFILE_TRANSFORM_INV_STOP;
+        // Free the memory area where are stored the bins.
+        for (mp = 0; mp < rozofs_inverse; mp++) {
             if (bins[mp])
                 free(bins[mp]);
             bins[mp] = 0;
@@ -258,10 +259,10 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
         projections[mp].size = rozofs_psizes[mp];
     }
 
-    PROFILE_TRANSFORM_START
-        /* Transform the data */
-        // For each block to send
-        for (i = 0; i < nmbs; i++) {
+    PROFILE_TRANSFORM_START;
+    /* Transform the data */
+    // For each block to send
+    for (i = 0; i < nmbs; i++) {
         // seek bins for each projection
         for (mp = 0; mp < rozofs_forward; mp++) {
             // Indicates the memory area where the transformed data must be stored
@@ -273,11 +274,12 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
                           ROZOFS_BSIZE / rozofs_inverse / sizeof (pxl_t),
                           rozofs_forward, projections);
     }
-    PROFILE_TRANSFORM_FRWD_STOP
-        /* Send requests to the storage servers */
-        // For each projection server
-        mp = 0;
-    PROFILE_STORAGE_START for (ps = 0; ps < rozofs_safe; ps++) {
+    PROFILE_TRANSFORM_FRWD_STOP;
+    /* Send requests to the storage servers */
+    // For each projection server
+    mp = 0;
+    PROFILE_STORAGE_START;
+    for (ps = 0; ps < rozofs_safe; ps++) {
         // Warning: the server can be disconnected
         // but f->storages[ps].rpcclt->client != NULL
         // the disconnection will be detected when the request will be sent
@@ -296,9 +298,9 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
         if (++mp == rozofs_forward)
             break;
     }
-    PROFILE_STORAGE_STOP
-        // Not enough server storage connections to store the file
-        if (mp < rozofs_forward) {
+    PROFILE_STORAGE_STOP;
+    // Not enough server storage connections to store the file
+    if (mp < rozofs_forward) {
         errno = EIO;
         goto out;
     }
@@ -667,7 +669,8 @@ int64_t file_read(file_t * f, uint64_t off, char **buf, uint32_t len) {
         length =
             (len <=
              (f->buf_pos - (off - f->buf_from))) ? len : (f->buf_pos - (off -
-                                                                        f->buf_from));
+                                                                        f->
+                                                                        buf_from));
         *buf = f->buffer + (off - f->buf_from);
     }
 

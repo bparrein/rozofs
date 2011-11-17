@@ -55,7 +55,7 @@ static void usage(const char *progname) {
     fprintf(stderr,
             "\t-H EXPORT_HOST\t\tdefine address (or dns name) where exportd deamon is running (default: rozofsexport) equivalent to '-o exporthost=EXPORT_HOST'\n");
     fprintf(stderr,
-            "\t-E EXPORT_PATH\t\tdefine path of an export see exportd (default: /home/rozofs) equivalent to '-o exportpath=EXPORT_PATH'\n");
+            "\t-E EXPORT_PATH\t\tdefine path of an export see exportd (default: /srv/rozo/exports/export) equivalent to '-o exportpath=EXPORT_PATH'\n");
     fprintf(stderr,
             "\t-o rozofsbufsize=N\tdefine size of I/O buffer in KiB (default: 256)\n");
     fprintf(stderr,
@@ -1093,8 +1093,9 @@ int fuseloop(struct fuse_args *args, const char *mountpoint, int fg) {
     root->inode = inode_idx++;
     put_ientry(root);
 
-    PROFILE_INIT info("mounting - export: %s from : %s on: %s", conf.export,
-                      conf.host, mountpoint);
+    PROFILE_INIT;
+    info("mounting - export: %s from : %s on: %s", conf.export, conf.host,
+         mountpoint);
 
     if (fg == 0) {
         if (pipe(piped) < 0) {
@@ -1216,7 +1217,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (conf.export == NULL) {
-        conf.export = strdup("/home/rozofs");
+        conf.export = strdup("/srv/rozo/exports/export");
     }
 
     if (conf.buf_size == 0) {
