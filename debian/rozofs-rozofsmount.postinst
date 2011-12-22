@@ -20,7 +20,7 @@ set -e
 
 case "$1" in
     configure)
-        ln -s /sbin/mount.fuse /sbin/mount.rozofs
+        ln -sf /sbin/mount.fuse /sbin/mount.rozofs
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

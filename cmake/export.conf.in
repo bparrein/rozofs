@@ -18,7 +18,7 @@ layout = 2;
 # each cluster should be contain at least *safe* storages of the same capacity.
 # Use a new cluster when scaling with storage of different capacity.
 # WARNING WARNING WARNING WARNING
-# modifying or removing uuid of storage servers can (will) lead to DATA LOSS !
+# modifying or removing sid of storage servers can (will) lead to DATA LOSS !
 volume =
 (
     {
@@ -72,7 +72,6 @@ volume =
 );
 
 # exported filesystems
-# should have been set up by exportd --create <root>
 exports = (
     {eid = 1; root = "/path/to/foo";},
     {eid = 2; root = "/path/to/bar";}
