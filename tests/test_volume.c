@@ -111,7 +111,6 @@ int main(int argc, char **argv) {
     printf("Volume size: %d\n", volume_size());
 
     sid_t sid_look = 8;
-    volume_storage_t *result_look;
 
     char host[ROZOFS_HOSTNAME_MAX];
 

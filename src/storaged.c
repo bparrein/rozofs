@@ -47,7 +47,6 @@
 #define STORAGED_PID_FILE "storaged.pid"
 
 static char storaged_config_file[PATH_MAX] = STORAGED_DEFAULT_CONFIG;
-static int storaged_command_flag = -1;
 static storage_t *storaged_storages = 0;
 static uint16_t storaged_nrstorages = 0;
 extern void storage_program_1(struct svc_req *rqstp, SVCXPRT * ctl_svc);
@@ -141,8 +140,8 @@ static int load_storages_conf(struct config_t *config) {
 
         if (storaged_lookup(sid) != NULL) {
             fprintf(stderr,
-                    "cant't add storage with sid %u: already exists\n", sid);
-            info("cant't add storage with sid %u: already exists", sid);
+                    "cant't add storage with sid %ld: already exists\n", sid);
+            info("cant't add storage with sid %ld: already exists", sid);
             goto out;
         }
 
@@ -157,9 +156,9 @@ static int load_storages_conf(struct config_t *config) {
         if (storage_initialize(storaged_storages + i, (uint16_t) sid, root) !=
             0) {
             fprintf(stderr,
-                    "can't initialize storage (sid:%u) with path %s: %s\n",
+                    "can't initialize storage (sid:%ld) with path %s: %s\n",
                     sid, root, strerror(errno));
-            severe("can't initialize storage (sid:%u) with path %s: %s", sid,
+            severe("can't initialize storage (sid:%ld) with path %s: %s", sid,
                    root, strerror(errno));
             goto out;
         }
