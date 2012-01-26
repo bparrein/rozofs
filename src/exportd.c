@@ -94,7 +94,7 @@ out:
 }
 
 static void *remove_bins_thread(void *v) {
-    struct timespec ts = { 60, 0 };
+    struct timespec ts = { 30, 0 };
 
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 

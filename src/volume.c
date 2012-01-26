@@ -51,12 +51,12 @@ static void cluster_print(volume_storage_t * a, size_t n) {
     for (i = 0; i < n; i++) {
         volume_storage_t *p = a + i;
         printf("sid: %d, host: %s, size: %" PRIu64 ", free: %" PRIu64 "\n",
-                p->sid, p->host, p->stat.size, p->stat.free);
+               p->sid, p->host, p->stat.size, p->stat.free);
     }
 }
 
 int mstorage_initialize(volume_storage_t * st, uint16_t sid,
-        const char *hostname) {
+                        const char *hostname) {
     int status = -1;
     DEBUG_FUNCTION;
 
@@ -198,7 +198,7 @@ int volume_balance() {
         }
 
         qsort(entry->ms, entry->nb_ms, sizeof (volume_storage_t),
-                volume_storage_compare);
+              volume_storage_compare);
 
     }
 
@@ -223,7 +223,7 @@ static int cluster_distribute(cluster_t * cluster, uint16_t * sids) {
     for (i = 0; i < cluster->nb_ms; i++) {
         volume_storage_t *p = (cluster->ms) + i;
         if (p->stat.free != 0)
-        sids[ms_found++] = p->sid;
+            sids[ms_found++] = p->sid;
         if (ms_found == rozofs_safe) {
             status = 0;
             break;
@@ -280,11 +280,11 @@ void volume_stat(volume_stat_t * stat) {
 
     list_for_each_forward(iterator, &volume.mcs) {
         stat->bfree +=
-                list_entry(iterator, cluster_t, list)->free / ROZOFS_BSIZE;
+            list_entry(iterator, cluster_t, list)->free / ROZOFS_BSIZE;
     }
     stat->bfree =
-            (long double) stat->bfree / ((double) rozofs_forward /
-            (double) rozofs_inverse);
+        (long double) stat->bfree / ((double) rozofs_forward /
+                                     (double) rozofs_inverse);
 }
 
 int volume_print() {
@@ -305,9 +305,9 @@ int volume_print() {
     list_for_each_forward(p, &volume.mcs) {
         cluster_t *cluster = list_entry(p, cluster_t, list);
         if (printf
-                ("cluster %d, nb. of storages :%d, size: %" PRIu64 ", free: %"
-                PRIu64 "\n", cluster->cid, cluster->nb_ms, cluster->size,
-                cluster->free) < 0)
+            ("cluster %d, nb. of storages :%d, size: %" PRIu64 ", free: %"
+             PRIu64 "\n", cluster->cid, cluster->nb_ms, cluster->size,
+             cluster->free) < 0)
             goto out;
         cluster_print(cluster->ms, cluster->nb_ms);
     }

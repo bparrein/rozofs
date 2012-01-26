@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #ifndef _LIST_H
 #define _LIST_H
@@ -146,6 +146,9 @@ static inline void list_sort(list_t * head,
 
 #define list_entry(ptr, type, member) \
 	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+
+#define list_first_entry(ptr, type, member) \
+        list_entry((ptr)->next, type, member)
 
 #define list_for_each_forward(pos, head) \
 	for (pos = (head)->next; pos != (head); pos = pos->next)

@@ -118,7 +118,7 @@ typedef struct rmfentry {
 } rmfentry_t;
 
 static int mfentry_initialize(mfentry_t * mfe, mfentry_t * parent,
-        const char *name, char *path) {
+                              const char *name, char *path) {
     int status = -1;
     DEBUG_FUNCTION;
 
@@ -171,7 +171,7 @@ static void mfentry_release(mfentry_t * mfe) {
 
 static int mfentry_persist(mfentry_t * mfe) {
     return setxattr(mfe->path, EATTRSTKEY, &(mfe->attrs), sizeof (mattr_t),
-            XATTR_REPLACE) != 0 ? -1 : 0;
+                    XATTR_REPLACE) != 0 ? -1 : 0;
 }
 
 static uint32_t mfentry_hash_fid(void *key) {
@@ -206,7 +206,7 @@ static int mfentry_cmp_fid_name(void *k1, void *k2) {
     mfentry_t *sk2 = (mfentry_t *) k2;
 
     if ((uuid_compare(sk1->pfid, sk2->pfid) == 0) &&
-            (strcmp(sk1->name, sk2->name) == 0)) {
+        (strcmp(sk1->name, sk2->name) == 0)) {
         return 0;
     } else {
         return 1;
@@ -228,7 +228,7 @@ static int export_load_rmfentry(export_t * e) {
 
     if ((dd = opendir(trash_path)) == NULL) {
         severe("export_load_rmfentry failed: opendir failed: %s",
-                strerror(errno));
+               strerror(errno));
         goto out;
     }
 
@@ -244,11 +244,11 @@ static int export_load_rmfentry(export_t * e) {
         uuid_parse(dp->d_name, rmfid);
 
         if (getxattr
-                (export_trash_map(e, rmfid, rm_path), EATTRSTKEY, &attrs,
-                sizeof (mattr_t)) == -1) {
+            (export_trash_map(e, rmfid, rm_path), EATTRSTKEY, &attrs,
+             sizeof (mattr_t)) == -1) {
             severe
-                    ("export_load_rmfentry failed: getxattr for file %s failed: %s",
-                    export_trash_map(e, rmfid, rm_path), strerror(errno));
+                ("export_load_rmfentry failed: getxattr for file %s failed: %s",
+                 export_trash_map(e, rmfid, rm_path), strerror(errno));
         }
 
         rmfe = xmalloc(sizeof (rmfentry_t));
@@ -257,13 +257,13 @@ static int export_load_rmfentry(export_t * e) {
 
         list_init(&rmfe->list);
 
-                if ((errno = pthread_rwlock_wrlock(&e->rm_lock)) != 0)
-                    goto out;
+        if ((errno = pthread_rwlock_wrlock(&e->rm_lock)) != 0)
+            goto out;
 
         list_push_front(&e->rmfiles, &rmfe->list);
 
-                if ((errno = pthread_rwlock_unlock(&e->rm_lock)) != 0)
-                    goto out;
+        if ((errno = pthread_rwlock_unlock(&e->rm_lock)) != 0)
+            goto out;
     }
 
     status = 0;
@@ -307,7 +307,7 @@ static inline int export_update_files(export_t * e, int32_t n) {
     files += n;
 
     if (setxattr(e->root, EFILESKEY, &files, sizeof (uint64_t), XATTR_REPLACE)
-            == -1) {
+        == -1) {
         warning("export_update_files failed: setxattr for file %s failed: %s",
                 e->root, strerror(errno));
         goto out;
@@ -324,21 +324,21 @@ static inline int export_update_blocks(export_t * e, int32_t n) {
     DEBUG_FUNCTION;
 
     if (getxattr(e->root, EBLOCKSKEY, &blocks, sizeof (uint64_t)) !=
-            sizeof (uint64_t)) {
+        sizeof (uint64_t)) {
         warning
-                ("export_update_blocks failed: getxattr for file %s failed: %s",
-                e->root, strerror(errno));
+            ("export_update_blocks failed: getxattr for file %s failed: %s",
+             e->root, strerror(errno));
         goto out;
     }
 
     blocks += n;
 
     if (setxattr
-            (e->root, EBLOCKSKEY, &blocks, sizeof (uint64_t),
-            XATTR_REPLACE) != 0) {
+        (e->root, EBLOCKSKEY, &blocks, sizeof (uint64_t),
+         XATTR_REPLACE) != 0) {
         warning
-                ("export_update_blocks failed: setxattr for file %s failed: %s",
-                e->root, strerror(errno));
+            ("export_update_blocks failed: setxattr for file %s failed: %s",
+             e->root, strerror(errno));
         goto out;
     }
     status = 0;
@@ -367,8 +367,8 @@ int export_create(const char *root) {
     if (setxattr(path, EFILESKEY, &zero, sizeof (zero), XATTR_CREATE) != 0)
         goto out;
     if (setxattr
-            (path, EVERSIONKEY, &version, sizeof (char) * strlen(version) + 1,
-            XATTR_CREATE) != 0)
+        (path, EVERSIONKEY, &version, sizeof (char) * strlen(version) + 1,
+         XATTR_CREATE) != 0)
         goto out;
     uuid_generate(attrs.fid);
     attrs.cid = 0;
@@ -379,7 +379,7 @@ int export_create(const char *root) {
         goto out;
     attrs.size = ROZOFS_DIR_SIZE;
     if (setxattr(path, EATTRSTKEY, &attrs, sizeof (mattr_t), XATTR_CREATE)
-            != 0)
+        != 0)
         goto out;
 
     uuid_generate(trash_uuid);
@@ -392,7 +392,7 @@ int export_create(const char *root) {
         goto out;
 
     if (setxattr(path, ETRASHUUID, trash_uuid, sizeof (uuid_t), XATTR_CREATE)
-            != 0)
+        != 0)
         goto out;
 
     status = 0;
@@ -422,14 +422,14 @@ int export_initialize(export_t * e, uint32_t eid, const char *root) {
     list_init(&e->mfiles);
     list_init(&e->rmfiles);
 
-        if ((errno = pthread_rwlock_init(&e->rm_lock, NULL)) != 0) {
-            status = -1;
-            goto out;
-        }
+    if ((errno = pthread_rwlock_init(&e->rm_lock, NULL)) != 0) {
+        status = -1;
+        goto out;
+    }
 
     htable_initialize(&e->hfids, EHSIZE, mfentry_hash_fid, mfentry_cmp_fid);
     htable_initialize(&e->h_pfids, EHSIZE, mfentry_hash_fid_name,
-            mfentry_cmp_fid_name);
+                      mfentry_cmp_fid_name);
 
     // Register the root
     mfe = xmalloc(sizeof (mfentry_t));
@@ -441,7 +441,7 @@ int export_initialize(export_t * e, uint32_t eid, const char *root) {
 
     if (getxattr(root, ETRASHUUID, &(trash_uuid), sizeof (uuid_t)) == -1) {
         severe("export_initialize failed: getxattr for file %s failed: %s",
-                root, strerror(errno));
+               root, strerror(errno));
         goto out;
     }
 
@@ -450,7 +450,7 @@ int export_initialize(export_t * e, uint32_t eid, const char *root) {
 
     if (export_load_rmfentry(e) != 0) {
         severe("export_initialize failed: export_load_rmfentry failed: %s",
-                strerror(errno));
+               strerror(errno));
         goto out;
     }
 
@@ -480,7 +480,7 @@ void export_release(export_t * e) {
         free(rmfe);
     }
 
-        pthread_rwlock_destroy(&e->rm_lock);
+    pthread_rwlock_destroy(&e->rm_lock);
 
     htable_release(&e->hfids);
     htable_release(&e->h_pfids);
@@ -516,7 +516,7 @@ out:
 }
 
 int export_lookup(export_t * e, fid_t parent, const char *name,
-        mattr_t * attrs) {
+                  mattr_t * attrs) {
     int status = -1;
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
@@ -646,13 +646,13 @@ int export_setattr(export_t * e, fid_t fid, mattr_t * attrs) {
 
         uint64_t nrb_new = ((attrs->size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE);
         uint64_t nrb_old =
-                ((mfe->attrs.size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE);
+            ((mfe->attrs.size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE);
 
         // Open the file descriptor
         if ((fd = open(mfe->path, O_RDWR)) < 0) {
             severe("export_setattr failed: open for file %s failed: %s",
-                    mfe->path, strerror(errno));
-               goto out;
+                   mfe->path, strerror(errno));
+            goto out;
         }
         if (mfe->attrs.size > attrs->size) {
             if (ftruncate(fd, nrb_new * sizeof (dist_t)) != 0)
@@ -661,16 +661,16 @@ int export_setattr(export_t * e, fid_t fid, mattr_t * attrs) {
             off_t count = 0;
             for (count = nrb_old; count < nrb_new; count++) {
                 if (pwrite
-                        (fd, &empty, sizeof (dist_t),
-                        count * sizeof (dist_t)) != sizeof (dist_t)) {
+                    (fd, &empty, sizeof (dist_t),
+                     count * sizeof (dist_t)) != sizeof (dist_t)) {
                     severe("export_setattr: pwrite failed : %s",
-                            strerror(errno));
+                           strerror(errno));
                     goto out;
                 }
             }
         }
         if (export_update_blocks(e, ((int32_t) nrb_new - (int32_t) nrb_old))
-                != 0)
+            != 0)
             goto out;
 
         mfe->attrs.size = attrs->size;
@@ -718,7 +718,7 @@ out:
 }
 
 int export_mknod(export_t * e, uuid_t parent, const char *name, mode_t mode,
-        mattr_t * attrs) {
+                 mattr_t * attrs) {
     int status = -1;
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
@@ -750,7 +750,7 @@ int export_mknod(export_t * e, uuid_t parent, const char *name, mode_t mode,
 
     attrs->size = 0;
     if (setxattr(path, EATTRSTKEY, attrs, sizeof (mattr_t), XATTR_CREATE) !=
-            0)
+        0)
         goto error;
 
     mfe = xmalloc(sizeof (mfentry_t));
@@ -786,7 +786,7 @@ out:
 }
 
 int export_mkdir(export_t * e, uuid_t parent, const char *name, mode_t mode,
-        mattr_t * attrs) {
+                 mattr_t * attrs) {
     int status = -1;
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
@@ -817,7 +817,7 @@ int export_mkdir(export_t * e, uuid_t parent, const char *name, mode_t mode,
     attrs->size = ROZOFS_BSIZE;
 
     if (setxattr(path, EATTRSTKEY, attrs, sizeof (mattr_t), XATTR_CREATE) !=
-            0)
+        0)
         goto error;
 
     mfe = xmalloc(sizeof (mfentry_t));
@@ -878,7 +878,7 @@ int export_unlink(export_t * e, uuid_t fid) {
     // If the size is equal to 0 ? not move hum I'm not sure beacause setxattr ?
     if (rename(path, export_trash_map(e, fid, rm_path)) == -1) {
         severe("export_unlink failed: rename(%s,%s) failed: %s", path,
-                rm_path, strerror(errno));
+               rm_path, strerror(errno));
         goto out;
     }
 
@@ -888,12 +888,12 @@ int export_unlink(export_t * e, uuid_t fid) {
 
     list_init(&rmfe->list);
 
-        if ((errno = pthread_rwlock_wrlock(&e->rm_lock)) != 0)
+    if ((errno = pthread_rwlock_wrlock(&e->rm_lock)) != 0)
         goto out;               // XXX PROBLEM: THE NODE IS RENAMED
 
-    list_push_front(&e->rmfiles, &rmfe->list);
+    list_push_back(&e->rmfiles, &rmfe->list);
 
-        if ((errno = pthread_rwlock_unlock(&e->rm_lock)) != 0)
+    if ((errno = pthread_rwlock_unlock(&e->rm_lock)) != 0)
         goto out;               // XXX PROBLEM: THE NODE IS RENAMED
 
     // Update times of parent
@@ -913,7 +913,7 @@ int export_unlink(export_t * e, uuid_t fid) {
 
     if (!S_ISLNK(mode))
         if (export_update_blocks
-                (e, -(((int64_t) size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE)) != 0)
+            (e, -(((int64_t) size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE)) != 0)
             goto out;
 
     status = 0;
@@ -925,15 +925,20 @@ out:
 int export_rm_bins(export_t * e) {
     int status = -1;
     int cnt = 0;
-    list_t *p, *q;
     DEBUG_FUNCTION;
 
-    if ((errno = pthread_rwlock_trywrlock(&e->rm_lock)) != 0)
-        goto out;
+    while (!list_empty(&e->rmfiles)) {
 
-    list_for_each_forward_safe(p, q, &e->rmfiles) {
+        if ((errno = pthread_rwlock_trywrlock(&e->rm_lock)) != 0)
+            goto out;
 
-        rmfentry_t *entry = list_entry(p, rmfentry_t, list);
+        rmfentry_t *entry = list_first_entry(&e->rmfiles, rmfentry_t, list);
+
+        list_remove(&entry->list);
+
+        if ((errno = pthread_rwlock_unlock(&e->rm_lock)) != 0)
+            goto out;
+
         sid_t *it = entry->sids;
         cnt = 0;
 
@@ -969,17 +974,22 @@ int export_rm_bins(export_t * e) {
 
             if (unlink(export_trash_map(e, entry->fid, path)) == -1) {
                 severe("export_rm_bins failed: unlink file %s failed: %s",
-                        path, strerror(errno));
+                       path, strerror(errno));
                 goto out;
             }
-
-            list_remove(&entry->list);
             free(entry);
+
+        } else {
+
+            if ((errno = pthread_rwlock_wrlock(&e->rm_lock)) != 0)
+                goto out;
+
+            list_push_back(&e->rmfiles, &entry->list);
+
+            if ((errno = pthread_rwlock_unlock(&e->rm_lock)) != 0)
+                goto out;
         }
     }
-
-        if ((errno = pthread_rwlock_unlock(&e->rm_lock)) != 0)
-            goto out;
 
     status = 0;
 out:
@@ -1000,7 +1010,7 @@ int export_rmdir(export_t * e, uuid_t fid) {
         goto out;
 
     if (export_update_files(e, -1) != 0)
-        goto out; // XXX PROBLEM: THE DIRECTORY IS REMOVED
+        goto out;               // XXX PROBLEM: THE DIRECTORY IS REMOVED
 
     // Update the nlink and times of parent
     if (mfe->parent != NULL) {
@@ -1024,7 +1034,7 @@ out:
 // XXX PROBLEM: IT'S NOT POSSIBLE TO SET XATTR TO A SYMLINK
 
 int export_symlink(export_t * e, const char *link_name, uuid_t parent,
-        const char *name, mattr_t * attrs) {
+                   const char *name, mattr_t * attrs) {
     int status = -1;
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
@@ -1043,7 +1053,7 @@ int export_symlink(export_t * e, const char *link_name, uuid_t parent,
 
     if (symlink(link_name, path) != 0) {
         severe("export_symlink failed: symlink(%s,%s) failed: %s", link_name,
-                path, strerror(errno));
+               path, strerror(errno));
         goto out;
     }
 
@@ -1063,9 +1073,9 @@ int export_symlink(export_t * e, const char *link_name, uuid_t parent,
     attrs->size = st.st_size;
 
     if (setxattr(path, EATTRSTKEY, attrs, sizeof (mattr_t), XATTR_CREATE) !=
-            0) {
+        0) {
         severe("export_symlink failed: lsetxattr(%s) failed: %s", path,
-                strerror(errno));
+               strerror(errno));
         goto error;
     }
 
@@ -1158,8 +1168,8 @@ int export_rename(export_t * e, uuid_t from, uuid_t parent, const char *name) {
 
         if (!S_ISLNK(mode) && !S_ISDIR(mode))
             if (export_update_blocks
-                    (e,
-                    -(((int64_t) size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE)) != 0)
+                (e,
+                 -(((int64_t) size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE)) != 0)
                 goto out;
     }
 
@@ -1226,10 +1236,10 @@ int64_t export_read(export_t * e, uuid_t fid, uint64_t off, uint32_t len) {
         goto out;
 
     if (fsetxattr
-            (mfe->fd, EATTRSTKEY, &mfe->attrs, sizeof (mattr_t),
-            XATTR_REPLACE) != 0) {
+        (mfe->fd, EATTRSTKEY, &mfe->attrs, sizeof (mattr_t),
+         XATTR_REPLACE) != 0) {
         severe("export_read failed: fsetxattr in file %s failed: %s",
-                mfe->path, strerror(errno));
+               mfe->path, strerror(errno));
         goto out;
     }
     read = off + len < mfe->attrs.size ? len : mfe->attrs.size - off;
@@ -1239,7 +1249,7 @@ out:
 }
 
 int export_read_block(export_t * e, uuid_t fid, uint64_t bid, uint32_t n,
-        dist_t * d) {
+                      dist_t * d) {
     int status = -1;
     mfentry_t *mfe = 0;
     DEBUG_FUNCTION;
@@ -1251,11 +1261,11 @@ int export_read_block(export_t * e, uuid_t fid, uint64_t bid, uint32_t n,
     }
 
     if ((nrb =
-            pread(mfe->fd, d, n * sizeof (dist_t),
-            bid * sizeof (dist_t))) != n * sizeof (dist_t)) {
+         pread(mfe->fd, d, n * sizeof (dist_t),
+               bid * sizeof (dist_t))) != n * sizeof (dist_t)) {
         severe
-                ("export_read_block failed: (bid: %lu, n: %u) pread in file %s failed: %s just %d bytes for %d blocks ",
-                bid, n, mfe->path, strerror(errno), nrb, n);
+            ("export_read_block failed: (bid: %lu, n: %u) pread in file %s failed: %s just %d bytes for %d blocks ",
+             bid, n, mfe->path, strerror(errno), nrb, n);
         goto out;
     }
 
@@ -1280,9 +1290,9 @@ int64_t export_write(export_t * e, uuid_t fid, uint64_t off, uint32_t len) {
         size = off + len;
 
         if (export_update_blocks
-                (e,
-                (((off + len - mfe->attrs.size) + ROZOFS_BSIZE -
-                1) / ROZOFS_BSIZE)) != 0)
+            (e,
+             (((off + len - mfe->attrs.size) + ROZOFS_BSIZE -
+               1) / ROZOFS_BSIZE)) != 0)
             goto out;
 
         mfe->attrs.size = off + len;
@@ -1291,10 +1301,10 @@ int64_t export_write(export_t * e, uuid_t fid, uint64_t off, uint32_t len) {
     mfe->attrs.mtime = mfe->attrs.ctime = time(NULL);
 
     if (fsetxattr
-            (mfe->fd, EATTRSTKEY, &mfe->attrs, sizeof (mattr_t),
-            XATTR_REPLACE) != 0) {
+        (mfe->fd, EATTRSTKEY, &mfe->attrs, sizeof (mattr_t),
+         XATTR_REPLACE) != 0) {
         severe("export_write failed: fsetxattr in file %s failed: %s",
-                mfe->path, strerror(errno));
+               mfe->path, strerror(errno));
         goto out;
     }
 
@@ -1305,7 +1315,7 @@ out:
 }
 
 int export_write_block(export_t * e, uuid_t fid, uint64_t bid, uint32_t n,
-        dist_t d) {
+                       dist_t d) {
     int status = -1;
     mfentry_t *mfe = 0;
     off_t count;
@@ -1318,11 +1328,11 @@ int export_write_block(export_t * e, uuid_t fid, uint64_t bid, uint32_t n,
 
     for (count = 0; count < n; count++) {
         if (pwrite
-                (mfe->fd, &d, 1 * sizeof (dist_t),
-                ((off_t) bid + count) * (off_t) sizeof (dist_t)) !=
-                1 * sizeof (dist_t)) {
+            (mfe->fd, &d, 1 * sizeof (dist_t),
+             ((off_t) bid + count) * (off_t) sizeof (dist_t)) !=
+            1 * sizeof (dist_t)) {
             severe("export_write_block failed: pwrite in file %s failed: %s",
-                    mfe->path, strerror(errno));
+                   mfe->path, strerror(errno));
             goto out;
         }
     }
@@ -1355,8 +1365,8 @@ int export_readdir(export_t * e, fid_t fid, child_t ** children) {
         if (strcmp(ep->d_name, e->trashname) == 0) {
             continue;
         }
-        *iterator = xmalloc(sizeof (child_t)); // XXX FREE?
-        (*iterator)->name = xstrdup(ep->d_name); // XXX FREE?
+        *iterator = xmalloc(sizeof (child_t));  // XXX FREE?
+        (*iterator)->name = xstrdup(ep->d_name);        // XXX FREE?
         iterator = &(*iterator)->next;
     }
 
@@ -1392,7 +1402,7 @@ int export_open(export_t * e, fid_t fid) {
 
         if ((mfe->fd = open(mfe->path, flag)) < 0) {
             severe("export_open failed for file %s: %s", mfe->path,
-                    strerror(errno));
+                   strerror(errno));
             goto out;
         }
     }
