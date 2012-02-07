@@ -23,9 +23,9 @@
 #  FUSE_FOUND       - True if fuse found.
 
 FIND_PATH(FUSE_INCLUDE_DIR fuse.h
-  /usr/local/include/attr
+  /usr/local/include/fuse
   /usr/local/include
-  /usr/include/attr
+  /usr/include/fuse
   /usr/include
 )
 

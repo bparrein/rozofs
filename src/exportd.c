@@ -63,7 +63,7 @@ static SVCXPRT *exportd_svc = NULL;
 extern void export_program_1(struct svc_req *rqstp, SVCXPRT * ctl_svc);
 
 static void *balance_volume_thread(void *v) {
-    struct timespec ts = { 2, 0 };
+    struct timespec ts = { 8, 0 };
 
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
@@ -300,6 +300,8 @@ static int load_volume_conf(struct config_t *config) {
         if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
             goto out;
     }
+
+    volume.version++;
 
     status = 0;
 out:

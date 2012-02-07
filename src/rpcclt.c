@@ -60,6 +60,16 @@ int rpcclt_initialize(rpcclt_t * client, const char *host, unsigned long prog,
         goto out;
     }
 
+    struct timeval timeo;
+    timeo.tv_sec = 2;
+    timeo.tv_usec = 0;
+
+    if (setsockopt
+        (client->sock, SOL_SOCKET, SO_SNDTIMEO, (char *) &timeo,
+         sizeof (timeo)) < 0) {
+        goto out;
+    }
+
     struct linger linger;
     linger.l_onoff = 1;         //0 = off (l_linger ignored), nonzero = on
     linger.l_linger = 0;        //0 = discard data, nonzero = wait for data sent

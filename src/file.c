@@ -57,36 +57,43 @@ static void file_disconnect(file_t * f) {
  */
 
 static int file_connect(file_t * f) {
-    int i, connected;
+    int i = 0;
+    int connected = 0;
     DEBUG_FUNCTION;
 
-    // Nb. of storage servers connected
-    connected = 0;
-    // Get the hostname for one sid et one cid
     for (i = 0; i < rozofs_safe; i++) {
+
         while ((f->storages[i] =
                 lookup_mstorage(f->export, f->attrs.cid,
                                 f->attrs.sids[i])) == NULL) {
             exportclt_reload(f->export);
+
         }
-        if (f->storages[i]->rpcclt.client != 0) {
+        if (f->storages[i]->rpcclt.client != 0)
             connected++;
-        } else {
-            if (storageclt_initialize
-                (f->storages[i], f->storages[i]->host,
-                 f->storages[i]->sid) != 0) {
-                warning("failed to join: %s,  %s", f->storages[i]->host,
-                        strerror(errno));
-            } else {
-                connected++;
-            }
-        }
     }
 
     // Not enough server storage connections to retrieve the file
     if (connected < rozofs_forward) {
-        errno = EIO;
-        return -1;
+
+        for (i = 0; i < rozofs_safe; i++) {
+
+            if (f->storages[i]->rpcclt.client == 0) {
+                if (storageclt_initialize
+                    (f->storages[i], f->storages[i]->host,
+                     f->storages[i]->sid) != 0) {
+                    warning("failed to join: %s,  %s", f->storages[i]->host,
+                            strerror(errno));
+                } else {
+                    connected++;
+                }
+            }
+        }
+
+        if (connected < rozofs_forward) {
+            errno = EIO;
+            return -1;
+        }
     }
 
     return 0;
@@ -669,7 +676,8 @@ int64_t file_read(file_t * f, uint64_t off, char **buf, uint32_t len) {
         length =
             (len <=
              (f->buf_pos - (off - f->buf_from))) ? len : (f->buf_pos - (off -
-                                                                        f->buf_from));
+                                                                        f->
+                                                                        buf_from));
         *buf = f->buffer + (off - f->buf_from);
     }
 

@@ -23,9 +23,9 @@
 #  PTHREAD_FOUND       - True if pthread found.
 
 FIND_PATH(PTHREAD_INCLUDE_DIR pthread.h
-  /usr/local/include/attr
+  /usr/local/include/pthread
   /usr/local/include
-  /usr/include/attr
+  /usr/include/pthread
   /usr/include
 )
 

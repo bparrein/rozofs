@@ -37,6 +37,13 @@
 static int volume_storage_compare(const void *ms1, const void *ms2) {
     const volume_storage_t *pms1 = ms1;
     const volume_storage_t *pms2 = ms2;
+
+    // The server online takes priority to the server offline
+    if ((!pms1->status && pms2->status) || (pms1->status && !pms2->status)) {
+
+        return (pms2->status - pms1->status);
+    }
+
     return pms2->stat.free - pms1->stat.free;
 }
 
@@ -74,6 +81,7 @@ int mstorage_initialize(volume_storage_t * st, uint16_t sid,
     strcpy(st->host, hostname);
     st->stat.free = 0;
     st->stat.size = 0;
+    st->status = 0;
 
     status = 0;
 out:
@@ -85,6 +93,8 @@ int volume_initialize() {
     DEBUG_FUNCTION;
 
     list_init(&volume.mcs);
+
+    volume.version = 0;
 
     if ((errno = pthread_rwlock_init(&volume.lock, NULL)) != 0) {
         goto out;
@@ -168,47 +178,104 @@ out:
 int volume_balance() {
     int status = -1;
     list_t *iterator;
+    int nb_clusters = 0;
+    volume_storage_t **st_cpy = NULL;
+    uint8_t *st_nb = NULL;
+    uint8_t old_ver = 0;
+    int i = 0;
     DEBUG_FUNCTION;
 
-    if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
+    // Copy the list
+    if ((errno = pthread_rwlock_tryrdlock(&volume.lock)) != 0)
         goto out;
+
+    old_ver = volume.version;
+    nb_clusters = list_size(&volume.mcs);
+
+    st_cpy = xcalloc(nb_clusters, sizeof (volume_storage_t *));
+    st_nb = xcalloc(nb_clusters, sizeof (uint8_t));
 
     list_for_each_forward(iterator, &volume.mcs) {
         cluster_t *entry = list_entry(iterator, cluster_t, list);
-        volume_storage_t *it = entry->ms;
-        entry->free = 0;
-        entry->size = 0;
-        while (it != entry->ms + entry->nb_ms) {
+        st_cpy[i] = xmalloc(entry->nb_ms * sizeof (volume_storage_t));
+        memcpy(st_cpy[i], entry->ms,
+               entry->nb_ms * sizeof (volume_storage_t));
+        st_nb[i] = entry->nb_ms;
+        i++;
+    }
+
+    if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
+        goto out;
+
+    // Try to join each storage server
+    for (i = 0; i < nb_clusters; i++) {
+
+        volume_storage_t *vs = st_cpy[i];
+
+        while (vs != st_cpy[i] + st_nb[i]) {
+
             storageclt_t sclt;
-            if (storageclt_initialize(&sclt, it->host, it->sid) != 0) {
-                warning("failed to join: %s,  %s", it->host, strerror(errno));
-                it->stat.free = 0;
-                it->stat.size = 0;
+            if (storageclt_initialize(&sclt, vs->host, vs->sid) != 0) {
+                warning("failed to join: %s,  %s", vs->host, strerror(errno));
+                vs->status = 0;
             } else {
-                if (storageclt_stat(&sclt, &it->stat) != 0) {
-                    warning("failed to stat: %s", it->host);
-                    it->stat.free = 0;
-                    it->stat.size = 0;
+                if (storageclt_stat(&sclt, &vs->stat) != 0) {
+                    warning("failed to stat: %s", vs->host);
+                    vs->status = 0;
+                } else {
+                    vs->status = 1;
                 }
             }
             storageclt_release(&sclt);
-            entry->free += it->stat.free;
-            entry->size += it->stat.size;
-            it++;
+            vs++;
         }
-
-        qsort(entry->ms, entry->nb_ms, sizeof (volume_storage_t),
-              volume_storage_compare);
-
     }
 
-    list_sort(&volume.mcs, cluster_compare_capacity);
+    // Copy updated list
+    if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
+        goto out;
+
+    i = 0;
+
+    if (old_ver == volume.version) {
+
+        list_for_each_forward(iterator, &volume.mcs) {
+            cluster_t *entry = list_entry(iterator, cluster_t, list);
+
+            memcpy(entry->ms, st_cpy[i],
+                   entry->nb_ms * sizeof (volume_storage_t));
+            volume_storage_t *it = entry->ms;
+            entry->free = 0;
+            entry->size = 0;
+
+            while (it != entry->ms + entry->nb_ms) {
+
+                entry->free += it->stat.free;
+                entry->size += it->stat.size;
+                it++;
+            }
+
+            qsort(entry->ms, entry->nb_ms, sizeof (volume_storage_t),
+                  volume_storage_compare);
+            i++;
+        }
+
+        list_sort(&volume.mcs, cluster_compare_capacity);
+    }
 
     if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
         goto out;
 
     status = 0;
 out:
+    if (st_cpy) {
+        for (i = 0; i < nb_clusters; i++)
+            if (st_cpy[i])
+                free(st_cpy[i]);
+        free(st_cpy);
+    }
+    if (st_nb)
+        free(st_nb);
     return status;
 }
 

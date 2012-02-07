@@ -33,6 +33,7 @@ typedef struct volume_stat {
 typedef struct volume_storage {
     uint16_t sid;
     char host[ROZOFS_HOSTNAME_MAX];
+    uint8_t status;
     sstat_t stat;
 } volume_storage_t;
 
@@ -47,6 +48,7 @@ typedef struct cluster {
 
 typedef struct volume {
     list_t mcs;
+    uint8_t version;
     pthread_rwlock_t lock;
 } volume_t;
 
