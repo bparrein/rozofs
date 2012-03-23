@@ -372,8 +372,8 @@ out:
     return status;
 }
 
-int exportclt_mknod(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
-                    mattr_t * attrs) {
+int exportclt_mknod(exportclt_t * clt, fid_t parent, char *name, uint32_t uid,
+                    uint32_t gid, mode_t mode, mattr_t * attrs) {
     int status = -1;
     ep_mknod_arg_t arg;
     ep_mattr_ret_t *ret = 0;
@@ -383,6 +383,8 @@ int exportclt_mknod(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
     arg.eid = clt->eid;
     memcpy(arg.parent, parent, sizeof (uuid_t));
     arg.name = name;
+    arg.uid = uid;
+    arg.gid = gid;
     arg.mode = mode;
 
     while ((retry++ < clt->retries) &&
@@ -413,8 +415,8 @@ out:
     return status;
 }
 
-int exportclt_mkdir(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
-                    mattr_t * attrs) {
+int exportclt_mkdir(exportclt_t * clt, fid_t parent, char *name, uint32_t uid,
+                    uint32_t gid, mode_t mode, mattr_t * attrs) {
     int status = -1;
     ep_mkdir_arg_t arg;
     ep_mattr_ret_t *ret = 0;
@@ -424,6 +426,8 @@ int exportclt_mkdir(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
     arg.eid = clt->eid;
     memcpy(arg.parent, parent, sizeof (uuid_t));
     arg.name = name;
+    arg.uid = uid;
+    arg.gid = gid;
     arg.mode = mode;
 
     while ((retry++ < clt->retries) &&

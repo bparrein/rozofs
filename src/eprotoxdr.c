@@ -154,6 +154,10 @@ bool_t xdr_ep_mattr_t(XDR * xdrs, ep_mattr_t * objp) {
         return FALSE;
     if (!xdr_uint32_t(xdrs, &objp->mode))
         return FALSE;
+    if (!xdr_uint32_t(xdrs, &objp->uid))
+        return FALSE;
+    if (!xdr_uint32_t(xdrs, &objp->gid))
+        return FALSE;
     if (!xdr_uint16_t(xdrs, &objp->nlink))
         return FALSE;
     if (!xdr_uint64_t(xdrs, &objp->ctime))
@@ -306,6 +310,10 @@ bool_t xdr_ep_mknod_arg_t(XDR * xdrs, ep_mknod_arg_t * objp) {
         return FALSE;
     if (!xdr_ep_name_t(xdrs, &objp->name))
         return FALSE;
+    if (!xdr_uint32_t(xdrs, &objp->uid))
+        return FALSE;
+    if (!xdr_uint32_t(xdrs, &objp->gid))
+        return FALSE;
     if (!xdr_uint32_t(xdrs, &objp->mode))
         return FALSE;
     return TRUE;
@@ -319,6 +327,10 @@ bool_t xdr_ep_mkdir_arg_t(XDR * xdrs, ep_mkdir_arg_t * objp) {
     if (!xdr_ep_uuid_t(xdrs, objp->parent))
         return FALSE;
     if (!xdr_ep_name_t(xdrs, &objp->name))
+        return FALSE;
+    if (!xdr_uint32_t(xdrs, &objp->uid))
+        return FALSE;
+    if (!xdr_uint32_t(xdrs, &objp->gid))
         return FALSE;
     if (!xdr_uint32_t(xdrs, &objp->mode))
         return FALSE;

@@ -57,11 +57,11 @@ int export_setattr(export_t * e, fid_t fid, mattr_t * attrs);
 
 int export_readlink(export_t * e, fid_t fid, char link[PATH_MAX]);
 
-int export_mknod(export_t * e, fid_t parent, const char *name, mode_t mode,
-                 mattr_t * attrs);
+int export_mknod(export_t * e, fid_t parent, const char *name, uint32_t uid,
+                 uint32_t gid, mode_t mode, mattr_t * attrs);
 
-int export_mkdir(export_t * e, fid_t parent, const char *name, mode_t mode,
-                 mattr_t * attrs);
+int export_mkdir(export_t * e, fid_t parent, const char *name, uint32_t uid,
+                 uint32_t gid, mode_t mode, mattr_t * attrs);
 
 int export_unlink(export_t * e, fid_t fid);
 

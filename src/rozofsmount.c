@@ -41,7 +41,7 @@
 #define INODE_HSIZE 256
 #define PATH_HSIZE  256
 
-#define FUSE_DEFAULT_OPTIONS "allow_other,fsname=rozofs,subtype=rozofs,big_writes"
+#define FUSE_DEFAULT_OPTIONS "default_permissions,allow_other,fsname=rozofs,subtype=rozofs,big_writes"
 
 static void usage(const char *progname) {
     fprintf(stderr, "Rozofs fuse mounter - %s\n", VERSION);
@@ -206,22 +206,24 @@ static struct stat *mattr_to_stat(mattr_t * attr, struct stat *st) {
     st->st_blksize = ROZOFS_BSIZE;
     st->st_blocks = ((attr->size + 512 - 1) / 512);
     st->st_dev = 0;
-    st->st_gid = getgid();
-    st->st_uid = getuid();
+    st->st_uid = attr->uid;
+    st->st_gid = attr->gid;
     return st;
 }
 
 static mattr_t *stat_to_mattr(struct stat *st, mattr_t * attr, int to_set) {
     if (to_set & FUSE_SET_ATTR_MODE)
         attr->mode = st->st_mode;
-    //attr->nlink = st->st_nlink;
     if (to_set & FUSE_SET_ATTR_SIZE)
         attr->size = st->st_size;
-    //attr->ctime = st->st_ctime;
     if (to_set & FUSE_SET_ATTR_ATIME)
         attr->atime = st->st_atime;
     if (to_set & FUSE_SET_ATTR_MTIME)
         attr->mtime = st->st_mtime;
+    if (to_set & FUSE_SET_ATTR_UID)
+        attr->uid = st->st_uid;
+    if (to_set & FUSE_SET_ATTR_GID)
+        attr->gid = st->st_gid;
     return attr;
 }
 
@@ -245,6 +247,8 @@ void rozofs_ll_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
     mattr_t attrs;
     struct fuse_entry_param fep;
     struct stat stbuf;
+    const struct fuse_ctx *ctx;
+    ctx = fuse_req_ctx(req);
     DEBUG_FUNCTION;
 
     DEBUG("mknod (%lu,%s,%04o,%08lX)\n", (unsigned long int) parent, name,
@@ -258,8 +262,10 @@ void rozofs_ll_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
         errno = ENOENT;
         goto error;
     }
-    if (exportclt_mknod(&exportclt, ie->fid, (char *) name, mode, &attrs) !=
-        0) {
+
+    if (exportclt_mknod
+        (&exportclt, ie->fid, (char *) name, ctx->uid, ctx->gid, mode,
+         &attrs) != 0) {
         if (errno == ESTALE) {
             del_ientry(ie);
             free(ie);
@@ -294,11 +300,13 @@ void rozofs_ll_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
     mattr_t attrs;
     struct fuse_entry_param fep;
     struct stat stbuf;
+    const struct fuse_ctx *ctx;
     DEBUG_FUNCTION;
 
     DEBUG("mkdir (%lu,%s,%04o)\n", (unsigned long int) parent, name,
           (unsigned int) mode);
 
+    ctx = fuse_req_ctx(req);
     mode = (mode | S_IFDIR);
 
     if (strlen(name) > ROZOFS_FILENAME_MAX) {
@@ -309,8 +317,9 @@ void rozofs_ll_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
         errno = ENOENT;
         goto error;
     }
-    if (exportclt_mkdir(&exportclt, ie->fid, (char *) name, mode, &attrs) !=
-        0) {
+    if (exportclt_mkdir
+        (&exportclt, ie->fid, (char *) name, ctx->uid, ctx->gid, mode,
+         &attrs) != 0) {
         if (errno == ESTALE) {
             del_ientry(ie);
             free(ie);
@@ -547,6 +556,7 @@ out:
 
 void rozofs_ll_access(fuse_req_t req, fuse_ino_t ino, int mask) {
     DEBUG_FUNCTION;
+    DEBUG("access (%lu)\n", (unsigned long int) ino);
     fuse_reply_err(req, 0);
 }
 
@@ -657,9 +667,12 @@ void rozofs_ll_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *stbuf,
     ientry_t *ie = 0;
     struct stat o_stbuf;
     mattr_t attr;
+    const struct fuse_ctx *ctx;
     DEBUG_FUNCTION;
 
     DEBUG("setattr for inode: %lu\n", (unsigned long int) ino);
+
+    ctx = fuse_req_ctx(req);
 
     if (!(ie = htable_get(&htable_inode, &ino))) {
         errno = ENOENT;
@@ -965,10 +978,13 @@ void rozofs_ll_create(fuse_req_t req, fuse_ino_t parent, const char *name,
     struct fuse_entry_param fep;
     struct stat stbuf;
     file_t *file;
+    const struct fuse_ctx *ctx;
     DEBUG_FUNCTION;
 
     warning("create (%lu,%s,%04o)\n", (unsigned long int) parent, name,
             (unsigned int) mode);
+
+    ctx = fuse_req_ctx(req);
 
     if (strlen(name) > ROZOFS_FILENAME_MAX) {
         errno = ENAMETOOLONG;
@@ -978,8 +994,9 @@ void rozofs_ll_create(fuse_req_t req, fuse_ino_t parent, const char *name,
         errno = ENOENT;
         goto error;
     }
-    if (exportclt_mknod(&exportclt, ie->fid, (char *) name, mode, &attrs) !=
-        0) {
+    if (exportclt_mknod
+        (&exportclt, ie->fid, (char *) name, ctx->uid, ctx->gid, mode,
+         &attrs) != 0) {
         if (errno == ESTALE) {
             del_ientry(ie);
             free(ie);
@@ -1052,7 +1069,7 @@ static struct fuse_lowlevel_ops rozofs_ll_operations = {
     //.getxattr = rozofs_ll_getxattr,
     //.listxattr = rozofs_ll_listxattr,
     //.removexattr = rozofs_ll_removexattr,
-    //.access = rozofs_ll_access,
+    .access = rozofs_ll_access,
     //.create = rozofs_ll_create,
     //.getlk = rozofs_ll_getlk,
     //.setlk = rozofs_ll_setlk,
