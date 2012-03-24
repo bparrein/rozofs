@@ -74,7 +74,8 @@ static int setting_to_export_config_mfs(struct config_setting_t *setting,
         goto out;
     }
 
-    if (config_setting_lookup_string(setting, "passwd", &passwd) == CONFIG_FALSE) {
+    if (config_setting_lookup_string(setting, "passwd", &passwd) ==
+        CONFIG_FALSE) {
         errno = ENOKEY;
         severe("can't find passwd.");
         status = -1;

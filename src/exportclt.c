@@ -34,7 +34,7 @@
 #include "profile.h"
 
 int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
-                         const char *passwd, uint32_t bufsize, 
+                         const char *passwd, uint32_t bufsize,
                          uint32_t retries) {
     int status = -1;
     ep_mount_ret_t *ret = 0;
@@ -63,13 +63,14 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
         errno = ret->ep_mount_ret_t_u.error;
         goto out;
     }
-
     // check passwd
-    if (memcmp(ret->ep_mount_ret_t_u.volume.md5, ROZOFS_MD5_NONE,  
-                ROZOFS_MD5_SIZE) != 0) {
+    if (memcmp
+        (ret->ep_mount_ret_t_u.volume.md5, ROZOFS_MD5_NONE,
+         ROZOFS_MD5_SIZE) != 0) {
         md5pass = crypt(passwd, "$1$rozofs$");
-        if (memcmp(md5pass + 10, ret->ep_mount_ret_t_u.volume.md5, 
-                    ROZOFS_MD5_SIZE) != 0) {
+        if (memcmp
+            (md5pass + 10, ret->ep_mount_ret_t_u.volume.md5,
+             ROZOFS_MD5_SIZE) != 0) {
             errno = EACCES;
             goto out;
         }

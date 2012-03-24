@@ -50,8 +50,8 @@ typedef struct exportclt {
     rpcclt_t rpcclt;
 } exportclt_t;
 
-int exportclt_initialize(exportclt_t * clt, const char *host, char *root, 
-                         const char *passwd, uint32_t bufsize, 
+int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
+                         const char *passwd, uint32_t bufsize,
                          uint32_t retries);
 
 int exportclt_reload(exportclt_t * clt);

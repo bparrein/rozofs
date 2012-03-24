@@ -1101,8 +1101,8 @@ int fuseloop(struct fuse_args *args, const char *mountpoint, int fg) {
     openlog("rozofsmount", LOG_PID, LOG_LOCAL0);
 
     if (exportclt_initialize
-        (&exportclt, conf.host, conf.export, conf.passwd, conf.buf_size * 1024,
-         conf.max_retry) != 0) {
+        (&exportclt, conf.host, conf.export, conf.passwd,
+         conf.buf_size * 1024, conf.max_retry) != 0) {
         fprintf(stderr,
                 "rozofsmount failed for:\n" "export directory: %s\n"
                 "export hostnane: %s\n" "local mountpoint: %s\n" "error: %s\n"

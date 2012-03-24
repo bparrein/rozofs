@@ -362,12 +362,11 @@ static int load_exports_conf(struct config_t *config) {
         }
 
         if (config_setting_lookup_string(mfs_setting, "md5", &md5) ==
-        		CONFIG_FALSE) {
-                errno = ENOKEY;
-                fprintf(stderr, "cant't look up md5 for export (idx=%d)\n",
-                		i);
-                severe("cant't look md5 for export (idx=%d)", i);
-                goto out;
+            CONFIG_FALSE) {
+            errno = ENOKEY;
+            fprintf(stderr, "cant't look up md5 for export (idx=%d)\n", i);
+            severe("cant't look md5 for export (idx=%d)", i);
+            goto out;
         }
 
         if (exports_lookup_id((ep_path_t) root) != NULL) {

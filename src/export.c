@@ -405,7 +405,7 @@ out:
     return status;
 }
 
-int export_initialize(export_t * e, uint32_t eid, const char *root, 
+int export_initialize(export_t * e, uint32_t eid, const char *root,
                       const char *md5) {
     int status = -1;
     mfentry_t *mfe;

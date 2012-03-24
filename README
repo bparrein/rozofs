@@ -1,11 +1,6 @@
-Rozofs cloud filesystem : A clustered NAS using erasure coding.
+Rozofs: A scale-out NAS using erasure coding.
 
-* WARNING *
-Rozofs is currently on heavy developpement and release at alpha stage 
-Don't use rozofs under production environment 
-* WARNING *
-
-Note : [xxx] are optional, <xxx> are parameters
+Note: [xxx] means optional, <xxx> means requiered.
 
 INSTALLATION
 ============ 
@@ -18,6 +13,7 @@ Requirements
     - libconfig
     - libfuse
     - libpthread
+    - libcrypt
 
 Quick start
 -----------
@@ -29,9 +25,9 @@ cmake -G "Unix Makefiles" [-DCMAKE_INSTALL_PREFIX=/foo/bar -DCMAKE_BUILD_TYPE=De
 make
 [sudo] make install
 
-Options (CMAKE_INSTALL_PREFIX, CMAKE_BUILD_TYPE...) of generated build tree can be modified with : make edit_cache
+Options (CMAKE_INSTALL_PREFIX, CMAKE_BUILD_TYPE...) of generated build tree can be modified with: make edit_cache
 
-uninstall
+Uninstall
 ---------
 
 make uninstall
@@ -42,19 +38,18 @@ RUNNING
 Requirements
 ------------
     - a running portmap see portmap(8)
-    - extend attributes on used file system (export and storages) see mount(8) and fstab(5)
+    - extend attributes on used file system for exportd see mount(8) and fstab(5)
 
 Start
 -----
 
     1 ) install exportd on a host
     2 ) install storaged on multiple hosts
-    3 ) create exported directory (mkdir)
-    4 ) fill in export.conf (/etc/rozofs or /usr/local/etc/rozofs according to CMAKE_INSTALL_PREFIX)
-    5 ) fill in all storage.conf
-    6 ) [sudo] exportd
-    7 ) [sudo] storaged
-    8 ) wherever you want : [sudo] rozofsmount -H <the_host_running_exportd> -E <the export_name> <the_mount_dir>
+    3 ) fill in export.conf (/etc/rozofs or /usr/local/etc/rozofs according to CMAKE_INSTALL_PREFIX)
+    4 ) fill in all storage.conf
+    5 ) [sudo] exportd
+    6 ) [sudo] storaged
+    7 ) wherever you want: [sudo] rozofsmount -H <the_host_running_exportd> -E  <the export_path> -P <passwd> <the_mount_dir>
 
 Stop
 ----
