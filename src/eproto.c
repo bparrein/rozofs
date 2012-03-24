@@ -213,7 +213,7 @@ ep_mattr_ret_t *ep_mknod_1_svc(ep_mknod_arg_t * arg, struct svc_req * req) {
     if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_mknod
-        (exp, arg->parent, arg->name, arg->mode,
+        (exp, arg->parent, arg->name, arg->uid, arg->gid, arg->mode,
          (mattr_t *) & ret.ep_mattr_ret_t_u.attrs) != 0)
         goto error;
     ret.status = EP_SUCCESS;
@@ -234,7 +234,7 @@ ep_mattr_ret_t *ep_mkdir_1_svc(ep_mkdir_arg_t * arg, struct svc_req * req) {
     if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_mkdir
-        (exp, arg->parent, arg->name, arg->mode,
+        (exp, arg->parent, arg->name, arg->uid, arg->gid, arg->mode,
          (mattr_t *) & ret.ep_mattr_ret_t_u.attrs) != 0)
         goto error;
     ret.status = EP_SUCCESS;

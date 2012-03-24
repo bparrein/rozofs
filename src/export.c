@@ -373,8 +373,12 @@ int export_create(const char *root) {
     uuid_generate(attrs.fid);
     attrs.cid = 0;
     memset(attrs.sids, 0, ROZOFS_SAFE_MAX * sizeof (sid_t));
-    attrs.mode = S_IFDIR | S_IRUSR | S_IWUSR | S_IXUSR;
+    attrs.mode =
+        S_IFDIR | S_IRUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH |
+        S_IWOTH | S_IXOTH;
     attrs.nlink = 2;
+    attrs.uid = 0;              // root
+    attrs.gid = 0;              // root
     if ((attrs.ctime = attrs.atime = attrs.mtime = time(NULL)) == -1)
         goto out;
     attrs.size = ROZOFS_DIR_SIZE;
@@ -684,6 +688,8 @@ int export_setattr(export_t * e, fid_t fid, mattr_t * attrs) {
     }
 
     mfe->attrs.mode = attrs->mode;
+    mfe->attrs.uid = attrs->uid;
+    mfe->attrs.gid = attrs->gid;
     mfe->attrs.nlink = attrs->nlink;
     mfe->attrs.ctime = time(NULL);
     // XXX if client time != exportd time, there may be a problem.
@@ -724,8 +730,8 @@ out:
     return status;
 }
 
-int export_mknod(export_t * e, uuid_t parent, const char *name, mode_t mode,
-                 mattr_t * attrs) {
+int export_mknod(export_t * e, uuid_t parent, const char *name, uint32_t uid,
+                 uint32_t gid, mode_t mode, mattr_t * attrs) {
     int status = -1;
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
@@ -750,6 +756,8 @@ int export_mknod(export_t * e, uuid_t parent, const char *name, mode_t mode,
         goto error;
 
     attrs->mode = mode;
+    attrs->uid = uid;
+    attrs->gid = gid;
     attrs->nlink = 1;
 
     if ((attrs->ctime = attrs->atime = attrs->mtime = time(NULL)) == -1)
@@ -792,8 +800,8 @@ out:
     return status;
 }
 
-int export_mkdir(export_t * e, uuid_t parent, const char *name, mode_t mode,
-                 mattr_t * attrs) {
+int export_mkdir(export_t * e, uuid_t parent, const char *name, uint32_t uid,
+                 uint32_t gid, mode_t mode, mattr_t * attrs) {
     int status = -1;
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
@@ -816,6 +824,8 @@ int export_mkdir(export_t * e, uuid_t parent, const char *name, mode_t mode,
     attrs->cid = 0;
     memset(attrs->sids, 0, ROZOFS_SAFE_MAX * sizeof (uint16_t));
     attrs->mode = mode;
+    attrs->uid = uid;
+    attrs->gid = gid;
     attrs->nlink = 2;
 
     if ((attrs->ctime = attrs->atime = attrs->mtime = time(NULL)) == -1)

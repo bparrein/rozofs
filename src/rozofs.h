@@ -31,8 +31,8 @@
 #define ROZOFS_DIR_SIZE 4096
 #define ROZOFS_PATH_MAX 4096
 #define ROZOFS_FILENAME_MAX 255
-#define ROZOFS_CLUSTERS_MAX 50
-#define ROZOFS_STORAGES_MAX 50
+#define ROZOFS_CLUSTERS_MAX 16
+#define ROZOFS_STORAGES_MAX 64
 //#define ROZOFS_MAX_RETRY 5
 #define ROZOFS_MD5_SIZE 22
 #define ROZOFS_MD5_NONE "0000000000000000000000"
@@ -62,6 +62,8 @@ typedef struct mattr {
     cid_t cid;                  // 0 for non regular files
     sid_t sids[ROZOFS_SAFE_MAX];        // not used for non regular files
     uint32_t mode;
+    uint32_t uid;
+    uint32_t gid;
     uint16_t nlink;
     uint64_t ctime;
     uint64_t atime;

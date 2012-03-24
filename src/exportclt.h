@@ -69,11 +69,11 @@ int exportclt_setattr(exportclt_t * clt, fid_t fid, mattr_t * attrs);
 
 int exportclt_readlink(exportclt_t * clt, fid_t fid, char link[PATH_MAX]);
 
-int exportclt_mknod(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
-                    mattr_t * attrs);
+int exportclt_mknod(exportclt_t * clt, fid_t parent, char *name, uint32_t uid,
+                    uint32_t gid, mode_t mode, mattr_t * attrs);
 
-int exportclt_mkdir(exportclt_t * clt, fid_t parent, char *name, mode_t mode,
-                    mattr_t * attrs);
+int exportclt_mkdir(exportclt_t * clt, fid_t parent, char *name, uint32_t uid,
+                    uint32_t gid, mode_t mode, mattr_t * attrs);
 
 int exportclt_unlink(exportclt_t * clt, fid_t fid);
 

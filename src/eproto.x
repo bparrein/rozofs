@@ -70,6 +70,8 @@ struct ep_mattr_t {
     uint16_t    cid;
     uint16_t    sids[ROZOFS_SAFE_MAX];
     uint32_t    mode;
+    uint32_t    uid;
+    uint32_t    gid;
     uint16_t    nlink;
     uint64_t    ctime;
     uint64_t    atime;
@@ -130,6 +132,8 @@ struct ep_mknod_arg_t {
     uint32_t    eid;
     ep_uuid_t   parent;
     ep_name_t   name;
+    uint32_t    uid;
+    uint32_t    gid;
     uint32_t    mode;
 };
 
@@ -137,6 +141,8 @@ struct ep_mkdir_arg_t {
     uint32_t    eid;
     ep_uuid_t   parent;
     ep_name_t   name;
+    uint32_t    uid;
+    uint32_t    gid;
     uint32_t    mode;
 };
 
