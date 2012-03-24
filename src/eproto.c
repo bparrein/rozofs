@@ -40,7 +40,6 @@ void *ep_null_1_svc(void *noargs, struct svc_req *req) {
     return 0;
 }
 
-// TODO auth
 ep_mount_ret_t *ep_mount_1_svc(ep_path_t * arg, struct svc_req * req) {
     static ep_mount_ret_t ret;
     list_t *p;
@@ -83,6 +82,7 @@ ep_mount_ret_t *ep_mount_1_svc(ep_path_t * arg, struct svc_req * req) {
     }
 
     ret.ep_mount_ret_t_u.volume.eid = *eid;
+    memcpy(ret.ep_mount_ret_t_u.volume.md5, exp->md5, ROZOFS_MD5_SIZE);
     ret.ep_mount_ret_t_u.volume.rl = layout;
     memcpy(ret.ep_mount_ret_t_u.volume.rfid, exp->rfid, sizeof (fid_t));
 
@@ -95,7 +95,7 @@ out:
     return &ret;
 }
 
-// Will do something one day !!
+/* Will do something one day !! */
 ep_status_ret_t *ep_umount_1_svc(uint32_t * arg, struct svc_req * req) {
     static ep_status_ret_t ret;
     DEBUG_FUNCTION;

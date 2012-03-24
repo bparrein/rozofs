@@ -57,6 +57,8 @@ static void usage(const char *progname) {
     fprintf(stderr,
             "\t-E EXPORT_PATH\t\tdefine path of an export see exportd (default: /srv/rozo/exports/export) equivalent to '-o exportpath=EXPORT_PATH'\n");
     fprintf(stderr,
+            "\t-P EXPORT_PASSWD\t\tdefine passwd used for an export see exportd (default: none) equivalent to '-o exportpasswd=EXPORT_PASSWD'\n");
+    fprintf(stderr,
             "\t-o rozofsbufsize=N\tdefine size of I/O buffer in KiB (default: 256)\n");
     fprintf(stderr,
             "\t-o rozofsmaxretry=N\tdefine number of retries before I/O error is returned (default: 5)\n");
@@ -65,6 +67,7 @@ static void usage(const char *progname) {
 typedef struct rozofsmnt_conf {
     char *host;
     char *export;
+    char *passwd;
     unsigned buf_size;
     unsigned max_retry;
 } rozofsmnt_conf_t;
@@ -74,6 +77,7 @@ static rozofsmnt_conf_t conf;
 enum {
     KEY_EXPORT_HOST,
     KEY_EXPORT_PATH,
+    KEY_EXPORT_PASSWD,
     KEY_HELP,
     KEY_VERSION,
 };
@@ -83,11 +87,13 @@ enum {
 static struct fuse_opt rozofs_opts[] = {
     MYFS_OPT("exporthost=%s", host, 0),
     MYFS_OPT("exportpath=%s", export, 0),
+    MYFS_OPT("exportpasswd=%s", passwd, 0),
     MYFS_OPT("rozofsbufsize=%u", buf_size, 0),
     MYFS_OPT("rozofsmaxretry=%u", max_retry, 0),
 
     FUSE_OPT_KEY("-H ", KEY_EXPORT_HOST),
     FUSE_OPT_KEY("-E ", KEY_EXPORT_PATH),
+    FUSE_OPT_KEY("-P ", KEY_EXPORT_PASSWD),
 
     FUSE_OPT_KEY("-V", KEY_VERSION),
     FUSE_OPT_KEY("--version", KEY_VERSION),
@@ -112,6 +118,11 @@ static int myfs_opt_proc(void *data, const char *arg, int key,
     case KEY_EXPORT_PATH:
         if (conf.export == NULL) {
             conf.export = strdup(arg + 2);
+        }
+        return 0;
+    case KEY_EXPORT_PASSWD:
+        if (conf.passwd == NULL) {
+            conf.passwd = strdup(arg + 2);
         }
         return 0;
     case KEY_HELP:
@@ -1073,7 +1084,7 @@ int fuseloop(struct fuse_args *args, const char *mountpoint, int fg) {
     openlog("rozofsmount", LOG_PID, LOG_LOCAL0);
 
     if (exportclt_initialize
-        (&exportclt, conf.host, conf.export, conf.buf_size * 1024,
+        (&exportclt, conf.host, conf.export, conf.passwd, conf.buf_size * 1024,
          conf.max_retry) != 0) {
         fprintf(stderr,
                 "rozofsmount failed for:\n" "export directory: %s\n"
@@ -1220,6 +1231,10 @@ int main(int argc, char *argv[]) {
         conf.export = strdup("/srv/rozo/exports/export");
     }
 
+    if (conf.passwd == NULL) {
+        conf.passwd = strdup("none");
+    }
+
     if (conf.buf_size == 0) {
         conf.buf_size = 256;
     }
@@ -1231,7 +1246,7 @@ int main(int argc, char *argv[]) {
     }
     if (conf.buf_size > 8192) {
         fprintf(stderr,
-                "write cache size to big (%u KiB) - decresed to 8192 KiB\n",
+                "write cache size to big (%u KiB) - decreased to 8192 KiB\n",
                 conf.buf_size);
         conf.buf_size = 8192;
     }

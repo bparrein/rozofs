@@ -17,7 +17,15 @@
   <http://www.gnu.org/licenses/>.
  */
 
+/* need for crypt */
+#define _XOPEN_SOURCE 500
+
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <errno.h>
+
 #include "rozofs.h"
 #include "log.h"
 #include "xmalloc.h"
@@ -26,9 +34,11 @@
 #include "profile.h"
 
 int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
-                         uint32_t bufsize, uint32_t retries) {
+                         const char *passwd, uint32_t bufsize, 
+                         uint32_t retries) {
     int status = -1;
     ep_mount_ret_t *ret = 0;
+    char *md5pass = 0;
     int i = 0;
     int j = 0;
     DEBUG_FUNCTION;
@@ -52,6 +62,17 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
     if (ret->status == EP_FAILURE) {
         errno = ret->ep_mount_ret_t_u.error;
         goto out;
+    }
+
+    // check passwd
+    if (memcmp(ret->ep_mount_ret_t_u.volume.md5, ROZOFS_MD5_NONE,  
+                ROZOFS_MD5_SIZE) != 0) {
+        md5pass = crypt(passwd, "$1$rozofs$");
+        if (memcmp(md5pass + 10, ret->ep_mount_ret_t_u.volume.md5, 
+                    ROZOFS_MD5_SIZE) != 0) {
+            errno = EACCES;
+            goto out;
+        }
     }
 
     clt->eid = ret->ep_mount_ret_t_u.volume.eid;
@@ -103,6 +124,10 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
 
     status = 0;
 out:
+    if (md5pass)
+        free(md5pass);
+    if (ret)
+        xdr_free((xdrproc_t) xdr_ep_mount_ret_t, (char *) ret);
     return status;
 }
 

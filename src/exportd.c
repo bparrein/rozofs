@@ -43,6 +43,7 @@
 
 #define EXPORTD_PID_FILE "exportd.pid"
 
+
 long int layout;
 
 typedef struct export_entry {
@@ -207,8 +208,8 @@ static int load_volume_conf(struct config_t *config) {
 
         if ((stor_set = config_setting_get_member(clu_set, "sids")) == NULL) {
             errno = ENOKEY;
-            fprintf(stderr, "can't fetche sids for cluster (cid=%ld)\n", cid);
-            fatal("can't fetche sids for cluster (cid=%ld)", cid);
+            fprintf(stderr, "can't fetch sids for cluster (cid=%ld)\n", cid);
+            fatal("can't fetch sids for cluster (cid=%ld)", cid);
             goto out;
         }
 
@@ -225,10 +226,10 @@ static int load_volume_conf(struct config_t *config) {
             if ((mstor_set = config_setting_get_elem(stor_set, j)) == NULL) {
                 errno = EIO;    //XXX
                 fprintf(stderr,
-                        "cant't fetche storage (idx=%d) in cluster (idx=%d)\n",
+                        "cant't fetch storage (idx=%d) in cluster (idx=%d)\n",
                         j, i);
                 fatal
-                    ("cant't fetche storage at index (idx=%d) in cluster (idx=%d)",
+                    ("cant't fetch storage at index (idx=%d) in cluster (idx=%d)",
                      j, i);
                 goto out;
             }
@@ -326,12 +327,13 @@ static int load_exports_conf(struct config_t *config) {
         export_entry_t *export_entry =
             (export_entry_t *) xmalloc(sizeof (export_entry_t));
         const char *root;
+        const char *md5;
         uint32_t eid;
 
         if ((mfs_setting = config_setting_get_elem(export_set, i)) == NULL) {
             errno = EIO;        //XXX
-            fprintf(stderr, "cant't fetche export at index %d\n", i);
-            severe("cant't fetche export at index %d", i);
+            fprintf(stderr, "cant't fetch export at index %d\n", i);
+            severe("cant't fetch export at index %d", i);
             goto out;
         }
 
@@ -359,6 +361,15 @@ static int load_exports_conf(struct config_t *config) {
             goto out;
         }
 
+        if (config_setting_lookup_string(mfs_setting, "md5", &md5) ==
+        		CONFIG_FALSE) {
+                errno = ENOKEY;
+                fprintf(stderr, "cant't look up md5 for export (idx=%d)\n",
+                		i);
+                severe("cant't look md5 for export (idx=%d)", i);
+                goto out;
+        }
+
         if (exports_lookup_id((ep_path_t) root) != NULL) {
             fprintf(stderr,
                     "cant't add export with path %s: already exists\n", root);
@@ -366,7 +377,7 @@ static int load_exports_conf(struct config_t *config) {
             continue;
         }
 
-        if (export_initialize(&export_entry->export, eid, root) != 0) {
+        if (export_initialize(&export_entry->export, eid, root, md5) != 0) {
             fprintf(stderr, "can't initialize export with path %s: %s\n",
                     root, strerror(errno));
             severe("can't initialize export with path %s: %s", root,

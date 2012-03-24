@@ -72,8 +72,16 @@ volume =
 );
 
 # exported filesystems
+# md5 is a 22 characters md5 crypt of the password.
+# It could be generated with: md5 utility (see md5pass (1))
+# the salt used should be: rozofs. 
+# Only the last 22 characters should be used (omitting newline)
+# example: 
+# for password "mypass", md5 is: md5pass mypass rozofs | cut -c 11-
+# that is: AyBvjVmNoKAkLQwNa2c4b0
+# For no authentification use empty md5.
 exports = (
-    {eid = 1; root = "/path/to/foo";},
-    {eid = 2; root = "/path/to/bar";}
+    {eid = 1; root = "/path/to/foo"; md5="IS_THE_MD5PASS_RESULT_";},
+    {eid = 2; root = "/path/to/bar"; md5="";}
     #...
 );

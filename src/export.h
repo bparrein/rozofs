@@ -31,6 +31,7 @@
 typedef struct export {
     eid_t eid;
     char root[PATH_MAX];        // absolute path.
+    char md5[ROZOFS_MD5_SIZE];
     fid_t rfid;                 // root fid.
     char trashname[NAME_MAX];   // trash directory
     list_t mfiles;
@@ -42,7 +43,7 @@ typedef struct export {
 
 int export_create(const char *root);
 
-int export_initialize(export_t * e, eid_t eid, const char *root);
+int export_initialize(export_t * e, eid_t eid, const char *root, const char *md5);
 
 void export_release(export_t * e);
 

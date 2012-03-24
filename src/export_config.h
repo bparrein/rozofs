@@ -36,7 +36,10 @@ typedef struct export_config_ms_entry {
     list_t list;
 } export_config_ms_entry_t;
 
-typedef char export_config_mfs_t[PATH_MAX];
+typedef struct export_config_mfs {
+    char root[PATH_MAX];
+    char md5pass[ROZOFS_MD5PASS_SIZE];
+} export_config_mfs_t;
 
 typedef struct export_config_mfs_entry {
     export_config_mfs_t export_config_mfs;

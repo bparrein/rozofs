@@ -103,7 +103,7 @@ add_executable(rozofsmount
     rozofsmount.c
 )
 #pthread need by fuse 
-target_link_libraries(rozofsmount ${PTHREAD_LIBRARY} ${FUSE_LIBRARY})
+target_link_libraries(rozofsmount ${PTHREAD_LIBRARY} ${FUSE_LIBRARY} ${CRYPT_LIBRARY})
 
 # Install
 install(CODE "EXECUTE_PROCESS (COMMAND mkdir -p ${ROZOFS_CONFIG_DIR})" COMPONENT storage)

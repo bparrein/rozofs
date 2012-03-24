@@ -30,6 +30,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${PROJECT_SOURCE_DIR}/cmake")
 # Find packages
 #
 find_package(UUID REQUIRED)
+find_package(CRYPT REQUIRED)
 find_package(CONFIG REQUIRED)
 find_package(XATTR REQUIRED)
 find_package(PTHREAD REQUIRED)

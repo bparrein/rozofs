@@ -401,7 +401,8 @@ out:
     return status;
 }
 
-int export_initialize(export_t * e, uint32_t eid, const char *root) {
+int export_initialize(export_t * e, uint32_t eid, const char *root, 
+                      const char *md5) {
     int status = -1;
     mfentry_t *mfe;
     uuid_t trash_uuid;
@@ -419,6 +420,12 @@ int export_initialize(export_t * e, uint32_t eid, const char *root) {
     }
 
     e->eid = eid;
+    if (strlen(md5) == 0) {
+        memcpy(e->md5, ROZOFS_MD5_NONE, ROZOFS_MD5_SIZE);
+    } else {
+        memcpy(e->md5, md5, ROZOFS_MD5_SIZE);
+    }
+
     list_init(&e->mfiles);
     list_init(&e->rmfiles);
 

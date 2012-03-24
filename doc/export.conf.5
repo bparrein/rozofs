@@ -85,10 +85,14 @@ volume =
 exports are directory exported by 
 .B exportd
 daemon as virtual filesystems for clients. A volume can be used by several exports.
+md5 is a 22 characters md5 crypt of the password.
+It could be generated with: md5pass utility 
+.BR md5pass (1)
+the salt used should be: rozofs. Only the last 22 characters should be used (omitting newline).For no authentification use empty md5. For example, for password "mypass", md5 is given by: md5pass mypass rozofs | cut -c 11-, that is: AyBvjVmNoKAkLQwNa2c4b0
 
 exports = (
-    {eid = 1; root = "/path/to/foo";},
-    {eid = 2; root = "/path/to/bar";}
+    {eid = 1; root = "/path/to/foo"; md5="AyBvjVmNoKAkLQwNa2c4b0";},
+    {eid = 2; root = "/path/to/bar"; md5="";}
 );
 
 .SH FILES

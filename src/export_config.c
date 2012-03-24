@@ -63,6 +63,7 @@ static int setting_to_export_config_mfs(struct config_setting_t *setting,
 
     int status;
     const char *root;
+    const char *passwd;
 
     DEBUG_FUNCTION;
 
@@ -73,7 +74,14 @@ static int setting_to_export_config_mfs(struct config_setting_t *setting,
         goto out;
     }
 
-    strcpy(*export_config_mfs, root);
+    if (config_setting_lookup_string(setting, "passwd", &passwd) == CONFIG_FALSE) {
+        errno = ENOKEY;
+        severe("can't find passwd.");
+        status = -1;
+        goto out;
+    }
+    strcpy(export_config_mfs->root, root);
+    memcpy(export_config_mfs->md5pass, passwd);
 
     status = 0;
 out:
@@ -224,6 +232,7 @@ void export_config_print(export_config_t * export_config) {
     list_for_each_forward(iterator, &export_config->mfss) {
         export_config_mfs_entry_t *entry =
             list_entry(iterator, export_config_mfs_entry_t, list);
-        printf("root: %s\n", entry->export_config_mfs);
+        printf("root: %s\n", entry->export_config_mfs->root);
+        printf("passwd: %s\n", entry->export_config_mfs->md5pass);
     }
 }
