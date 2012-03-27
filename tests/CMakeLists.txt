@@ -90,11 +90,3 @@ add_executable(test_storage
     test_storage.c
 )
 target_link_libraries(test_storage ${UUID_LIBRARY})
-
-add_executable(fs_ops/fileop/fileop
-    fs_ops/fileop/fileop.c
-)
-
-add_executable(fs_ops/pjd-fstest/fstest
-    fs_ops/pjd-fstest/fstest.c
-)

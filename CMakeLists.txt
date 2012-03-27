@@ -22,7 +22,7 @@ cmake_minimum_required(VERSION 2.6)
 project(rozofs C)
 set(MAJOR "0")
 set(MINOR "5")
-set(REVISION "1")
+set(REVISION "2")
 set(VERSION "${MAJOR}.${MINOR}.${REVISION}")
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${PROJECT_SOURCE_DIR}/cmake")
 
@@ -37,7 +37,7 @@ find_package(PTHREAD REQUIRED)
 find_package(FUSE REQUIRED)
 find_program(DEBUILD NAMES debuild)
 
-subdirs(src doc tests)
+subdirs(src doc tests tests/fs_ops/fileop tests/fs_ops/pjd-fstest)
 
 #
 # Project config.
