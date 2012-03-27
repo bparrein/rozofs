@@ -43,7 +43,6 @@
 
 #define EXPORTD_PID_FILE "exportd.pid"
 
-
 long int layout;
 
 typedef struct export_entry {
@@ -64,7 +63,7 @@ static SVCXPRT *exportd_svc = NULL;
 extern void export_program_1(struct svc_req *rqstp, SVCXPRT * ctl_svc);
 
 static void *balance_volume_thread(void *v) {
-    struct timespec ts = { 8, 0 };
+    struct timespec ts = {8, 0};
 
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
@@ -95,7 +94,7 @@ out:
 }
 
 static void *remove_bins_thread(void *v) {
-    struct timespec ts = { 30, 0 };
+    struct timespec ts = {30, 0};
 
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
@@ -214,8 +213,8 @@ static int load_volume_conf(struct config_t *config) {
         }
 
         volume_storage_t *storage =
-            (volume_storage_t *) xmalloc(config_setting_length(stor_set) *
-                                         sizeof (volume_storage_t));
+                (volume_storage_t *) xmalloc(config_setting_length(stor_set) *
+                sizeof (volume_storage_t));
 
         for (j = 0; j < config_setting_length(stor_set); j++) {
 
@@ -224,37 +223,37 @@ static int load_volume_conf(struct config_t *config) {
             const char *host;
 
             if ((mstor_set = config_setting_get_elem(stor_set, j)) == NULL) {
-                errno = EIO;    //XXX
+                errno = EIO; //XXX
                 fprintf(stderr,
                         "cant't fetch storage (idx=%d) in cluster (idx=%d)\n",
                         j, i);
                 fatal
-                    ("cant't fetch storage at index (idx=%d) in cluster (idx=%d)",
-                     j, i);
+                        ("cant't fetch storage at index (idx=%d) in cluster (idx=%d)",
+                        j, i);
                 goto out;
             }
 
             if (config_setting_lookup_int(mstor_set, "sid", &sid) ==
-                CONFIG_FALSE) {
+                    CONFIG_FALSE) {
                 errno = ENOKEY;
                 fprintf(stderr,
                         "cant't look up SID for storage (idx=%d) in cluster (idx=%d)\n",
                         j, i);
                 fatal
-                    ("cant't look up SID for storage (idx=%d) in cluster (idx=%d)",
-                     j, i);
+                        ("cant't look up SID for storage (idx=%d) in cluster (idx=%d)",
+                        j, i);
                 goto out;
             }
 
             if (config_setting_lookup_string(mstor_set, "host", &host) ==
-                CONFIG_FALSE) {
+                    CONFIG_FALSE) {
                 errno = ENOKEY;
                 fprintf(stderr,
                         "cant't look up host for storage (idx=%d) in cluster (idx=%d)\n",
                         j, i);
                 fatal
-                    ("cant't look up host for storage (idx=%d) in cluster (idx=%d)",
-                     j, i);
+                        ("cant't look up host for storage (idx=%d) in cluster (idx=%d)",
+                        j, i);
                 goto out;
             }
 
@@ -325,20 +324,20 @@ static int load_exports_conf(struct config_t *config) {
 
         struct config_setting_t *mfs_setting;
         export_entry_t *export_entry =
-            (export_entry_t *) xmalloc(sizeof (export_entry_t));
+                (export_entry_t *) xmalloc(sizeof (export_entry_t));
         const char *root;
         const char *md5;
         uint32_t eid;
 
         if ((mfs_setting = config_setting_get_elem(export_set, i)) == NULL) {
-            errno = EIO;        //XXX
+            errno = EIO; //XXX
             fprintf(stderr, "cant't fetch export at index %d\n", i);
             severe("cant't fetch export at index %d", i);
             goto out;
         }
 
         if (config_setting_lookup_int(mfs_setting, "eid", (long int *) &eid)
-            == CONFIG_FALSE) {
+                == CONFIG_FALSE) {
             errno = ENOKEY;
             fprintf(stderr, "cant't look up eid for export (idx=%d)\n", i);
             fatal("cant't look up eid for export (idx=%d)", i);
@@ -353,7 +352,7 @@ static int load_exports_conf(struct config_t *config) {
         }
 
         if (config_setting_lookup_string(mfs_setting, "root", &root) ==
-            CONFIG_FALSE) {
+                CONFIG_FALSE) {
             errno = ENOKEY;
             fprintf(stderr, "cant't look up root path for export (idx=%d)\n",
                     i);
@@ -362,7 +361,7 @@ static int load_exports_conf(struct config_t *config) {
         }
 
         if (config_setting_lookup_string(mfs_setting, "md5", &md5) ==
-            CONFIG_FALSE) {
+                CONFIG_FALSE) {
             errno = ENOKEY;
             fprintf(stderr, "cant't look up md5 for export (idx=%d)\n", i);
             severe("cant't look md5 for export (idx=%d)", i);
@@ -380,7 +379,7 @@ static int load_exports_conf(struct config_t *config) {
             fprintf(stderr, "can't initialize export with path %s: %s\n",
                     root, strerror(errno));
             severe("can't initialize export with path %s: %s", root,
-                   strerror(errno));
+                    strerror(errno));
             goto out;
         }
 
@@ -409,7 +408,7 @@ static int load_conf_file() {
         fprintf(stderr, "can't load config file %s: %s\n",
                 exportd_config_file, strerror(errno));
         fatal("can't load config file %s: %s", exportd_config_file,
-              strerror(errno));
+                strerror(errno));
         status = -1;
         goto out;
     }
@@ -420,7 +419,7 @@ static int load_conf_file() {
         fprintf(stderr, "can't read config file: %s at line: %d\n",
                 config_error_text(&config), config_error_line(&config));
         fatal("can't read config file: %s at line: %d",
-              config_error_text(&config), config_error_line(&config));
+                config_error_text(&config), config_error_line(&config));
         goto out;
     }
 
@@ -524,7 +523,7 @@ static void on_start() {
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *) &one, sizeof (int));
     // XXX Buffers sizes hard coded
     exportd_svc =
-        svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE);
+            svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE);
     if (exportd_svc == NULL) {
         fatal("can't create service %s", strerror(errno));
         return;
@@ -533,14 +532,14 @@ static void on_start() {
     pmap_unset(EXPORT_PROGRAM, EXPORT_VERSION); // in case !
 
     if (!svc_register
-        (exportd_svc, EXPORT_PROGRAM, EXPORT_VERSION, export_program_1,
-         IPPROTO_TCP)) {
+            (exportd_svc, EXPORT_PROGRAM, EXPORT_VERSION, export_program_1,
+            IPPROTO_TCP)) {
         fatal("can't register service %s", strerror(errno));
         return;
     }
 
     if (pthread_create(&bal_vol_thread, NULL, balance_volume_thread, NULL) !=
-        0) {
+            0) {
         fatal("can't create balancing thread %s", strerror(errno));
         return;
     }
@@ -567,8 +566,8 @@ static void on_stop() {
         svc_destroy(exportd_svc);
         exportd_svc = NULL;
     }
-
     info("stopped.");
+    closelog();
 }
 
 static void on_hup() {
@@ -582,7 +581,7 @@ static void on_hup() {
         fprintf(stderr, "can't load config file %s: %s\n",
                 exportd_config_file, strerror(errno));
         fatal("can't load config file %s: %s", exportd_config_file,
-              strerror(errno));
+                strerror(errno));
         goto out;
     }
     close(fd);
@@ -592,7 +591,7 @@ static void on_hup() {
         fprintf(stderr, "can't read config file: %s at line: %d\n",
                 config_error_text(&config), config_error_line(&config));
         fatal("can't read config file: %s at line: %d",
-              config_error_text(&config), config_error_line(&config));
+                config_error_text(&config), config_error_line(&config));
         goto out;
     }
 
@@ -610,16 +609,12 @@ static void usage() {
     printf("Rozofs export daemon - %s\n", VERSION);
     printf("Usage: exportd [OPTIONS]\n\n");
     printf("\t-h, --help\tprint this message.\n");
-    printf
-        ("\t-c, --config\tconfiguration file to use (default *install prefix*/etc/rozofs/export.conf).\n");
-    printf("\t--create [path]\tcreate a new export environment.\n");
-    printf
-        ("\t--reload\treload the configuration file (the one used at start time).\n");
+    printf("\t-c, --config\tconfiguration file to use (default: %s).\n", EXPORTD_DEFAULT_CONFIG);
 };
 
 int main(int argc, char *argv[]) {
     int c;
-    char root[PATH_MAX];
+
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
         {"config", required_argument, 0, 'c'},
@@ -627,38 +622,33 @@ int main(int argc, char *argv[]) {
     };
 
     while (1) {
-        int option_index = 0;
 
+        int option_index = 0;
         c = getopt_long(argc, argv, "hc:", long_options, &option_index);
 
         if (c == -1)
             break;
 
         switch (c) {
-        case 0:
-            if (strcmp(long_options[option_index].name, "create") == 0)
-                if (!realpath(optarg, root)) {
-                    fprintf(stderr, "exportd failed: export path: %s: %s\n",
-                            optarg, strerror(errno));
-                    exit(EXIT_FAILURE);
-                }
-            break;
+
         case 'h':
             usage();
             exit(EXIT_SUCCESS);
             break;
         case 'c':
             if (!realpath(optarg, exportd_config_file)) {
-                fprintf(stderr,
-                        "exportd failed: configuration file: %s: %s\n",
-                        optarg, strerror(errno));
+                fprintf(stderr, "exportd failed: configuration file: %s: %s\n", optarg, strerror(errno));
                 exit(EXIT_FAILURE);
             }
             break;
         case '?':
-            exit(EXIT_FAILURE);
+            usage();
+            exit(EXIT_SUCCESS);
+            break;
         default:
+            usage();
             exit(EXIT_FAILURE);
+            break;
         }
     }
     if (exportd_initialize() != 0) {

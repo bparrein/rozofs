@@ -117,7 +117,7 @@ static int load_storages_conf(struct config_t *config) {
     }
 
     storaged_storages =
-        xmalloc(config_setting_length(settings) * sizeof (storage_t));
+            xmalloc(config_setting_length(settings) * sizeof (storage_t));
 
     for (i = 0; i < config_setting_length(settings); i++) {
         struct config_setting_t *ms = NULL;
@@ -125,7 +125,7 @@ static int load_storages_conf(struct config_t *config) {
         const char *root;
 
         if (!(ms = config_setting_get_elem(settings, i))) {
-            errno = EIO;        //XXX
+            errno = EIO; //XXX
             fprintf(stderr, "cant't fetche storage at index %d\n", i);
             severe("cant't fetche storage at index %d", i);
             goto out;
@@ -154,12 +154,12 @@ static int load_storages_conf(struct config_t *config) {
         }
 
         if (storage_initialize(storaged_storages + i, (uint16_t) sid, root) !=
-            0) {
+                0) {
             fprintf(stderr,
                     "can't initialize storage (sid:%ld) with path %s: %s\n",
                     sid, root, strerror(errno));
             severe("can't initialize storage (sid:%ld) with path %s: %s", sid,
-                   root, strerror(errno));
+                    root, strerror(errno));
             goto out;
         }
 
@@ -181,7 +181,7 @@ static int load_conf_file() {
         fprintf(stderr, "can't load config file %s: %s\n",
                 storaged_config_file, strerror(errno));
         fatal("can't load config file %s: %s", storaged_config_file,
-              strerror(errno));
+                strerror(errno));
         status = -1;
         goto out;
     }
@@ -192,7 +192,7 @@ static int load_conf_file() {
         fprintf(stderr, "can't read config file: %s at line: %d\n",
                 config_error_text(&config), config_error_line(&config));
         fatal("can't read config file: %s at line: %d",
-              config_error_text(&config), config_error_line(&config));
+                config_error_text(&config), config_error_line(&config));
         goto out;
     }
 
@@ -253,17 +253,17 @@ static void on_start() {
     fcntl(sock, F_SETFL, oldflags);
 
     if ((storaged_svc =
-         svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE,
-                       ROZOFS_RPC_BUFFER_SIZE)) == NULL) {
+            svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE,
+            ROZOFS_RPC_BUFFER_SIZE)) == NULL) {
         fatal("can't create service.");
         return;
     }
 
-    pmap_unset(STORAGE_PROGRAM, STORAGE_VERSION);       // in case !
+    pmap_unset(STORAGE_PROGRAM, STORAGE_VERSION); // in case !
 
     if (!svc_register
-        (storaged_svc, STORAGE_PROGRAM, STORAGE_VERSION, storage_program_1,
-         IPPROTO_TCP)) {
+            (storaged_svc, STORAGE_PROGRAM, STORAGE_VERSION, storage_program_1,
+            IPPROTO_TCP)) {
         fatal("can't register service : %s", strerror(errno));
         return;
     }
@@ -284,16 +284,15 @@ static void on_stop() {
     }
     storaged_release();
     rozofs_release();
-
     info("stopped.");
+    closelog();
 }
 
 void usage() {
     printf("Rozofs storage daemon - %s\n", VERSION);
     printf("Usage: storaged [OPTIONS]\n\n");
     printf("\t-h, --help\tprint this message.\n");
-    printf
-        ("\t-c, --config\tconfig file to use (default *install prefix*/etc/rozofs/storage.conf).\n");
+    printf("\t-c, --config\tconfig file to use (default: %s).\n", STORAGED_DEFAULT_CONFIG);
 };
 
 int main(int argc, char *argv[]) {
@@ -305,6 +304,7 @@ int main(int argc, char *argv[]) {
     };
 
     while (1) {
+
         int option_index = 0;
         c = getopt_long(argc, argv, "hc:", long_options, &option_index);
 
@@ -312,8 +312,7 @@ int main(int argc, char *argv[]) {
             break;
 
         switch (c) {
-        case 0:                //long option (manage by getopt but we don't want to be catched by default label)
-            break;
+
         case 'h':
             usage();
             exit(EXIT_SUCCESS);
@@ -327,18 +326,23 @@ int main(int argc, char *argv[]) {
             }
             break;
         case '?':
-            exit(EXIT_FAILURE);
+            usage();
+            exit(EXIT_SUCCESS);
+            break;
         default:
+            usage();
             exit(EXIT_FAILURE);
+            break;
         }
     }
-
-    openlog("storaged", LOG_PID, LOG_DAEMON);
 
     if (storaged_initialize() != 0) {
         fprintf(stderr, "storaged start failed\n");
         exit(EXIT_FAILURE);
     }
+
+    openlog("storaged", LOG_PID, LOG_DAEMON);
+
     daemon_start(STORAGED_PID_FILE, on_start, on_stop, NULL);
 
     exit(0);
