@@ -40,7 +40,7 @@ int storage_initialize(storage_t * st, sid_t sid, const char *root);
 void storage_release(storage_t * st);
 
 int storage_write(storage_t * st, fid_t fid, tid_t pid, bid_t bid, uint32_t n,
-                  const bin_t * bins);
+                  size_t len, const bin_t * bins);
 
 int storage_read(storage_t * st, fid_t fid, tid_t pid, bid_t bid, uint32_t n,
                  bin_t * bins);

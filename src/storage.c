@@ -17,11 +17,11 @@
  <http://www.gnu.org/licenses/>.
  */
 
+#define _XOPEN_SOURCE 500
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
-#define _XOPEN_SOURCE 500
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -197,10 +197,11 @@ void storage_release(storage_t * st) {
 }
 
 int storage_write(storage_t * st, fid_t fid, tid_t pid, bid_t bid, uint32_t n,
-                  const bin_t * bins) {
+                  size_t len, const bin_t * bins) {
     int status = -1;
     pfentry_t *pfe = 0;
     size_t count = 0;
+    size_t nb_write = 0;
     char path[PATH_MAX];
     DEBUG_FUNCTION;
 
@@ -208,12 +209,17 @@ int storage_write(storage_t * st, fid_t fid, tid_t pid, bid_t bid, uint32_t n,
         goto out;
 
     count = n * rozofs_psizes[pid] * sizeof (bin_t);
-    if (pwrite
-        (pfe->fd, bins, count,
-         (off_t) bid * (off_t) rozofs_psizes[pid] * (off_t) sizeof (bin_t)) !=
-        count) {
+    if ((nb_write =
+         pwrite(pfe->fd, bins, len,
+                (off_t) bid * (off_t) rozofs_psizes[pid] *
+                (off_t) sizeof (bin_t))) != count) {
         severe("storage_write failed: pwrite in file %s failed: %s",
                storage_map(st, fid, pid, path), strerror(errno));
+        if (nb_write != -1) {
+            severe("pwrite failed: %lu bytes written instead of %lu",
+                   nb_write, count);
+            errno = EIO;
+        }
         goto out;
     }
 

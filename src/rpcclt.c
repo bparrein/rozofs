@@ -39,6 +39,7 @@ int rpcclt_initialize(rpcclt_t * client, const char *host, unsigned long prog,
     client->client = 0;
     client->sock = -1;
     server.sin_family = AF_INET;
+
     if ((hp = gethostbyname(host)) == 0) {
         severe("gethostbyname failed for host : %s, %s", host,
                strerror(errno));
@@ -54,22 +55,25 @@ int rpcclt_initialize(rpcclt_t * client, const char *host, unsigned long prog,
     if ((client->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         goto out;
     }
+    // Allows other sockets to bind() to this port, unless there is an active
+    // listening socket bound to the port already.
     if (setsockopt
         (client->sock, SOL_SOCKET, SO_REUSEADDR, (char *) &one,
          sizeof (int)) < 0) {
         goto out;
     }
-
+    // Set a timeout value for output operations
     struct timeval timeo;
     timeo.tv_sec = 2;
     timeo.tv_usec = 0;
-
     if (setsockopt
         (client->sock, SOL_SOCKET, SO_SNDTIMEO, (char *) &timeo,
          sizeof (timeo)) < 0) {
         goto out;
     }
-
+    // This option specifies what should happen when the socket
+    // of a type that promises reliable delivery still has untransmitted
+    // messages when it is closed
     struct linger linger;
     linger.l_onoff = 1;         //0 = off (l_linger ignored), nonzero = on
     linger.l_linger = 0;        //0 = discard data, nonzero = wait for data sent
@@ -77,13 +81,14 @@ int rpcclt_initialize(rpcclt_t * client, const char *host, unsigned long prog,
         (client->sock, SOL_SOCKET, SO_LINGER, &linger, sizeof (linger)) < 0) {
         goto out;
     }
-
+    // If set, disable the Nagle algorithm. This means that segments are always
+    // sent as soon as possible, even if there is only a small amount of data.
     if (setsockopt
         (client->sock, SOL_TCP, TCP_NODELAY, (char *) &one,
          sizeof (int)) < 0) {
-
         goto out;
     }
+
     if ((client->sock < 0) ||
         (connect(client->sock, (struct sockaddr *) &server, sizeof (server)) <
          0)) {

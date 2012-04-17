@@ -138,9 +138,11 @@ int storageclt_read(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid,
                strerror(errno));
         goto out;
     }
+    // XXX ret->sp_read_ret_t_u.bins.bins_len is coherent
     // XXX could we avoid memcpy ??
     memcpy(bins, ret->sp_read_ret_t_u.bins.bins_val,
            ret->sp_read_ret_t_u.bins.bins_len);
+
     status = 0;
 out:
     if (ret)
@@ -148,6 +150,8 @@ out:
     return status;
 }
 
+
+// XXX Never used
 int storageclt_truncate(storageclt_t * clt, fid_t fid, tid_t tid, bid_t bid) {
     int status = -1;
     sp_status_ret_t *ret = 0;

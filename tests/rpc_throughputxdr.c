@@ -20,7 +20,7 @@
 #include "../tests/rpc_throughput.h"
 
 bool_t xdr_rpc_th_status_t(XDR * xdrs, rpc_th_status_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_enum(xdrs, (enum_t *) objp))
         return FALSE;
@@ -28,7 +28,7 @@ bool_t xdr_rpc_th_status_t(XDR * xdrs, rpc_th_status_t * objp) {
 }
 
 bool_t xdr_rpc_th_status_ret_t(XDR * xdrs, rpc_th_status_ret_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_rpc_th_status_t(xdrs, &objp->status))
         return FALSE;
@@ -44,7 +44,7 @@ bool_t xdr_rpc_th_status_ret_t(XDR * xdrs, rpc_th_status_ret_t * objp) {
 }
 
 bool_t xdr_rpc_th_write_arg_t(XDR * xdrs, rpc_th_write_arg_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_bytes
         (xdrs, (char **) &objp->bins.bins_val,

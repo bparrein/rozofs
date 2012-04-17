@@ -600,9 +600,8 @@ void rozofs_ll_release(fuse_req_t req, fuse_ino_t ino,
         goto error;
     }
 
-    if (file_close(&exportclt, f) != 0) {
+    if (file_close(&exportclt, f) != 0)
         goto error;
-    }
 
     fuse_reply_err(req, 0);
     goto out;
@@ -992,8 +991,8 @@ void rozofs_ll_create(fuse_req_t req, fuse_ino_t parent, const char *name,
     const struct fuse_ctx *ctx;
     DEBUG_FUNCTION;
 
-    warning("create (%lu,%s,%04o)\n", (unsigned long int) parent, name,
-            (unsigned int) mode);
+    DEBUG("create (%lu,%s,%04o)\n", (unsigned long int) parent, name,
+          (unsigned int) mode);
 
     ctx = fuse_req_ctx(req);
 

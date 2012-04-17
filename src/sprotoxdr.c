@@ -7,7 +7,7 @@
 #include "rozofs.h"
 
 bool_t xdr_sp_uuid_t(XDR * xdrs, sp_uuid_t objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_vector
         (xdrs, (char *) objp, ROZOFS_UUID_SIZE, sizeof (u_char),
@@ -17,7 +17,7 @@ bool_t xdr_sp_uuid_t(XDR * xdrs, sp_uuid_t objp) {
 }
 
 bool_t xdr_sp_status_t(XDR * xdrs, sp_status_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_enum(xdrs, (enum_t *) objp))
         return FALSE;
@@ -25,7 +25,7 @@ bool_t xdr_sp_status_t(XDR * xdrs, sp_status_t * objp) {
 }
 
 bool_t xdr_sp_status_ret_t(XDR * xdrs, sp_status_ret_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_sp_status_t(xdrs, &objp->status))
         return FALSE;
@@ -41,7 +41,7 @@ bool_t xdr_sp_status_ret_t(XDR * xdrs, sp_status_ret_t * objp) {
 }
 
 bool_t xdr_sp_remove_arg_t(XDR * xdrs, sp_remove_arg_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_uint16_t(xdrs, &objp->sid))
         return FALSE;
@@ -51,7 +51,7 @@ bool_t xdr_sp_remove_arg_t(XDR * xdrs, sp_remove_arg_t * objp) {
 }
 
 bool_t xdr_sp_write_arg_t(XDR * xdrs, sp_write_arg_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_uint16_t(xdrs, &objp->sid))
         return FALSE;
@@ -71,7 +71,7 @@ bool_t xdr_sp_write_arg_t(XDR * xdrs, sp_write_arg_t * objp) {
 }
 
 bool_t xdr_sp_read_arg_t(XDR * xdrs, sp_read_arg_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_uint16_t(xdrs, &objp->sid))
         return FALSE;
@@ -87,7 +87,7 @@ bool_t xdr_sp_read_arg_t(XDR * xdrs, sp_read_arg_t * objp) {
 }
 
 bool_t xdr_sp_truncate_arg_t(XDR * xdrs, sp_truncate_arg_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_uint16_t(xdrs, &objp->sid))
         return FALSE;
@@ -101,7 +101,7 @@ bool_t xdr_sp_truncate_arg_t(XDR * xdrs, sp_truncate_arg_t * objp) {
 }
 
 bool_t xdr_sp_read_ret_t(XDR * xdrs, sp_read_ret_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_sp_status_t(xdrs, &objp->status))
         return FALSE;
@@ -123,7 +123,7 @@ bool_t xdr_sp_read_ret_t(XDR * xdrs, sp_read_ret_t * objp) {
 }
 
 bool_t xdr_sp_sstat_t(XDR * xdrs, sp_sstat_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_uint64_t(xdrs, &objp->size))
         return FALSE;
@@ -133,7 +133,7 @@ bool_t xdr_sp_sstat_t(XDR * xdrs, sp_sstat_t * objp) {
 }
 
 bool_t xdr_sp_stat_ret_t(XDR * xdrs, sp_stat_ret_t * objp) {
-    register int32_t *buf;
+    //register int32_t *buf;
 
     if (!xdr_sp_status_t(xdrs, &objp->status))
         return FALSE;

@@ -29,8 +29,15 @@
 #define ESEVERE     3
 #define EFATAL      4
 
+
+#ifdef __GNUC__
+static const char *messages[] __attribute__ ((unused)) = {
+"debug", "info", "warning", "severe", "fatal"};
+#else
 static const char *messages[] =
     { "debug", "info", "warning", "severe", "fatal" };
+#endif
+
 static const int priorities[] =
     { LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_EMERG };
 

@@ -62,7 +62,7 @@ sp_status_ret_t *sp_write_1_svc(sp_write_arg_t * args, struct svc_req * req) {
         goto out;
     }
     if (storage_write
-        (st, args->fid, args->tid, args->bid, args->nrb,
+        (st, args->fid, args->tid, args->bid, args->nrb, args->bins.bins_len,
          (bin_t *) args->bins.bins_val) != 0) {
         ret.sp_status_ret_t_u.error = errno;
         goto out;

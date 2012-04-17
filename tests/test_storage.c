@@ -26,10 +26,12 @@ int main(int argc, char **argv) {
     uuid_generate(fid);
     // Write some bins (15 prj)
     bins = xmalloc(rozofs_psizes[0] * 15);
+/*
     if (storage_write(&st, fid, 0, 10, 15, bins) != 0) {
         perror("failed to write bins");
         exit(-1);
     }
+*/
 
     if (storage_truncate(&st, fid, 0, 10) != 0) {
         perror("failed to truncate pfile");

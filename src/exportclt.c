@@ -45,7 +45,7 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
 
     strcpy(clt->host, host);
     clt->root = strdup(root);
-
+    clt->passwd = strdup(passwd);
     clt->retries = retries;
     clt->bufsize = bufsize;
 
@@ -135,8 +135,10 @@ out:
 int exportclt_reload(exportclt_t * clt) {
     int status = -1;
     ep_mount_ret_t *ret = 0;
+    char *md5pass = 0;
     int i = 0;
     int j = 0;
+    list_t *p, *q;
     DEBUG_FUNCTION;
 
     ret = ep_mount_1(&clt->root, clt->rpcclt.client);
@@ -148,20 +150,37 @@ int exportclt_reload(exportclt_t * clt) {
         errno = ret->ep_mount_ret_t_u.error;
         goto out;
     }
+
+    list_for_each_forward_safe(p, q, &clt->mcs) {
+        mcluster_t *entry = list_entry(p, mcluster_t, list);
+        free(entry->ms);
+        list_remove(p);
+        free(entry);
+    }
+
+    if (memcmp
+        (ret->ep_mount_ret_t_u.volume.md5, ROZOFS_MD5_NONE,
+         ROZOFS_MD5_SIZE) != 0) {
+        md5pass = crypt(clt->passwd, "$1$rozofs$");
+        if (memcmp
+            (md5pass + 10, ret->ep_mount_ret_t_u.volume.md5,
+             ROZOFS_MD5_SIZE) != 0) {
+            errno = EACCES;
+            goto out;
+        }
+    }
+
+    clt->eid = ret->ep_mount_ret_t_u.volume.eid;
+    clt->rl = ret->ep_mount_ret_t_u.volume.rl;
+    memcpy(clt->rfid, ret->ep_mount_ret_t_u.volume.rfid, sizeof (fid_t));
+
+    // Initialize the list of clusters
+    list_init(&clt->mcs);
+
     // For each cluster
     for (i = 0; i < ret->ep_mount_ret_t_u.volume.clusters_nb; i++) {
 
         ep_cluster_t ep_cluster = ret->ep_mount_ret_t_u.volume.clusters[i];
-        list_t *iterator;
-
-        list_for_each_forward(iterator, &clt->mcs) {
-            mcluster_t *entry = list_entry(iterator, mcluster_t, list);
-            if (ep_cluster.cid == entry->cid) {
-                info("cant't add cluster with cid %d: already exists",
-                     entry->cid);
-                continue;
-            }
-        }
 
         mcluster_t *cluster = (mcluster_t *) xmalloc(sizeof (mcluster_t));
 
@@ -176,9 +195,10 @@ int exportclt_reload(exportclt_t * clt) {
             if (storageclt_initialize
                 (&cluster->ms[j], ep_cluster.storages[j].host,
                  ep_cluster.storages[j].sid) != 0) {
-                fatal("failed to join: %s,  %s", ep_cluster.storages[j].host,
-                      strerror(errno));
-                goto out;
+                fprintf(stderr,
+                        "warning failed to join storage (SID: %d): %s, %s\n",
+                        ep_cluster.storages[j].sid,
+                        ep_cluster.storages[j].host, strerror(errno));
             }
 
         }
@@ -186,8 +206,18 @@ int exportclt_reload(exportclt_t * clt) {
         list_push_back(&clt->mcs, &cluster->list);
     }
 
+    // Initialize rozofs
+    if (rozofs_initialize(clt->rl) != 0) {
+        fatal("can't initialise rozofs %s", strerror(errno));
+        goto out;
+    }
+
     status = 0;
 out:
+    if (md5pass)
+        free(md5pass);
+    if (ret)
+        xdr_free((xdrproc_t) xdr_ep_mount_ret_t, (char *) ret);
     return status;
 }
 

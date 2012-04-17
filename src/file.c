@@ -38,23 +38,11 @@ static storageclt_t *lookup_mstorage(exportclt_t * e, cid_t cid, sid_t sid) {
             }
         }
     }
-    warning("lookup_mstorage failed : mstorage not found");
+    warning("lookup_mstorage failed : mstorage (cid: %u, sid: %u) not found",
+            cid, sid);
     errno = EINVAL;
     return NULL;
 }
-
-/*
-static void file_disconnect(file_t * f) {
-    int i;
-    DEBUG_FUNCTION;
-
-    // Free the export
-    for (i = 0; i < rozofs_safe; i++) {
-        storageclt_release(f->storages[i]);
-        f->storages[i]->rpcclt.client = 0;
-    }
-}
- */
 
 static int file_connect(file_t * f) {
     int i = 0;
@@ -63,12 +51,12 @@ static int file_connect(file_t * f) {
 
     for (i = 0; i < rozofs_safe; i++) {
 
-        while ((f->storages[i] =
-                lookup_mstorage(f->export, f->attrs.cid,
-                                f->attrs.sids[i])) == NULL) {
-            exportclt_reload(f->export);
-
+        if ((f->storages[i] =
+             lookup_mstorage(f->export, f->attrs.cid,
+                             f->attrs.sids[i])) == NULL) {
+            return -1;
         }
+
         if (f->storages[i]->rpcclt.client != 0)
             connected++;
     }
@@ -79,15 +67,22 @@ static int file_connect(file_t * f) {
         for (i = 0; i < rozofs_safe; i++) {
 
             if (f->storages[i]->rpcclt.client == 0) {
+
                 if (storageclt_initialize
                     (f->storages[i], f->storages[i]->host,
                      f->storages[i]->sid) != 0) {
+
                     warning("failed to join: %s,  %s", f->storages[i]->host,
                             strerror(errno));
+
                 } else {
+
                     connected++;
+
                 }
+
             }
+
         }
 
         if (connected < rozofs_forward) {
@@ -97,12 +92,6 @@ static int file_connect(file_t * f) {
     }
 
     return 0;
-}
-
-static int file_reconnect(file_t * f) {
-    DEBUG_FUNCTION;
-    //file_disconnect(f);
-    return file_connect(f);
 }
 
 static int read_blocks(file_t * f, bid_t bid, uint32_t nmbs, char *data) {
@@ -251,6 +240,8 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
     uint16_t mp = 0;
     uint16_t ps = 0;
     uint32_t i = 0;
+    int retry = 0;
+    int send = 0;
     DEBUG_FUNCTION;
 
     projections = xmalloc(rozofs_forward * sizeof (projection_t));
@@ -282,35 +273,50 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
                           rozofs_forward, projections);
     }
     PROFILE_TRANSFORM_FRWD_STOP;
-    /* Send requests to the storage servers */
-    // For each projection server
-    mp = 0;
-    PROFILE_STORAGE_START;
-    for (ps = 0; ps < rozofs_safe; ps++) {
-        // Warning: the server can be disconnected
-        // but f->storages[ps].rpcclt->client != NULL
-        // the disconnection will be detected when the request will be sent
-        if (!(f->storages[ps]->rpcclt.client))
-            continue;
+    do {
+        /* Send requests to the storage servers */
+        // For each projection server
+        mp = 0;
+        dist = 0;
+        PROFILE_STORAGE_START;
+        for (ps = 0; ps < rozofs_safe; ps++) {
+            // Warning: the server can be disconnected
+            // but f->storages[ps].rpcclt->client != NULL
+            // the disconnection will be detected when the request will be sent
+            if (!(f->storages[ps]->rpcclt.client))
+                continue;
 
-        if (storageclt_write(f->storages[ps], f->fid, mp, bid, nmbs, bins[mp])
-            != 0)
-            continue;
+            if (storageclt_write
+                (f->storages[ps], f->fid, mp, bid, nmbs, bins[mp]) != 0)
+                continue;
 
-        free(bins[mp]);
-        bins[mp] = NULL;
+            free(bins[mp]);
+            bins[mp] = NULL;
 
-        dist_set_true(dist, ps);
+            dist_set_true(dist, ps);
 
-        if (++mp == rozofs_forward)
+            if (++mp == rozofs_forward)
+                break;
+        }
+        PROFILE_STORAGE_STOP;
+
+        if (mp == rozofs_forward) {
+            send = 1;
             break;
-    }
-    PROFILE_STORAGE_STOP;
-    // Not enough server storage connections to store the file
-    if (mp < rozofs_forward) {
+        }
+        // If file_connect don't return 0
+        // It's not necessary to retry to write on storage servers
+        while (file_connect(f) != 0 && retry++ < f->export->retries);
+
+    } while (retry++ < f->export->retries);
+
+    if (send != 1) {
+        // It's necessary to goto out here otherwise
+        // we will write something on export server
         errno = EIO;
         goto out;
     }
+
     if (exportclt_write_block(f->export, f->fid, bid, nmbs, dist) != 0) {
         errno = EIO;
         goto out;
@@ -334,7 +340,7 @@ out:
 }
 
 // XXX : in each while (read_blocks(...))
-// it's possible to do the file_reconnect() indefinitely
+// it's possible to do the file_connect() indefinitely
 // EXAMPLE : WE HAVE 16 (0->16) STORAGE SERVERS
 // AND I HAVE STORE A FILE IN STORAGE SERVER 0 to 11
 // STORAGE SERVERS 0, 1, 2, 3 ARE OFFLINE BUT
@@ -367,7 +373,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
         retry = 0;
         while (read_blocks(f, first, 1, block) != 0 &&
                retry++ < f->export->retries) {
-            if (file_reconnect(f) != 0) {
+            if (file_connect(f) != 0) {
                 length = -1;
                 goto out;
             }
@@ -382,7 +388,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
             retry = 0;
             while (read_blocks(f, first, 1, block) != 0 &&
                    retry++ < f->export->retries) {
-                if (file_reconnect(f) != 0) {
+                if (file_connect(f) != 0) {
                     length = -1;
                     goto out;
                 }
@@ -395,7 +401,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
             retry = 0;
             while (read_blocks(f, last, 1, block) != 0 &&
                    retry++ < f->export->retries) {
-                if (file_reconnect(f) != 0) {
+                if (file_connect(f) != 0) {
                     length = -1;
                     goto out;
                 }
@@ -408,7 +414,7 @@ static int64_t read_buf(file_t * f, uint64_t off, char *buf, uint32_t len) {
             retry = 0;
             while (read_blocks(f, first, (last - first) + 1, bufp) != 0 &&
                    retry++ < f->export->retries) {
-                if (file_reconnect(f) != 0) {
+                if (file_connect(f) != 0) {
                     length = -1;
                     goto out;
                 }
@@ -468,7 +474,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
             retry = 0;
             while (read_blocks(f, first, 1, block) != 0 &&
                    retry++ < f->export->retries) {
-                if (file_reconnect(f) != 0) {
+                if (file_connect(f) != 0) {
                     length = -1;
                     goto out;
                 }
@@ -476,12 +482,9 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
         }
         memcpy(&block[foffset], buf, len);
         retry = 0;
-        while (write_blocks(f, first, 1, block) != 0 &&
-               retry++ < f->export->retries) {
-            if (file_reconnect(f) != 0) {
-                length = -1;
-                goto out;
-            }
+        if (write_blocks(f, first, 1, block) != 0) {
+            length = -1;
+            goto out;
         }
     } else {                    // If we must write more than one block
         const char *bufp;
@@ -496,20 +499,16 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
                 retry = 0;
                 while (read_blocks(f, first, 1, block) != 0 &&
                        retry++ < f->export->retries) {
-                    if (file_reconnect(f) != 0) {
+                    if (file_connect(f) != 0) {
                         length = -1;
                         goto out;
                     }
                 }
             }
             memcpy(&block[foffset], buf, ROZOFS_BSIZE - foffset);
-            retry = 0;
-            while (write_blocks(f, first, 1, block) != 0 &&
-                   retry++ < f->export->retries) {
-                if (file_reconnect(f) != 0) {
-                    length = -1;
-                    goto out;
-                }
+            if (write_blocks(f, first, 1, block) != 0) {
+                length = -1;
+                goto out;
             }
             first++;
             bufp += ROZOFS_BSIZE - foffset;
@@ -521,32 +520,25 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
                 retry = 0;
                 while (read_blocks(f, last, 1, block) != 0 &&
                        retry++ < f->export->retries) {
-                    if (file_reconnect(f) != 0) {
+                    if (file_connect(f) != 0) {
                         length = -1;
                         goto out;
                     }
                 }
             }
             memcpy(block, bufp + ROZOFS_BSIZE * (last - first), loffset);
-            retry = 0;
-            while (write_blocks(f, last, 1, block) != 0 &&
-                   retry++ < f->export->retries) {
-                if (file_reconnect(f) != 0) {
-                    length = -1;
-                    goto out;
-                }
+            if (write_blocks(f, last, 1, block) != 0) {
+                length = -1;
+                goto out;
             }
             last--;
         }
         // Write the other blocks
         if ((last - first) + 1 != 0) {
             retry = 0;
-            while (write_blocks(f, first, (last - first) + 1, bufp) != 0 &&
-                   retry++ < f->export->retries) {
-                if (file_reconnect(f) != 0) {
-                    length = -1;
-                    goto out;
-                }
+            if (write_blocks(f, first, (last - first) + 1, bufp) != 0) {
+                length = -1;
+                goto out;
             }
         }
     }
@@ -585,6 +577,7 @@ file_t *file_open(exportclt_t * e, fid_t fid, mode_t mode) {
     f->buf_pos = 0;
     f->buf_write_wait = 0;
     f->buf_read_wait = 0;
+
     goto out;
 error:
     if (f) {
@@ -599,7 +592,7 @@ out:
 
 int64_t file_write(file_t * f, uint64_t off, const char *buf, uint32_t len) {
     int done = 1;
-    int64_t len_write = 0;
+    int64_t len_write = -1;
     DEBUG_FUNCTION;
 
     while (done) {

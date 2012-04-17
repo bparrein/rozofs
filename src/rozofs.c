@@ -55,6 +55,9 @@ int rozofs_initialize(rozofs_layout_t layout) {
         goto out;
     }
 
+    DEBUG("initialize rozofs with inverse: %u, forward: %u, safe: %u",
+          rozofs_inverse, rozofs_forward, rozofs_safe);
+
     rozofs_angles = xmalloc(sizeof (angle_t) * rozofs_forward);
     rozofs_psizes = xmalloc(sizeof (uint16_t) * rozofs_forward);
     for (i = 0; i < rozofs_forward; i++) {

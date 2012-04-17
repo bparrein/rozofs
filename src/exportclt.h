@@ -26,11 +26,6 @@
 #include "dist.h"
 #include "storageclt.h"
 
-//typedef struct mstorage {
-//    sid_t sid;
-//    char host[ROZOFS_HOSTNAME_MAX];
-//} mstorage_t;
-
 typedef struct mcluster {
     cid_t cid;
     storageclt_t *ms;
@@ -41,6 +36,7 @@ typedef struct mcluster {
 typedef struct exportclt {
     char host[ROZOFS_HOSTNAME_MAX];
     char *root;
+    char *passwd;
     eid_t eid;
     list_t mcs;
     rozofs_layout_t rl;

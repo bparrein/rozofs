@@ -117,7 +117,7 @@ static int load_storages_conf(struct config_t *config) {
     }
 
     storaged_storages =
-            xmalloc(config_setting_length(settings) * sizeof (storage_t));
+        xmalloc(config_setting_length(settings) * sizeof (storage_t));
 
     for (i = 0; i < config_setting_length(settings); i++) {
         struct config_setting_t *ms = NULL;
@@ -125,7 +125,7 @@ static int load_storages_conf(struct config_t *config) {
         const char *root;
 
         if (!(ms = config_setting_get_elem(settings, i))) {
-            errno = EIO; //XXX
+            errno = EIO;        //XXX
             fprintf(stderr, "cant't fetche storage at index %d\n", i);
             severe("cant't fetche storage at index %d", i);
             goto out;
@@ -154,12 +154,12 @@ static int load_storages_conf(struct config_t *config) {
         }
 
         if (storage_initialize(storaged_storages + i, (uint16_t) sid, root) !=
-                0) {
+            0) {
             fprintf(stderr,
                     "can't initialize storage (sid:%ld) with path %s: %s\n",
                     sid, root, strerror(errno));
             severe("can't initialize storage (sid:%ld) with path %s: %s", sid,
-                    root, strerror(errno));
+                   root, strerror(errno));
             goto out;
         }
 
@@ -181,7 +181,7 @@ static int load_conf_file() {
         fprintf(stderr, "can't load config file %s: %s\n",
                 storaged_config_file, strerror(errno));
         fatal("can't load config file %s: %s", storaged_config_file,
-                strerror(errno));
+              strerror(errno));
         status = -1;
         goto out;
     }
@@ -192,7 +192,7 @@ static int load_conf_file() {
         fprintf(stderr, "can't read config file: %s at line: %d\n",
                 config_error_text(&config), config_error_line(&config));
         fatal("can't read config file: %s at line: %d",
-                config_error_text(&config), config_error_line(&config));
+              config_error_text(&config), config_error_line(&config));
         goto out;
     }
 
@@ -233,8 +233,9 @@ static void on_start() {
 
     sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-    setsockopt(sock, SOL_TCP, TCP_NODELAY, (char *) &one, sizeof (int));
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *) &one, sizeof (int));
+    setsockopt(sock, SOL_TCP, TCP_DEFER_ACCEPT, (char *) &one, sizeof (int));
+    setsockopt(sock, SOL_TCP, TCP_NODELAY, (char *) &one, sizeof (int));
 
     // SET NONBLOCK
     int value = 1;
@@ -253,17 +254,17 @@ static void on_start() {
     fcntl(sock, F_SETFL, oldflags);
 
     if ((storaged_svc =
-            svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE,
-            ROZOFS_RPC_BUFFER_SIZE)) == NULL) {
+         svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE,
+                       ROZOFS_RPC_BUFFER_SIZE)) == NULL) {
         fatal("can't create service.");
         return;
     }
 
-    pmap_unset(STORAGE_PROGRAM, STORAGE_VERSION); // in case !
+    pmap_unset(STORAGE_PROGRAM, STORAGE_VERSION);       // in case !
 
     if (!svc_register
-            (storaged_svc, STORAGE_PROGRAM, STORAGE_VERSION, storage_program_1,
-            IPPROTO_TCP)) {
+        (storaged_svc, STORAGE_PROGRAM, STORAGE_VERSION, storage_program_1,
+         IPPROTO_TCP)) {
         fatal("can't register service : %s", strerror(errno));
         return;
     }
@@ -292,7 +293,8 @@ void usage() {
     printf("Rozofs storage daemon - %s\n", VERSION);
     printf("Usage: storaged [OPTIONS]\n\n");
     printf("\t-h, --help\tprint this message.\n");
-    printf("\t-c, --config\tconfig file to use (default: %s).\n", STORAGED_DEFAULT_CONFIG);
+    printf("\t-c, --config\tconfig file to use (default: %s).\n",
+           STORAGED_DEFAULT_CONFIG);
 };
 
 int main(int argc, char *argv[]) {
