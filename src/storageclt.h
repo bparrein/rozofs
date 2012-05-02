@@ -32,7 +32,7 @@ typedef struct storageclt {
     rpcclt_t rpcclt;
 } storageclt_t;
 
-int storageclt_initialize(storageclt_t * clt, const char *host, sid_t sid);
+int storageclt_initialize(storageclt_t * clt);
 
 void storageclt_release(storageclt_t * clt);
 

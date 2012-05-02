@@ -576,6 +576,7 @@ int export_lookup(export_t * e, fid_t parent, const char *name,
     if (!(mfe = htable_get(&e->h_pfids, mfkey))) {
         // if not find and cache it.
 
+        // XXX : no use readdir function, access function seems to be better
         if (!(dp = opendir(pmfe->path)))
             goto out;
         while ((de = readdir(dp))) {
@@ -967,8 +968,10 @@ int export_rm_bins(export_t * e) {
                 storageclt_t sclt;
 
                 lookup_volume_storage(*it, host);
+                strcpy(sclt.host, host);
+                sclt.sid = *it;
 
-                if (storageclt_initialize(&sclt, host, *it) != 0) {
+                if (storageclt_initialize(&sclt) != 0) {
                     warning("failed to join: %s,  %s", host, strerror(errno));
 
                 } else {

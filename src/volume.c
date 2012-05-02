@@ -215,7 +215,10 @@ int volume_balance() {
         while (vs != st_cpy[i] + st_nb[i]) {
 
             storageclt_t sclt;
-            if (storageclt_initialize(&sclt, vs->host, vs->sid) != 0) {
+            strcpy(sclt.host, vs->host);
+            sclt.sid = vs->sid;
+
+            if (storageclt_initialize(&sclt) != 0) {
                 warning("failed to join: %s,  %s", vs->host, strerror(errno));
                 vs->status = 0;
             } else {
@@ -284,14 +287,21 @@ out:
 static int cluster_distribute(cluster_t * cluster, uint16_t * sids) {
     int status = -1;
     int ms_found = 0;
-    int i;
+    int ms_ok = 0;
+    int i = 0;
     DEBUG_FUNCTION;
 
     for (i = 0; i < cluster->nb_ms; i++) {
         volume_storage_t *p = (cluster->ms) + i;
-        if (p->stat.free != 0)
-            sids[ms_found++] = p->sid;
-        if (ms_found == rozofs_safe) {
+
+        if (p->status != 0 || p->stat.free != 0)
+            ms_ok++;
+
+        sids[ms_found++] = p->sid;
+
+        // When creating a file we must be sure to have rozofs_safe servers
+        // and have at least rozofs_server available for writing
+        if (ms_found == rozofs_safe && ms_ok >= rozofs_forward) {
             status = 0;
             break;
         }

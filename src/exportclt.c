@@ -102,10 +102,11 @@ int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
             DEBUG("storage (sid: %d, host: %s)", ep_cluster.storages[j].sid,
                   ep_cluster.storages[j].host);
 
+            strcpy(cluster->ms[j].host, ep_cluster.storages[j].host);
+            cluster->ms[j].sid = ep_cluster.storages[j].sid;
+
             //Initialize the connection with the storage
-            if (storageclt_initialize
-                (&cluster->ms[j], ep_cluster.storages[j].host,
-                 ep_cluster.storages[j].sid) != 0) {
+            if (storageclt_initialize(&cluster->ms[j]) != 0) {
                 fprintf(stderr,
                         "warning failed to join storage (SID: %d): %s, %s\n",
                         ep_cluster.storages[j].sid,
@@ -191,10 +192,11 @@ int exportclt_reload(exportclt_t * clt) {
 
         for (j = 0; j < ep_cluster.storages_nb; j++) {
 
+            strcpy(cluster->ms[j].host, ep_cluster.storages[j].host);
+            cluster->ms[j].sid = ep_cluster.storages[j].sid;
+
             //Initialize the connection with the storage
-            if (storageclt_initialize
-                (&cluster->ms[j], ep_cluster.storages[j].host,
-                 ep_cluster.storages[j].sid) != 0) {
+            if (storageclt_initialize(&cluster->ms[j]) != 0) {
                 fprintf(stderr,
                         "warning failed to join storage (SID: %d): %s, %s\n",
                         ep_cluster.storages[j].sid,

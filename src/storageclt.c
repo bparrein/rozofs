@@ -25,17 +25,14 @@
 #include "storageclt.h"
 
 // TODO : check sid.
-
-int storageclt_initialize(storageclt_t * clt, const char *host, sid_t sid) {
+int storageclt_initialize(storageclt_t * clt) {
     int status = -1;
     DEBUG_FUNCTION;
-
-    strcpy(clt->host, host);
-    clt->sid = sid;
 
     if (rpcclt_initialize
         (&clt->rpcclt, clt->host, STORAGE_PROGRAM, STORAGE_VERSION,
          ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE) != 0) {
+        // storageclt_release can change errno
         int xerrno = errno;
         storageclt_release(clt);
         errno = xerrno;

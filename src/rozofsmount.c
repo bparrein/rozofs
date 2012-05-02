@@ -852,7 +852,7 @@ static void dirbuf_add(fuse_req_t req, struct dirbuf *b, const char *name,
     size_t oldsize = b->size;
     b->size += fuse_add_direntry(req, NULL, 0, name, NULL, 0);
     b->p = (char *) realloc(b->p, b->size);
-    memcpy(&stbuf, mattr_to_stat(attrs, &stbuf), sizeof (struct stat));
+    mattr_to_stat(attrs, &stbuf);
     stbuf.st_ino = ino;
     fuse_add_direntry(req, b->p + oldsize, b->size - oldsize, name, &stbuf,
                       b->size);
@@ -892,6 +892,7 @@ void rozofs_ll_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     memset(&b, 0, sizeof (b));
     iterator = child;
     // TODO ? could be optimized by adding fid in child_t
+    // XXX : NOT OPTIMIZED
     while (iterator != NULL) {
         mattr_t attrs;
         ientry_t *ie2 = 0;

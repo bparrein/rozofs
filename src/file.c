@@ -68,17 +68,13 @@ static int file_connect(file_t * f) {
 
             if (f->storages[i]->rpcclt.client == 0) {
 
-                if (storageclt_initialize
-                    (f->storages[i], f->storages[i]->host,
-                     f->storages[i]->sid) != 0) {
+                if (storageclt_initialize(f->storages[i]) != 0) {
 
                     warning("failed to join: %s,  %s", f->storages[i]->host,
                             strerror(errno));
 
                 } else {
-
                     connected++;
-
                 }
 
             }
@@ -290,9 +286,6 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
                 (f->storages[ps], f->fid, mp, bid, nmbs, bins[mp]) != 0)
                 continue;
 
-            free(bins[mp]);
-            bins[mp] = NULL;
-
             dist_set_true(dist, ps);
 
             if (++mp == rozofs_forward)
@@ -325,7 +318,7 @@ static int write_blocks(file_t * f, bid_t bid, uint32_t nmbs,
     status = 0;
 out:
     if (bins) {
-        for (mp = 0; mp < rozofs_inverse; mp++)
+        for (mp = 0; mp < rozofs_forward; mp++)
             if (bins[mp])
                 free(bins[mp]);
         free(bins);
