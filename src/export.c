@@ -534,8 +534,6 @@ int export_lookup(export_t * e, fid_t parent, const char *name,
     mfentry_t *pmfe = 0;
     mfentry_t *mfe = 0;
     mfentry_t *mfkey = 0;
-    DIR *dp = 0;
-    struct dirent *de = 0;
     DEBUG_FUNCTION;
 
     if (!(pmfe = htable_get(&e->hfids, parent))) {
@@ -557,7 +555,7 @@ int export_lookup(export_t * e, fid_t parent, const char *name,
         status = 0;
         goto out;
     }
-
+    // XXX make this check on client
     if (strcmp(name, e->trashname) == 0) {
         errno = ENOENT;
         status = -1;
@@ -574,39 +572,35 @@ int export_lookup(export_t * e, fid_t parent, const char *name,
 
     // Check if already cached
     if (!(mfe = htable_get(&e->h_pfids, mfkey))) {
-        // if not find and cache it.
 
-        // XXX : no use readdir function, access function seems to be better
-        if (!(dp = opendir(pmfe->path)))
-            goto out;
-        while ((de = readdir(dp))) {
-            if (strcmp(de->d_name, name) == 0) {
-                mfe = xmalloc(sizeof (mfentry_t));
-                if ((mfentry_initialize(mfe, pmfe, name, path)) != 0) {
-                    free(mfe);
-                    goto out;
-                }
-                export_put_mfentry(e, mfe);
-                break;
+        // If no cached, test the existence of this file
+        if (access(path, F_OK) == 0) {
+            // If exists, cache it
+            mfe = xmalloc(sizeof (mfentry_t));
+            if ((mfentry_initialize(mfe, pmfe, name, path)) != 0) {
+                free(mfe);
+                goto out;
             }
+            export_put_mfentry(e, mfe);
+        } else {
+            goto out;
         }
     }
+
     if (mfe) {
-        char to[PATH_MAX + NAME_MAX + 1];
+
         // Need to verify if the path is good (see rename)
         // Put the new path for the file
-        strcpy(to, pmfe->path);
-        strcat(to, "/");
-        strcat(to, name);
-
-        if (strcmp(mfe->path, to) != 0) {
+        // XXX : Why ?
+        if (strcmp(mfe->path, path) != 0) {
             free(mfe->path);
-            mfe->path = xstrdup(to);
+            mfe->path = xstrdup(path);
         }
-
         memcpy(attrs, &mfe->attrs, sizeof (mattr_t));
         status = 0;
+
     } else {
+        warning("export_lookup failed but file: %s exists", name);
         errno = ENOENT;
         status = -1;
     }
@@ -616,9 +610,6 @@ out:
             free(mfkey->name);
         free(mfkey);
     }
-    if (dp)
-        closedir(dp);
-
     return status;
 }
 
