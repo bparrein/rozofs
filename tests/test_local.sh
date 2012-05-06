@@ -72,7 +72,7 @@ build ()
 
     cd ${BUILD_DIR}
     rm -rf ${SOURCE_DIR}/CMakeCache.txt
-    cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} ${SOURCE_DIR}
+    cmake -G "Unix Makefiles" -DDAEMON_PID_DIRECTORY=${BUILD_DIR} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} ${SOURCE_DIR}
     make
     cd ..
 }
