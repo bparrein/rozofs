@@ -1,64 +1,26 @@
 .\" Process this file with
-.\" groff -man -Tascii storaged.8
+.\" groff -man -Tascii rozofs.7
 .\"
 .TH rozofs 7 "DECEMBER 2010" Rozofs "User Manuals"
 .SH NAME
-rozofs \- a short description of rozofs cloud filesystem
+rozofs \- a short description of rozofs 
 
 .SH DESCRIPTION
 
-.SS Upraising Flood of Unstructured Data!
+RozoFS is a scale-out NAS file system. RozoFS aims to provide an open source high performance and high availibility scale out storage software appliance  for  intensive disk IO data center scenario. It comes as a free software, licensed under the GNU GPL v2. RozoFS provides an easy way to scale to petabytes storage but using erasure coding it was designed to provide very high availability levels with optimized raw capacity usage on heterogenous commodity hardwares.
 
-As the volume of unstructured data to be stored is rapidly gaining orders of magnitude, corporate companies as well as hosting service providers start facing the main issues that come with it: scalability of the existing storage architectures, costs, parallelism of access to the data. 
+Rozo provide a native open source POSIX filesystem, build on top of a usual out-band scale-out storage architecture. The Rozo specificity lies in the way data is stored. The data to be stored is translated into several chunks named projections using Mojette Transform and distributed across storage devices in such a way that it can be retrieved even if several pieces are unavailable. On the other hand, chuncks are meaningless alone. Redundancy schemes based on coding techniques like the one used by RozoFS allow to achieve signiﬁcant storage savings as compared to simple replication.
+The file system comprises three components:
+.RS
+.BR exportd 
+— Meta Data Server managing the location (layout) of chunks (ensure the best capacity load balancing with respect to high availability), file access and namespace (hierarchy). Multiple replicated meta data servers are used to provide failover.The Exportd server is a user-space daemon; the meta data are stored synchroneously to a usual file system (the underlying file system must support extended attributes).
 
-While growing of storage needs for unstructured data explodes as well as storage environments complexity, traditionnal storage solutions have many pain points
+.BR storaged 
+— Storage server storing the chunks. The Chunk server is also a user-space daemon that relies on the underlying local file system to manage the actual storage.
 
-    - Unstructured data is difficult to store and index.
-    - Scaling is expensive and complex.
-    - Co-located solutions are vulnerable to disasters.
-    - Collaboration across multiple sites is challenging.
-    - Uptime is expensive.
-    - Recoverability is difficult to obtain.
-
-While lots of public cloud storage offers exist, private clouds only are able to insure the level of control, of privacy and performances required by most companies or hosting services players. In line with usual cloud computing promises (scalability, consumption-based pricing model, accessibility and reliability) and beyond complex definition attempts, the key concepts of private cloud storage are well known:
-
-    - Software only solutions.
-    - Relying on heterogeneous commodity hardware (from multiple suppliers) connected over a LAN/WAN.
-    - Able to cope with many storage points failures at a time within the overall architecture.
-
-The main benefits of this architectural approach are a lower cost and a scalable-on-demand storagespace.
-
-.SS Why Rozofs
-
-In a typical corporate cloud storage offer the reliability of the overall system is obtained by making several copies of each data to be stored, thus increasing considerably the requireddisk/space volume. Thanks to its innovative technology Fizians’s Rozofs Cloud Filesystem offers the same level of reliability through less than one copy. The data to be stored is translated into several chunks and distributed in such a way that it can be retrieved even if several pieces are unavailable. These savings regarding disk space translates to savings in terms of expense.
-
-Though, at first glance, such savings made at his primary level could be considered limited (disks are getting cheaper and cheaper each year), IT financial managers view it from a diferent standpoint for two reasons. Firstly, now not only gigabytes but also terabytes and petabytes are to be stored and secondly, cost of acquisition is not Total Cost of Ownership! More capacity means more devices, more energy, more cooling, more maintenance, more people and finally more trouble and more expenses.
-
-.SS At a glance
-
-ROZOFS is a POSIX compliant cloud filesystem providing an easy way to scale to petabytes storage with optimized raw capacity usage on heterogenous comodity hardware. ROZOFS was designed to let customers take avantage of corporate cloud storage model with simplicity:
-
-    - Use well known file level that fits most business cases.
-    - Reuse existing network or storage resources.
-    - Limitless users an capacity scaling in respect of performances.
-    - Sit on top of low cost comodity hardware.
-    - Simple centralized management.
-
-But with high availibility at lower cost:
-
-    - Less raw capacity.
-    - Less devices.
-    - Less bandwith.
-
-And more secure without the multiple copies drawback:
-
-    - Higher data confidentiality.
-    - Higher security.
-
-Rozofs is made of three components :
-    1) exportd deamon : running on a dedicated host, provides data integrity and consistency throw meta data management.
-    2) storaged deamon : running on commodity hardware with flexible back-end stores erase coded data.
-    3) rozofsmount : provides access through a mountable filesystem (can be used on storage hosts or on any other host)
+.BR rozofsmount 
+— Clients talking to both the exports server and chunk servers and are responsible of data transformation. Clients mount the file system into user-space via FUSE.
+.RE
 
 .SH AUTHOR
 Fizians <http://www.fizians.org>

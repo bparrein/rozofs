@@ -1,5 +1,5 @@
 .\" Process this file with
-.\" groff -man -Tascii exportd.8
+.\" groff -man -Tascii rozofsmount.8
 .\"
 .TH ROZOFSMOUNT 8 "JUNE 2011" Rozofs "User Manuals"
 .SH NAME
@@ -9,6 +9,7 @@ rozofsmount \- rozofs fuse mount
 [\fB\-f\fP]
 [\fB\-H\fP \fIEXPORT_HOST\fP]
 [\fB\-E\fP \fIEXPORT_PATH\fP]
+[\fB\-P\fP \fIEXPORT_PASSWD\fP]
 [\fB\-o\fP \fIopt\fP[,\fIopt\fP]...]
 \fImountpoint\fP
 .PP
@@ -47,6 +48,11 @@ Address (or dns name) where exportd deamon is running (default is rozofsexport).
 Root path of an export see
 .BR exportd (8)
 for further details. (default is /home/rozofs).
+.TP
+\fB\-E\fP \fIEXPORT_PASSWD\fP, \fB\-o exportpasswd=\fP\fIEXPORT_PASSWD\fP
+Address (or dns name) where exportd deamon is running (default is empty).
+.TP
+
 .TP
 \fB\-o rozofsbufsize=\fP\fIN\fP
 specify size of I/O buffer in KiB (in range: 128..8192 - default: 256)
