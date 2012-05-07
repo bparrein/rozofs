@@ -46,6 +46,7 @@ typedef uint64_t bid_t;         // block id
 typedef uuid_t fid_t;           // file id
 typedef uint16_t sid_t;         // storage id
 typedef uint16_t cid_t;         // cluster id
+typedef uint16_t vid_t;         // volume id
 typedef uint32_t eid_t;         // export id
 
 // storage stat

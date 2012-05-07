@@ -63,7 +63,7 @@ static SVCXPRT *exportd_svc = NULL;
 extern void export_program_1(struct svc_req *rqstp, SVCXPRT * ctl_svc);
 
 static void *balance_volume_thread(void *v) {
-    struct timespec ts = { 8, 0 };
+    struct timespec ts = {8, 0};
 
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
@@ -94,7 +94,7 @@ out:
 }
 
 static void *remove_bins_thread(void *v) {
-    struct timespec ts = { 30, 0 };
+    struct timespec ts = {30, 0};
 
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
@@ -173,135 +173,162 @@ out:
     return status;
 }
 
-static int load_volume_conf(struct config_t *config) {
-    int status = -1, i, j;
-    struct config_setting_t *vol_set = NULL;
+static int load_volumes_conf(struct config_t *config) {
+    int status = -1, v, c, s;
+    struct config_setting_t *volumes_set = NULL;
 
-    // Get the volume settings
-    if ((vol_set = config_lookup(config, "volume")) == NULL) {
+    // Get settings for volumes (list of volumes)
+    if ((volumes_set = config_lookup(config, "volumes")) == NULL) {
         errno = ENOKEY;
-        fprintf(stderr, "can't locate the volume settings in conf file\n");
-        fatal("can't locate the volume settings in conf file");
+        fprintf(stderr, "can't locate the volumes settings in conf file\n");
+        fatal("can't locate the volumes settings in conf file");
         goto out;
     }
-    // For each cluster
-    for (i = 0; i < config_setting_length(vol_set); i++) {
 
-        long int cid;
-        struct config_setting_t *stor_set;
-        struct config_setting_t *clu_set;
+    // For each volume
+    for (v = 0; v < config_setting_length(volumes_set); v++) {
 
-        if ((clu_set = config_setting_get_elem(vol_set, i)) == NULL) {
+        long int vid; // Volume identifier
+        struct config_setting_t *vol_set;
+        struct config_setting_t *clu_list_set;
+
+        // Memory allocation for this volume
+        volume_t *volume = (volume_t *) xmalloc(sizeof (volume_t));
+
+        // Initialize list of cluter(s) for this volume
+        list_init(&volume->cluster_list);
+
+        // Get settings for ONE volume
+        if ((vol_set = config_setting_get_elem(volumes_set, v)) == NULL) {
             errno = EIO;
-            fprintf(stderr, "cant't fetche cluster at index %d\n", i);
-            fatal("cant't fetche cluster at index %d", i);
+            fprintf(stderr, "cant't fetche volume at index %d\n", v);
+            fatal("cant't fetche volume at index %d", v);
             goto out;
         }
 
-        if (config_setting_lookup_int(clu_set, "cid", &cid) == CONFIG_FALSE) {
+        // Lookup vid for this volume
+        if (config_setting_lookup_int(vol_set, "vid", &vid) == CONFIG_FALSE) {
             errno = ENOKEY;
-            fprintf(stderr, "cant't look up cid for cluster (idx=%d)\n", i);
-            fatal("cant't look up cid for cluster (idx=%d)", i);
+            fprintf(stderr, "cant't look up vid for volume (idx=%d)\n", v);
+            fatal("cant't look up vid for volume (idx=%d)", v);
             goto out;
         }
 
-        if ((stor_set = config_setting_get_member(clu_set, "sids")) == NULL) {
+        // Get settings for clusters for this volume
+        if ((clu_list_set = config_setting_get_member(vol_set, "cids")) == NULL) {
             errno = ENOKEY;
-            fprintf(stderr, "can't fetch sids for cluster (cid=%ld)\n", cid);
-            fatal("can't fetch sids for cluster (cid=%ld)", cid);
+            fprintf(stderr, "can't fetch cids for volume (vid=%ld)\n", vid);
+            fatal("can't fetch cids for volume (vid=%ld)", vid);
             goto out;
         }
 
-        volume_storage_t *storage =
-            (volume_storage_t *) xmalloc(config_setting_length(stor_set) *
-                                         sizeof (volume_storage_t));
+        // For each cluster of this volume
+        for (c = 0; c < config_setting_length(clu_list_set); c++) {
 
-        for (j = 0; j < config_setting_length(stor_set); j++) {
+            long int cid; // Cluster identifier
 
-            struct config_setting_t *mstor_set = NULL;
-            long int sid;
-            const char *host;
+            struct config_setting_t *stor_set;
+            struct config_setting_t *clu_set;
 
-            if ((mstor_set = config_setting_get_elem(stor_set, j)) == NULL) {
-                errno = EIO;    //XXX
-                fprintf(stderr,
-                        "cant't fetch storage (idx=%d) in cluster (idx=%d)\n",
-                        j, i);
-                fatal
-                    ("cant't fetch storage at index (idx=%d) in cluster (idx=%d)",
-                     j, i);
+            // Get settings for ONE cluster
+            if ((clu_set = config_setting_get_elem(clu_list_set, c)) == NULL) {
+                errno = EIO; //XXX
+                fprintf(stderr, "cant't fetch cluster (idx=%d) in volume (vid=%ld)\n", c, vid);
+                fatal("cant't fetch cluster at index (idx=%d) in volume (vid=%ld)", c, vid);
                 goto out;
             }
 
-            if (config_setting_lookup_int(mstor_set, "sid", &sid) ==
-                CONFIG_FALSE) {
+            // Lookup cid for this clutser
+            if (config_setting_lookup_int(clu_set, "cid", &cid) == CONFIG_FALSE) {
                 errno = ENOKEY;
-                fprintf(stderr,
-                        "cant't look up SID for storage (idx=%d) in cluster (idx=%d)\n",
-                        j, i);
-                fatal
-                    ("cant't look up SID for storage (idx=%d) in cluster (idx=%d)",
-                     j, i);
+                fprintf(stderr, "cant't look up cid for cluster (idx=%d)\n", c);
+                fatal("cant't look up cid for cluster (idx=%d)", c);
                 goto out;
             }
 
-            if (config_setting_lookup_string(mstor_set, "host", &host) ==
-                CONFIG_FALSE) {
+            // Get settings for sids for this cluster
+            if ((stor_set = config_setting_get_member(clu_set, "sids")) == NULL) {
                 errno = ENOKEY;
-                fprintf(stderr,
-                        "cant't look up host for storage (idx=%d) in cluster (idx=%d)\n",
-                        j, i);
-                fatal
-                    ("cant't look up host for storage (idx=%d) in cluster (idx=%d)",
-                     j, i);
+                fprintf(stderr, "can't fetch sids for cluster (cid=%ld)\n", cid);
+                fatal("can't fetch sids for cluster (cid=%ld)", cid);
                 goto out;
             }
 
-            if (mstorage_initialize(storage + j, (uint16_t) sid, host) != 0) {
-                fprintf(stderr, "can't add storage (SID=%ld)\n", sid);
-                fatal("can't add storage (SID=%ld)", sid);
+            // Allocation of memory for storages
+            volume_storage_t *storage = (volume_storage_t *) xmalloc(config_setting_length(stor_set) * sizeof (volume_storage_t));
+
+            for (s = 0; s < config_setting_length(stor_set); s++) {
+
+                struct config_setting_t *mstor_set = NULL;
+                long int sid;
+                const char *host;
+
+                // Get settings for ONE storage
+                if ((mstor_set = config_setting_get_elem(stor_set, s)) == NULL) {
+                    errno = EIO; //XXX
+                    fprintf(stderr, "cant't fetch storage (idx=%d) in cluster (idx=%d)\n", s, c);
+                    fatal("cant't fetch storage at index (idx=%d) in cluster (idx=%d)", s, c);
+                    goto out;
+                }
+
+                if (config_setting_lookup_int(mstor_set, "sid", &sid) == CONFIG_FALSE) {
+                    errno = ENOKEY;
+                    fprintf(stderr, "cant't look up SID for storage (idx=%d) in cluster (idx=%d)\n", s, c);
+                    fatal("cant't look up SID for storage (idx=%d) in cluster (idx=%d)", s, c);
+                    goto out;
+                }
+
+                if (config_setting_lookup_string(mstor_set, "host", &host) == CONFIG_FALSE) {
+                    errno = ENOKEY;
+                    fprintf(stderr, "cant't look up host for storage (idx=%d) in cluster (idx=%d)\n", s, c);
+                    fatal("cant't look up host for storage (idx=%d) in cluster (idx=%d)", s, c);
+                    goto out;
+                }
+
+                if (mstorage_initialize(storage + s, (uint16_t) sid, host) != 0) {
+                    fprintf(stderr, "can't add storage (SID=%ld)\n", sid);
+                    fatal("can't add storage (SID=%ld)", sid);
+                    goto out;
+                }
+            }
+
+            // Verifation if cluster already exist
+
+            // Memory allocation for this cluster
+            cluster_t *cluster = (cluster_t *) xmalloc(sizeof (cluster_t));
+
+            cluster->cid = (uint16_t) cid;
+            cluster->free = 0;
+            cluster->size = 0;
+            cluster->ms = storage;
+            cluster->nb_ms = config_setting_length(stor_set);
+
+            // Add this cluster to the list of this volume
+            if ((errno = pthread_rwlock_wrlock(&volumes_list.lock)) != 0)
                 goto out;
-            }
-        }
 
-        if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
+            list_push_back(&volume->cluster_list, &cluster->list);
+
+            if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
+                goto out;
+
+        } // End add cluster
+
+
+        // Add this volume to the list of volumes
+        if ((errno = pthread_rwlock_wrlock(&volumes_list.lock)) != 0)
             goto out;
 
-        list_t *iterator;
+        volume->vid = vid;
 
-        list_for_each_forward(iterator, &volume.mcs) {
-            cluster_t *entry = list_entry(iterator, cluster_t, list);
-            if (cid == entry->cid) {
-                fprintf(stderr,
-                        "cant't add cluster with cid %ld: already exists\n",
-                        cid);
-                info("cant't add cluster with cid %ld: already exists", cid);
-                continue;
-            }
-        }
+        list_push_back(&volumes_list.vol_list, &volume->list);
 
-        if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
+        if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
             goto out;
 
+    } // end add volume
 
-        cluster_t *cluster = (cluster_t *) xmalloc(sizeof (cluster_t));
-
-        cluster->cid = (uint16_t) cid;
-        cluster->free = 0;
-        cluster->size = 0;
-        cluster->ms = storage;
-        cluster->nb_ms = config_setting_length(stor_set);
-
-        if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
-            goto out;
-
-        list_push_back(&volume.mcs, &cluster->list);
-
-        if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
-            goto out;
-    }
-
-    volume.version++;
+    volumes_list.version++;
 
     status = 0;
 out:
@@ -324,20 +351,21 @@ static int load_exports_conf(struct config_t *config) {
 
         struct config_setting_t *mfs_setting;
         export_entry_t *export_entry =
-            (export_entry_t *) xmalloc(sizeof (export_entry_t));
+                (export_entry_t *) xmalloc(sizeof (export_entry_t));
         const char *root;
         const char *md5;
         uint32_t eid;
+        long int vid; // Volume identifier
 
         if ((mfs_setting = config_setting_get_elem(export_set, i)) == NULL) {
-            errno = EIO;        //XXX
+            errno = EIO; //XXX
             fprintf(stderr, "cant't fetch export at index %d\n", i);
             severe("cant't fetch export at index %d", i);
             goto out;
         }
 
         if (config_setting_lookup_int(mfs_setting, "eid", (long int *) &eid)
-            == CONFIG_FALSE) {
+                == CONFIG_FALSE) {
             errno = ENOKEY;
             fprintf(stderr, "cant't look up eid for export (idx=%d)\n", i);
             fatal("cant't look up eid for export (idx=%d)", i);
@@ -352,7 +380,7 @@ static int load_exports_conf(struct config_t *config) {
         }
 
         if (config_setting_lookup_string(mfs_setting, "root", &root) ==
-            CONFIG_FALSE) {
+                CONFIG_FALSE) {
             errno = ENOKEY;
             fprintf(stderr, "cant't look up root path for export (idx=%d)\n",
                     i);
@@ -361,7 +389,7 @@ static int load_exports_conf(struct config_t *config) {
         }
 
         if (config_setting_lookup_string(mfs_setting, "md5", &md5) ==
-            CONFIG_FALSE) {
+                CONFIG_FALSE) {
             errno = ENOKEY;
             fprintf(stderr, "cant't look up md5 for export (idx=%d)\n", i);
             severe("cant't look md5 for export (idx=%d)", i);
@@ -374,12 +402,27 @@ static int load_exports_conf(struct config_t *config) {
             info("cant't add export with path %s: already exists\n", root);
             continue;
         }
+        
+        // Lookup volume identifier
+        if (config_setting_lookup_int(mfs_setting, "vid", &vid) == CONFIG_FALSE) {
+            errno = ENOKEY;
+            fprintf(stderr, "cant't look up vid for export (idx=%d)\n", i);
+            fatal("cant't look up vid for export (idx=%d)", i);
+            goto out;
+        }
 
-        if (export_initialize(&export_entry->export, eid, root, md5) != 0) {
+        // vid must exist
+        if (volume_exist(vid) != 0) {
+            fprintf(stderr, "cant't add export with eid: %u (vid: %lu not exists)\n", eid, vid);
+            info("cant't add export with eid: %u (vid: %lu not exists)", eid, vid);
+            continue;
+        }
+
+        if (export_initialize(&export_entry->export, eid, root, md5, vid) != 0) {
             fprintf(stderr, "can't initialize export with path %s: %s\n",
                     root, strerror(errno));
             severe("can't initialize export with path %s: %s", root,
-                   strerror(errno));
+                    strerror(errno));
             goto out;
         }
 
@@ -408,7 +451,7 @@ static int load_conf_file() {
         fprintf(stderr, "can't load config file %s: %s\n",
                 exportd_config_file, strerror(errno));
         fatal("can't load config file %s: %s", exportd_config_file,
-              strerror(errno));
+                strerror(errno));
         status = -1;
         goto out;
     }
@@ -419,7 +462,7 @@ static int load_conf_file() {
         fprintf(stderr, "can't read config file: %s at line: %d\n",
                 config_error_text(&config), config_error_line(&config));
         fatal("can't read config file: %s at line: %d",
-              config_error_text(&config), config_error_line(&config));
+                config_error_text(&config), config_error_line(&config));
         goto out;
     }
 
@@ -427,7 +470,7 @@ static int load_conf_file() {
         goto out;
     }
 
-    if (load_volume_conf(&config) != 0) {
+    if (load_volumes_conf(&config) != 0) {
         goto out;
     }
 
@@ -465,8 +508,8 @@ static int exportd_initialize() {
     int status = -1;
     DEBUG_FUNCTION;
 
-    // Initialize list of clusters
-    if (volume_initialize() != 0) {
+    // Initialize list of volume(s)
+    if (volumes_list_initialize() != 0) {
         fprintf(stderr, "can't initialize volume: %s\n", strerror(errno));
         goto out;
     }
@@ -525,7 +568,7 @@ static void on_start() {
 
     // XXX Buffers sizes hard coded
     exportd_svc =
-        svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE);
+            svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE, ROZOFS_RPC_BUFFER_SIZE);
     if (exportd_svc == NULL) {
         fatal("can't create service %s", strerror(errno));
         return;
@@ -534,14 +577,14 @@ static void on_start() {
     pmap_unset(EXPORT_PROGRAM, EXPORT_VERSION); // in case !
 
     if (!svc_register
-        (exportd_svc, EXPORT_PROGRAM, EXPORT_VERSION, export_program_1,
-         IPPROTO_TCP)) {
+            (exportd_svc, EXPORT_PROGRAM, EXPORT_VERSION, export_program_1,
+            IPPROTO_TCP)) {
         fatal("can't register service %s", strerror(errno));
         return;
     }
 
     if (pthread_create(&bal_vol_thread, NULL, balance_volume_thread, NULL) !=
-        0) {
+            0) {
         fatal("can't create balancing thread %s", strerror(errno));
         return;
     }
@@ -583,7 +626,7 @@ static void on_hup() {
         fprintf(stderr, "can't load config file %s: %s\n",
                 exportd_config_file, strerror(errno));
         fatal("can't load config file %s: %s", exportd_config_file,
-              strerror(errno));
+                strerror(errno));
         goto out;
     }
     close(fd);
@@ -593,14 +636,14 @@ static void on_hup() {
         fprintf(stderr, "can't read config file: %s at line: %d\n",
                 config_error_text(&config), config_error_line(&config));
         fatal("can't read config file: %s at line: %d",
-              config_error_text(&config), config_error_line(&config));
+                config_error_text(&config), config_error_line(&config));
         goto out;
     }
 
     if (load_exports_conf(&config) != 0)
         goto out;
 
-    if (load_volume_conf(&config) != 0)
+    if (load_volumes_conf(&config) != 0)
         goto out;
 
 out:
@@ -612,7 +655,7 @@ static void usage() {
     printf("Usage: exportd [OPTIONS]\n\n");
     printf("\t-h, --help\tprint this message.\n");
     printf("\t-c, --config\tconfiguration file to use (default: %s).\n",
-           EXPORTD_DEFAULT_CONFIG);
+            EXPORTD_DEFAULT_CONFIG);
 };
 
 int main(int argc, char *argv[]) {
@@ -634,26 +677,26 @@ int main(int argc, char *argv[]) {
 
         switch (c) {
 
-        case 'h':
-            usage();
-            exit(EXIT_SUCCESS);
-            break;
-        case 'c':
-            if (!realpath(optarg, exportd_config_file)) {
-                fprintf(stderr,
-                        "exportd failed: configuration file: %s: %s\n",
-                        optarg, strerror(errno));
+            case 'h':
+                usage();
+                exit(EXIT_SUCCESS);
+                break;
+            case 'c':
+                if (!realpath(optarg, exportd_config_file)) {
+                    fprintf(stderr,
+                            "exportd failed: configuration file: %s: %s\n",
+                            optarg, strerror(errno));
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case '?':
+                usage();
+                exit(EXIT_SUCCESS);
+                break;
+            default:
+                usage();
                 exit(EXIT_FAILURE);
-            }
-            break;
-        case '?':
-            usage();
-            exit(EXIT_SUCCESS);
-            break;
-        default:
-            usage();
-            exit(EXIT_FAILURE);
-            break;
+                break;
         }
     }
     if (exportd_initialize() != 0) {
