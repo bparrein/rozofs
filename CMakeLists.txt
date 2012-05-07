@@ -37,8 +37,6 @@ find_package(PTHREAD REQUIRED)
 find_package(FUSE REQUIRED)
 find_program(DEBUILD NAMES debuild)
 
-subdirs(src doc tests tests/fs_ops/fileop tests/fs_ops/pjd-fstest)
-
 #
 # Project config.
 #
@@ -64,6 +62,10 @@ string(REGEX MATCH "$\\\\/" TRAILING_SLASH "${DAEMON_PID_DIRECTORY}")
 if(NOT TRAILING_SLASH)
     set(DAEMON_PID_DIRECTORY "${DAEMON_PID_DIRECTORY}/")
 endif(NOT TRAILING_SLASH)
+
+add_subdirectory(src)
+add_subdirectory(doc)
+add_subdirectory(tests)
 
 set(ROZOFS_PACKAGE_FILE_NAME "rozofs-${VERSION}-${CMAKE_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
