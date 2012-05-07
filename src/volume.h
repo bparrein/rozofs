@@ -31,14 +31,14 @@ typedef struct volume_stat {
 } volume_stat_t;
 
 typedef struct volume_storage {
-    uint16_t sid;
+    uint16_t sid; // Storage identifier
     char host[ROZOFS_HOSTNAME_MAX];
     uint8_t status;
     sstat_t stat;
 } volume_storage_t;
 
 typedef struct cluster {
-    uint16_t cid;
+    uint16_t cid; // Cluster identifier
     volume_storage_t *ms;
     uint16_t nb_ms;
     uint64_t size;
@@ -47,33 +47,42 @@ typedef struct cluster {
 } cluster_t;
 
 typedef struct volume {
-    list_t mcs;
-    uint8_t version;
-    pthread_rwlock_t lock;
+    uint16_t vid; // Volume identifier
+    list_t list;
+    list_t cluster_list; // Cluster(s) list
+    // pthread_rwlock_t lock;
 } volume_t;
 
-volume_t volume;
+typedef struct volumes_list {
+    list_t vol_list; // Volume(s) list
+    uint8_t version;
+    pthread_rwlock_t lock;
+} volumes_list_t;
 
-int volume_initialize();
+volumes_list_t volumes_list;
+
+int volumes_list_initialize();
 
 int volume_release();
 
 int mstorage_initialize(volume_storage_t * st, uint16_t sid,
-                        const char *hostname);
+        const char *hostname);
 
 int volume_register(uint16_t cid, volume_storage_t * storages,
-                    uint16_t ms_nb);
+        uint16_t ms_nb);
 
 int volume_balance();
 
 char *lookup_volume_storage(sid_t sid, char *host);
 
-int volume_distribute(uint16_t * cid, uint16_t * sids);
+int volume_distribute(uint16_t * cid, uint16_t * sids, uint16_t vid);
 
-void volume_stat(volume_stat_t * volume_stat);
+void volume_stat(volume_stat_t * volume_stat, uint16_t vid);
 
 int volume_print();
 
 uint16_t volume_size();
+
+int volume_exist(vid_t vid);
 
 #endif

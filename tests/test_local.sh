@@ -82,7 +82,7 @@ build ()
 gen_storage_conf ()
 {
     ROZOFS_LAYOUT=$1
-    STORAGES_BY_NODE=$2
+    STORAGES_BY_CLUSTER=$2
 
     FILE=${LOCAL_CONF}'storage_l'${ROZOFS_LAYOUT}'.conf'
 
@@ -101,8 +101,9 @@ gen_storage_conf ()
     echo ${DATE_LABEL} >> $FILE
     echo "layout = ${ROZOFS_LAYOUT} ;" >> $FILE
     echo 'storages = (' >> $FILE
-    for j in $(seq ${STORAGES_BY_NODE}); do
-        if [[ ${j} == ${STORAGES_BY_NODE} ]]
+    let nb_storages=$((${STORAGES_BY_CLUSTER}*${NB_CLUSTERS_BY_VOLUME}*${NB_VOLUMES}))
+    for j in $(seq ${nb_storages}); do
+        if [[ ${j} == ${nb_storages} ]]
         then
             echo "  {sid = $j; root =\"${STORAGES_ROOT}_$j\";}" >> $FILE
         else
@@ -120,7 +121,6 @@ gen_export_conf ()
 {
 
     ROZOFS_LAYOUT=$1
-    STORAGES_BY_NODE=$2
 
     FILE=${LOCAL_CONF}'export_l'${ROZOFS_LAYOUT}'.conf'
 
@@ -138,31 +138,59 @@ gen_export_conf ()
     echo ${NAME_LABEL} >> $FILE
     echo ${DATE_LABEL} >> $FILE
     echo "layout = ${ROZOFS_LAYOUT} ;" >> $FILE
-    echo 'volume =' >> $FILE
-    echo '(' >> $FILE
-    echo '   {' >> $FILE
-    echo '       cid = 1;' >> $FILE
-    echo '       sids =' >> $FILE
-    echo '       (' >> $FILE
-    for k in $(seq ${STORAGES_BY_NODE}); do
-        let idx=${k}-1
-        if [[ ${k} == ${STORAGES_BY_NODE} ]]
+    echo 'volumes =' >> $FILE
+    echo '    (' >> $FILE
+
+        for v in $(seq ${NB_VOLUMES}); do
+            echo '        {' >> $FILE
+            echo "            vid = $v;" >> $FILE
+            echo '            cids= ' >> $FILE
+            echo '            (' >> $FILE
+
+            for c in $(seq ${NB_CLUSTERS_BY_VOLUME}); do
+            let idx_cluster=(${v}-1)*${NB_CLUSTERS_BY_VOLUME}+${c}
+            echo '                   {' >> $FILE
+            echo "                       cid = $idx_cluster;" >> $FILE
+            echo '                       sids =' >> $FILE
+            echo '                       (' >> $FILE
+                for k in $(seq ${STORAGES_BY_CLUSTER}); do
+                    let idx=${k}-1;
+                     idx_tmp_1=$(((${v}-1)*${NB_CLUSTERS_BY_VOLUME}*${STORAGES_BY_CLUSTER}))
+                     idx_tmp_2=$((${STORAGES_BY_CLUSTER}*(${c}-1)))
+                     idx_storage=$((${idx_tmp_1}+${idx_tmp_2}+${k}))
+                    if [[ ${k} == ${STORAGES_BY_CLUSTER} ]]
+                    then
+                        echo "                           {sid = ${idx_storage}; host = \"${STORAGE_NAME_BASE}\";}" >> $FILE
+                    else
+                        echo "                           {sid = ${idx_storage}; host = \"${STORAGE_NAME_BASE}\";}," >> $FILE
+                    fi
+                done;
+                echo '                       );' >> $FILE
+                if [[ ${c} == ${NB_CLUSTERS_BY_VOLUME} ]]
+                then
+                    echo '                   }' >> $FILE
+                else
+                    echo '                   },' >> $FILE
+                fi
+            done;
+        echo '            );' >> $FILE
+        if [[ ${v} == ${NB_VOLUMES} ]]
         then
-            echo "           {sid = $k; host = \"${STORAGE_NAME_BASE}\";}" >> $FILE
+            echo '        }' >> $FILE
         else
-            echo "           {sid = $k; host = \"${STORAGE_NAME_BASE}\";}," >> $FILE
+            echo '        },' >> $FILE
         fi
-    done;
-    echo '       );' >> $FILE
-    echo '   }' >> $FILE
-    echo ');' >> $FILE
+        done;
+    echo '    )' >> $FILE
+    echo ';' >> $FILE
+
     echo 'exports = (' >> $FILE
     for k in $(seq ${NB_EXPORTS}); do
         if [[ ${k} == ${NB_EXPORTS} ]]
         then
-            echo "   {eid = $k; root = \"${EXPORTS_ROOT}_$k\"; md5=\"${3}\";}" >> $FILE
+            echo "   {eid = $k; root = \"${EXPORTS_ROOT}_$k\"; md5=\"${3}\"; vid=${k};}" >> $FILE
         else
-            echo "   {eid = $k; root = \"${EXPORTS_ROOT}_$k\"; md5=\"${3}\";}," >> $FILE
+            echo "   {eid = $k; root = \"${EXPORTS_ROOT}_$k\"; md5=\"${3}\"; vid=${k};}," >> $FILE
         fi
     done;
     echo ');' >> $FILE
@@ -212,9 +240,9 @@ create_storages ()
     then
         echo "Unable to remove storage directories (configuration file doesn't exist)"
     else
-        STORAGES_BY_NODE=`grep sid ${LOCAL_CONF}${STORAGE_CONF_FILE} | wc -l`
+        STORAGES_BY_CLUSTER=`grep sid ${LOCAL_CONF}${STORAGE_CONF_FILE} | wc -l`
 
-        for j in $(seq ${STORAGES_BY_NODE}); do
+        for j in $(seq ${STORAGES_BY_CLUSTER}); do
 
             if [ -e "${STORAGES_ROOT}_${j}" ]
             then
@@ -234,9 +262,9 @@ remove_storages ()
     then
         echo "Unable to remove storage directories (configuration file doesn't exist)"
     else
-        STORAGES_BY_NODE=`grep sid ${LOCAL_CONF}${STORAGE_CONF_FILE} | wc -l`
+        STORAGES_BY_CLUSTER=`grep sid ${LOCAL_CONF}${STORAGE_CONF_FILE} | wc -l`
 
-        for j in $(seq ${STORAGES_BY_NODE}); do
+        for j in $(seq ${STORAGES_BY_CLUSTER}); do
 
             if [ -e "${STORAGES_ROOT}_${j}" ]
             then
@@ -501,6 +529,9 @@ usage ()
 run_fs_test () 
 {
         NB_EXPORTS=2
+        NB_VOLUMES=2;
+        NB_CLUSTERS_BY_VOLUME=2;
+
         gen_storage_conf 0 4
         gen_export_conf 0 4 ${MD5_GENERATED}
         gen_storage_conf 1 8
@@ -565,15 +596,15 @@ main ()
         if [ "$2" -eq 0 ]
         then
             ROZOFS_LAYOUT=$2
-            STORAGES_BY_NODE=4
+            STORAGES_BY_CLUSTER=4
         elif [ "$2" -eq 1 ]
         then
             ROZOFS_LAYOUT=$2
-            STORAGES_BY_NODE=8
+            STORAGES_BY_CLUSTER=8
         elif [ "$2" -eq 2 ]
         then
             ROZOFS_LAYOUT=$2
-            STORAGES_BY_NODE=16
+            STORAGES_BY_CLUSTER=16
         else
 	        echo >&2 "Rozofs layout must be equal to 0,1 or 2."
 	        exit 1
@@ -583,9 +614,11 @@ main ()
         check_no_run
 
         NB_EXPORTS=2
+        NB_VOLUMES=2;
+        NB_CLUSTERS_BY_VOLUME=2;
 
-        gen_storage_conf ${ROZOFS_LAYOUT} ${STORAGES_BY_NODE}
-        gen_export_conf ${ROZOFS_LAYOUT} ${STORAGES_BY_NODE}
+        gen_storage_conf ${ROZOFS_LAYOUT} ${STORAGES_BY_CLUSTER}
+        gen_export_conf ${ROZOFS_LAYOUT} ${STORAGES_BY_CLUSTER}
 
         go_layout ${ROZOFS_LAYOUT}
 

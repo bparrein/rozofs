@@ -53,17 +53,8 @@ static int cluster_compare_capacity(list_t * l1, list_t * l2) {
     return e1->free < e2->free;
 }
 
-static void cluster_print(volume_storage_t * a, size_t n) {
-    size_t i;
-    for (i = 0; i < n; i++) {
-        volume_storage_t *p = a + i;
-        printf("sid: %d, host: %s, size: %" PRIu64 ", free: %" PRIu64 "\n",
-               p->sid, p->host, p->stat.size, p->stat.free);
-    }
-}
-
 int mstorage_initialize(volume_storage_t * st, uint16_t sid,
-                        const char *hostname) {
+        const char *hostname) {
     int status = -1;
     DEBUG_FUNCTION;
 
@@ -88,15 +79,15 @@ out:
     return status;
 }
 
-int volume_initialize() {
+int volumes_list_initialize() {
     int status = -1;
     DEBUG_FUNCTION;
 
-    list_init(&volume.mcs);
+    list_init(&volumes_list.vol_list);
 
-    volume.version = 0;
+    volumes_list.version = 0;
 
-    if ((errno = pthread_rwlock_init(&volume.lock, NULL)) != 0) {
+    if ((errno = pthread_rwlock_init(&volumes_list.lock, NULL)) != 0) {
         goto out;
     }
 
@@ -108,22 +99,31 @@ out:
 int volume_release() {
     int status = -1;
     list_t *p, *q;
+    list_t *i, *j;
     DEBUG_FUNCTION;
 
-    if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
+    if ((errno = pthread_rwlock_wrlock(&volumes_list.lock)) != 0)
         goto out;
 
-    list_for_each_forward_safe(p, q, &volume.mcs) {
-        cluster_t *entry = list_entry(p, cluster_t, list);
+    list_for_each_forward_safe(p, q, &volumes_list.vol_list) {
+
+        volume_t *entry_vol = list_entry(p, volume_t, list);
+
+        list_for_each_forward_safe(i, j, &entry_vol->cluster_list) {
+            cluster_t *entry = list_entry(p, cluster_t, list);
+            list_remove(i);
+            free(entry->ms);
+            free(entry);
+        }
+
         list_remove(p);
-        free(entry->ms);
-        free(entry);
+        free(entry_vol);
     }
 
-    if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
+    if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
         goto out;
 
-    if ((errno = pthread_rwlock_destroy(&volume.lock)) != 0)
+    if ((errno = pthread_rwlock_destroy(&volumes_list.lock)) != 0)
         goto out;
 
     status = 0;
@@ -131,44 +131,33 @@ out:
     return status;
 }
 
-int volume_register(uint16_t cid, volume_storage_t * storages, uint16_t nb_ms) {
-
-    DEBUG_FUNCTION;
-
-    cluster_t *cluster = (cluster_t *) xmalloc(sizeof (cluster_t));
-
-    cluster->cid = cid;
-    cluster->free = 0;
-    cluster->size = 0;
-    cluster->ms = storages;
-    cluster->nb_ms = nb_ms;
-
-    list_push_back(&volume.mcs, &cluster->list);
-
-    return 0;
-}
-
 char *lookup_volume_storage(sid_t sid, char *host) {
     list_t *iterator;
+    list_t *iterator_2;
     DEBUG_FUNCTION;
 
-    if ((errno = pthread_rwlock_rdlock(&volume.lock)) != 0)
+    if ((errno = pthread_rwlock_rdlock(&volumes_list.lock)) != 0)
         goto out;
 
-    list_for_each_forward(iterator, &volume.mcs) {
-        cluster_t *entry = list_entry(iterator, cluster_t, list);
-        volume_storage_t *it = entry->ms;
+    list_for_each_forward(iterator, &volumes_list.vol_list) {
 
-        while (it != entry->ms + entry->nb_ms) {
-            if (sid == it->sid) {
-                strcpy(host, it->host);
-                break;
+        volume_t *entry_vol = list_entry(iterator, volume_t, list);
+
+        list_for_each_forward(iterator_2, &entry_vol->cluster_list) {
+            cluster_t *entry = list_entry(iterator_2, cluster_t, list);
+            volume_storage_t *it = entry->ms;
+
+            while (it != entry->ms + entry->nb_ms) {
+                if (sid == it->sid) {
+                    strcpy(host, it->host);
+                    break;
+                }
+                it++;
             }
-            it++;
         }
     }
 
-    if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
+    if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
         goto out;
 
 out:
@@ -178,6 +167,7 @@ out:
 int volume_balance() {
     int status = -1;
     list_t *iterator;
+    list_t *iterator_2;
     int nb_clusters = 0;
     volume_storage_t **st_cpy = NULL;
     uint8_t *st_nb = NULL;
@@ -185,27 +175,42 @@ int volume_balance() {
     int i = 0;
     DEBUG_FUNCTION;
 
-    // Copy the list
-    if ((errno = pthread_rwlock_tryrdlock(&volume.lock)) != 0)
+    if ((errno = pthread_rwlock_tryrdlock(&volumes_list.lock)) != 0)
         goto out;
 
-    old_ver = volume.version;
-    nb_clusters = list_size(&volume.mcs);
+    old_ver = volumes_list.version;
+
+    // Get number of cluster
+
+    list_for_each_forward(iterator, &volumes_list.vol_list) {
+        volume_t *entry_vol = list_entry(iterator, volume_t, list);
+        nb_clusters = nb_clusters + list_size(&entry_vol->cluster_list);
+    }
 
     st_cpy = xcalloc(nb_clusters, sizeof (volume_storage_t *));
     st_nb = xcalloc(nb_clusters, sizeof (uint8_t));
 
-    list_for_each_forward(iterator, &volume.mcs) {
-        cluster_t *entry = list_entry(iterator, cluster_t, list);
-        st_cpy[i] = xmalloc(entry->nb_ms * sizeof (volume_storage_t));
-        memcpy(st_cpy[i], entry->ms,
-               entry->nb_ms * sizeof (volume_storage_t));
-        st_nb[i] = entry->nb_ms;
-        i++;
+    list_for_each_forward(iterator, &volumes_list.vol_list) {
+
+        volume_t *entry_vol = list_entry(iterator, volume_t, list);
+
+        list_for_each_forward(iterator_2, &entry_vol->cluster_list) {
+
+            cluster_t *entry = list_entry(iterator_2, cluster_t, list);
+
+            st_cpy[i] = xmalloc(entry->nb_ms * sizeof (volume_storage_t));
+
+            memcpy(st_cpy[i], entry->ms, entry->nb_ms * sizeof (volume_storage_t));
+
+            st_nb[i] = entry->nb_ms;
+
+            i++;
+        }
     }
 
-    if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
+    if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
         goto out;
+
 
     // Try to join each storage server
     for (i = 0; i < nb_clusters; i++) {
@@ -235,38 +240,50 @@ int volume_balance() {
     }
 
     // Copy updated list
-    if ((errno = pthread_rwlock_wrlock(&volume.lock)) != 0)
+    if ((errno = pthread_rwlock_wrlock(&volumes_list.lock)) != 0)
         goto out;
 
     i = 0;
 
-    if (old_ver == volume.version) {
+    // Check if the volume list has been modified since the copy
+    if (old_ver == volumes_list.version) {
 
-        list_for_each_forward(iterator, &volume.mcs) {
-            cluster_t *entry = list_entry(iterator, cluster_t, list);
+        // For each volume
 
-            memcpy(entry->ms, st_cpy[i],
-                   entry->nb_ms * sizeof (volume_storage_t));
-            volume_storage_t *it = entry->ms;
-            entry->free = 0;
-            entry->size = 0;
+        list_for_each_forward(iterator, &volumes_list.vol_list) {
 
-            while (it != entry->ms + entry->nb_ms) {
+            volume_t *entry_vol = list_entry(iterator, volume_t, list);
 
-                entry->free += it->stat.free;
-                entry->size += it->stat.size;
-                it++;
+            // For each cluster
+
+            list_for_each_forward(iterator_2, &entry_vol->cluster_list) {
+
+                cluster_t *entry = list_entry(iterator_2, cluster_t, list);
+
+                memcpy(entry->ms, st_cpy[i], entry->nb_ms * sizeof (volume_storage_t));
+                volume_storage_t *it = entry->ms;
+                entry->free = 0;
+                entry->size = 0;
+
+                while (it != entry->ms + entry->nb_ms) {
+
+                    entry->free += it->stat.free;
+                    entry->size += it->stat.size;
+                    it++;
+                }
+
+                // Sort this list of storages
+                qsort(entry->ms, entry->nb_ms, sizeof (volume_storage_t), volume_storage_compare);
+
+                i++;
             }
 
-            qsort(entry->ms, entry->nb_ms, sizeof (volume_storage_t),
-                  volume_storage_compare);
-            i++;
+            // Sort this list of clusters for one volume
+            list_sort(&entry_vol->cluster_list, cluster_compare_capacity);
         }
-
-        list_sort(&volume.mcs, cluster_compare_capacity);
     }
 
-    if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
+    if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
         goto out;
 
     status = 0;
@@ -309,31 +326,48 @@ static int cluster_distribute(cluster_t * cluster, uint16_t * sids) {
     return status;
 }
 
-int volume_distribute(uint16_t * cid, uint16_t * sids) {
+int volume_distribute(uint16_t * cid, uint16_t * sids, uint16_t vid) {
     int status = -1;
     int cluster_found = 0;
     DEBUG_FUNCTION;
 
-    if (list_empty(&volume.mcs)) {
+    if (list_empty(&volumes_list.vol_list)) {
         errno = EINVAL;
         goto out;
     }
 
-    if ((errno = pthread_rwlock_rdlock(&volume.lock)) != 0)
+    if ((errno = pthread_rwlock_rdlock(&volumes_list.lock)) != 0)
         status = -1;
 
     list_t *iterator;
+    list_t *iterator_2;
 
-    list_for_each_forward(iterator, &volume.mcs) {
-        cluster_t *entry = list_entry(iterator, cluster_t, list);
-        if (cluster_distribute(entry, sids) == 0) {
-            cluster_found = 1;
-            *cid = entry->cid;
+    // For each volume
+
+    list_for_each_forward(iterator, &volumes_list.vol_list) {
+
+        volume_t *entry_vol = list_entry(iterator, volume_t, list);
+
+        warning("volume_distribute: vid search: %u, vid: %u", entry_vol->vid, vid);
+
+        // Get volume with this vid
+        if (entry_vol->vid == vid) {
+
+            list_for_each_forward(iterator_2, &entry_vol->cluster_list) {
+
+                cluster_t *entry = list_entry(iterator_2, cluster_t, list);
+
+                if (cluster_distribute(entry, sids) == 0) {
+                    cluster_found = 1;
+                    *cid = entry->cid;
+                    break;
+                }
+            }
             break;
         }
     }
 
-    if ((errno = pthread_rwlock_unlock(&volume.lock)) != 0)
+    if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
         goto out;
 
     if (cluster_found == 0) {
@@ -348,22 +382,58 @@ out:
 
 // XXX : locks ?
 
-void volume_stat(volume_stat_t * stat) {
-    list_t *iterator;
+void volume_stat(volume_stat_t * stat, uint16_t vid) {
+    list_t *p, *q;
+
     DEBUG_FUNCTION;
 
     stat->bsize = ROZOFS_BSIZE;
     stat->bfree = 0;
 
-    list_for_each_forward(iterator, &volume.mcs) {
-        stat->bfree +=
-            list_entry(iterator, cluster_t, list)->free / ROZOFS_BSIZE;
+    list_for_each_forward(p, &volumes_list.vol_list) {
+
+        volume_t *entry_vol = list_entry(p, volume_t, list);
+
+        // Get volume with this vid
+        if (entry_vol->vid == vid) {
+
+            list_for_each_forward(q, &entry_vol->cluster_list) {
+
+                stat->bfree += list_entry(q, cluster_t, list)->free / ROZOFS_BSIZE;
+            }
+        }
     }
-    stat->bfree =
-        (long double) stat->bfree / ((double) rozofs_forward /
-                                     (double) rozofs_inverse);
+
+    stat->bfree = (long double) stat->bfree / ((double) rozofs_forward / (double) rozofs_inverse);
 }
 
+int volume_exist(vid_t vid) {
+    list_t *p;
+    int status = -1;
+
+    DEBUG_FUNCTION;
+
+    if ((errno = pthread_rwlock_rdlock(&volumes_list.lock)) != 0)
+        goto out;
+
+    list_for_each_forward(p, &volumes_list.vol_list) {
+
+        volume_t *entry_vol = list_entry(p, volume_t, list);
+
+        if (entry_vol->vid == vid) {
+            status = 0;
+            break;
+        }
+    }
+
+    if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
+        goto out;
+
+out:
+    return status;
+}
+
+/*
 int volume_print() {
     int status = -1;
     list_t *p;
@@ -382,9 +452,9 @@ int volume_print() {
     list_for_each_forward(p, &volume.mcs) {
         cluster_t *cluster = list_entry(p, cluster_t, list);
         if (printf
-            ("cluster %d, nb. of storages :%d, size: %" PRIu64 ", free: %"
-             PRIu64 "\n", cluster->cid, cluster->nb_ms, cluster->size,
-             cluster->free) < 0)
+                ("cluster %d, nb. of storages :%d, size: %" PRIu64 ", free: %"
+                PRIu64 "\n", cluster->cid, cluster->nb_ms, cluster->size,
+                cluster->free) < 0)
             goto out;
         cluster_print(cluster->ms, cluster->nb_ms);
     }
@@ -398,7 +468,9 @@ int volume_print() {
 out:
     return status;
 }
+ */
 
+/*
 uint16_t volume_size() {
     list_t *p;
     uint16_t nb_storages = 0;
@@ -422,3 +494,35 @@ uint16_t volume_size() {
 out:
     return nb_storages;
 }
+ */
+
+/*
+static void cluster_print(volume_storage_t * a, size_t n) {
+    size_t i;
+    for (i = 0; i < n; i++) {
+        volume_storage_t *p = a + i;
+        printf("sid: %d, host: %s, size: %" PRIu64 ", free: %" PRIu64 "\n",
+                p->sid, p->host, p->stat.size, p->stat.free);
+    }
+}
+ */
+
+
+/*
+int volume_register(uint16_t cid, volume_storage_t * storages, uint16_t nb_ms) {
+
+    DEBUG_FUNCTION;
+
+    cluster_t *cluster = (cluster_t *) xmalloc(sizeof (cluster_t));
+
+    cluster->cid = cid;
+    cluster->free = 0;
+    cluster->size = 0;
+    cluster->ms = storages;
+    cluster->nb_ms = nb_ms;
+
+    list_push_back(&volume.mcs, &cluster->list);
+
+    return 0;
+}
+ */
