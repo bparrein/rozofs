@@ -412,13 +412,13 @@ out:
 }
 
 void rozofs_ll_readlink(fuse_req_t req, fuse_ino_t ino) {
-    char *target = 0;
+    char target[PATH_MAX];
     ientry_t *ie = NULL;
     DEBUG_FUNCTION;
 
     DEBUG("readlink (%lu)\n", (unsigned long int) ino);
 
-    if ((ie = htable_get(&htable_inode, &ino)) != NULL) {
+    if (!(ie = htable_get(&htable_inode, &ino))) {
         errno = ENOENT;
         goto error;
     }
@@ -644,7 +644,7 @@ void rozofs_ll_getattr(fuse_req_t req, fuse_ino_t ino,
     mattr_t attr;
     DEBUG_FUNCTION;
 
-    DEBUG("getattr for inode: %lu\n", (unsigned long int) ino);
+    //DEBUG("getattr for inode: %lu\n", (unsigned long int) ino);
     if (!(ie = htable_get(&htable_inode, &ino))) {
         errno = ENOENT;
         goto error;
@@ -1062,7 +1062,7 @@ static struct fuse_lowlevel_ops rozofs_ll_operations = {
     .mkdir = rozofs_ll_mkdir,
     .unlink = rozofs_ll_unlink,
     .rmdir = rozofs_ll_rmdir,
-    //.symlink = rozofs_ll_symlink,
+    .symlink = rozofs_ll_symlink,
     .rename = rozofs_ll_rename,
     .open = rozofs_ll_open,
     //.link = rozofs_ll_link,

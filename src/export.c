@@ -118,9 +118,10 @@ typedef struct rmfentry {
     list_t list;
 } rmfentry_t;
 
-static int mfentry_initialize(mfentry_t * mfe, mfentry_t * parent,
+static int mfentry_initialize(mfentry_t *mfe, mfentry_t *parent,
                               const char *name, char *path) {
     int status = -1;
+    struct stat st;
     DEBUG_FUNCTION;
 
     mfe->parent = parent;
@@ -138,12 +139,34 @@ static int mfentry_initialize(mfentry_t * mfe, mfentry_t * parent,
     // The counter is initialized to zero
     mfe->cnt = 0;
 
-    if (getxattr(path, EATTRSTKEY, &(mfe->attrs), sizeof (mattr_t)) == -1) {
-        warning("mfentry_initialize failed: getxattr for file %s failed: %s",
+    if (lstat(path, &st) == -1) {
+        warning("mfentry_initialize failed: lstat for file %s failed: %s",
                 path, strerror(errno));
-        goto error;
     }
 
+/* no need
+    if (S_ISLNK(st.st_mode)) {
+        uuid_generate(mfe->attrs.fid);
+        mfe->attrs.cid = 0;
+        memset(mfe->attrs.sids, 0, ROZOFS_SAFE_MAX * sizeof (uint16_t));
+        mfe->attrs.mode = st.st_mode;
+        mfe->attrs.uid = st.st_uid;
+        mfe->attrs.gid = st.st_gid;
+        mfe->attrs.nlink = st.st_nlink;
+        mfe->attrs.ctime = st.st_ctime;
+        mfe->attrs.atime = st.st_atime;
+        mfe->attrs.mtime = st.st_mtime;
+        mfe->attrs.size = st.st_size;
+    } else {
+*/
+    if (getxattr(path, EATTRSTKEY, &(mfe->attrs), sizeof (mattr_t)) == -1) {
+        warning("mfentry_initialize failed: getxattr for file %s failed: %s"
+                , path, strerror(errno));
+        goto error;
+    }
+/*
+    }
+*/
     list_init(&mfe->list);
     status = 0;
     goto out;
@@ -159,7 +182,7 @@ out:
     return status;
 }
 
-static void mfentry_release(mfentry_t * mfe) {
+static void mfentry_release(mfentry_t *mfe) {
     if (mfe) {
         if (mfe->fd != -1)
             close(mfe->fd);
@@ -275,7 +298,7 @@ out:
     return status;
 }
 
-static void export_put_mfentry(export_t * e, mfentry_t * mfe) {
+static void export_put_mfentry(export_t *e, mfentry_t *mfe) {
 
     DEBUG_FUNCTION;
 
@@ -285,7 +308,7 @@ static void export_put_mfentry(export_t * e, mfentry_t * mfe) {
     list_push_front(&e->mfiles, &mfe->list);
 }
 
-static void export_del_mfentry(export_t * e, mfentry_t * mfe) {
+static void export_del_mfentry(export_t *e, mfentry_t *mfe) {
 
     DEBUG_FUNCTION;
 
@@ -295,7 +318,7 @@ static void export_del_mfentry(export_t * e, mfentry_t * mfe) {
     list_remove(&mfe->list);
 }
 
-static inline int export_update_files(export_t * e, int32_t n) {
+static inline int export_update_files(export_t *e, int32_t n) {
     int status = -1;
     uint64_t files;
 
@@ -527,8 +550,8 @@ out:
     return status;
 }
 
-int export_lookup(export_t * e, fid_t parent, const char *name,
-                  mattr_t * attrs) {
+int export_lookup(export_t *e, fid_t parent, const char *name,
+                  mattr_t *attrs) {
     int status = -1;
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
@@ -702,9 +725,10 @@ out:
 
 int export_readlink(export_t * e, uuid_t fid, char link[PATH_MAX]) {
     int status = -1;
-    ssize_t len;
+    int xerrno = errno;
+    //ssize_t len;
     mfentry_t *mfe;
-    char rlink[PATH_MAX];
+    int fd = 0;
     DEBUG_FUNCTION;
 
     if (!(mfe = htable_get(&e->hfids, fid))) {
@@ -712,19 +736,28 @@ int export_readlink(export_t * e, uuid_t fid, char link[PATH_MAX]) {
         goto out;
     }
 
-    if ((len = readlink(mfe->path, rlink, PATH_MAX)) == -1)
-        goto out;
-
-    rlink[len] = '\0';
-    export_unmap(e, rlink, link);
+    DEBUG("REAL READLINK :%s", mfe->path);
+    if ((fd = open(mfe->path, O_RDONLY)) < 0) 
+        goto error;
+    if (read(fd, link, sizeof(char) * PATH_MAX) == -1)
+        goto error;
+    if (close(fd) != 0)
+        goto error;
+    DEBUG("GIVES :%s", link);
     status = 0;
-out:
 
+error:
+    xerrno = errno;
+    if (fd >= 0)
+        close(fd);
+    errno = xerrno;
+
+out:
     return status;
 }
 
 int export_mknod(export_t * e, uuid_t parent, const char *name, uint32_t uid,
-                 uint32_t gid, mode_t mode, mattr_t * attrs) {
+                 uint32_t gid, mode_t mode, mattr_t *attrs) {
     int status = -1;
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
@@ -1043,14 +1076,19 @@ out:
     return status;
 }
 
-// XXX PROBLEM: IT'S NOT POSSIBLE TO SET XATTR TO A SYMLINK
-
+/*
+   symlink creates a regular file puts right mattrs in xattr 
+   and the link_path in file.
+XXX : should test if link_name is too long
+*/
 int export_symlink(export_t * e, const char *link_name, uuid_t parent,
                    const char *name, mattr_t * attrs) {
     int status = -1;
     char path[PATH_MAX + FILENAME_MAX + 1];
+    char lname[PATH_MAX];
     mfentry_t *pmfe = 0;
     mfentry_t *mfe = 0;
+    int fd = 0;
     int xerrno = errno;
     DEBUG_FUNCTION;
 
@@ -1059,51 +1097,55 @@ int export_symlink(export_t * e, const char *link_name, uuid_t parent,
         goto out;
     }
 
+    // make the link
     strcpy(path, pmfe->path);
     strcat(path, "/");
     strcat(path, name);
 
-    if (symlink(link_name, path) != 0) {
-        severe("export_symlink failed: symlink(%s,%s) failed: %s", link_name,
-               path, strerror(errno));
+    if (mknod(path, S_IFREG|S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|
+                S_IROTH|S_IWOTH|S_IXOTH, 0) != 0)
         goto out;
-    }
 
-    struct stat st;
-    if (lstat(path, &st) != 0) {
-        goto out;
-    }
     uuid_generate(attrs->fid);
     attrs->cid = 0;
     memset(attrs->sids, 0, ROZOFS_SAFE_MAX * sizeof (uint16_t));
-    attrs->mode = st.st_mode;
-    attrs->nlink = st.st_nlink;
+    attrs->mode = S_IFLNK|S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|
+        S_IXGRP|S_IROTH|S_IWOTH|S_IXOTH;
+    attrs->uid = geteuid();
+    attrs->gid = getegid();
+    attrs->nlink = 1;
 
     if ((attrs->ctime = attrs->atime = attrs->mtime = time(NULL)) == -1)
         goto error;
 
-    attrs->size = st.st_size;
-
+    attrs->size = ROZOFS_BSIZE;
     if (setxattr(path, EATTRSTKEY, attrs, sizeof (mattr_t), XATTR_CREATE) !=
-        0) {
-        severe("export_symlink failed: lsetxattr(%s) failed: %s", path,
-               strerror(errno));
+        0)
         goto error;
-    }
+
+    // write the link name
+    if ((fd = open(path, O_RDWR)) < 0) 
+        goto error;
+    strcpy(lname, link_name);
+    if (write(fd, lname, sizeof(char) * PATH_MAX) == -1)
+        goto error;
+    if (close(fd) != 0) 
+        goto error;
 
     mfe = xmalloc(sizeof (mfentry_t));
-
     if (mfentry_initialize(mfe, pmfe, name, path) != 0)
         goto error;
 
+    pmfe->attrs.mtime = pmfe->attrs.ctime = time(NULL);
     if (export_update_files(e, 1) != 0)
         goto error;
-
     pmfe->attrs.nlink++;
     if (mfentry_persist(pmfe) != 0) {
         pmfe->attrs.nlink--;
         goto error;
     }
+
+    memcpy(attrs, &mfe->attrs, sizeof(mattr_t));
 
     export_put_mfentry(e, mfe);
 
@@ -1111,6 +1153,8 @@ int export_symlink(export_t * e, const char *link_name, uuid_t parent,
     goto out;
 error:
     xerrno = errno;
+    if (fd >= 0)
+        close(fd);
     if (mfe) {
         mfentry_release(mfe);
         free(mfe);

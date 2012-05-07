@@ -59,8 +59,8 @@ typedef struct sstat {
 
 typedef struct mattr {
     fid_t fid;
-    cid_t cid;                  // 0 for non regular files
-    sid_t sids[ROZOFS_SAFE_MAX];        // not used for non regular files
+    cid_t cid;                      // 0 for non regular files
+    sid_t sids[ROZOFS_SAFE_MAX];    // not used for non regular files
     uint32_t mode;
     uint32_t uid;
     uint32_t gid;

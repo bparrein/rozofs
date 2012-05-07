@@ -292,12 +292,11 @@ ep_mattr_ret_t *ep_symlink_1_svc(ep_symlink_arg_t * arg, struct svc_req * req) {
 
     if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
-    /*
-       if (export_symlink
-       (exp, arg->link, arg->parent, arg->name,
+
+    if (export_symlink(exp, arg->link, arg->parent, arg->name,
        (mattr_t *) & ret.ep_mattr_ret_t_u.attrs) != 0)
        goto error;
-     */
+
     ret.status = EP_SUCCESS;
     goto out;
 error:
