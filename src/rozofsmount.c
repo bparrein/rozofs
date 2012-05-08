@@ -726,13 +726,13 @@ void rozofs_ll_symlink(fuse_req_t req, const char *link, fuse_ino_t parent,
     struct stat stbuf;
     DEBUG_FUNCTION;
 
-    DEBUG("symlink (%s,%lu,%s)\n", link, (unsigned long int) parent, name);
+    DEBUG("symlink (%s,%lu,%s)", link, (unsigned long int) parent, name);
 
     if (strlen(name) > ROZOFS_FILENAME_MAX) {
         errno = ENAMETOOLONG;
         goto error;
     }
-
+            
     if (!(ie = htable_get(&htable_inode, &parent))) {
         errno = ENOENT;
         goto error;

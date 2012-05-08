@@ -66,6 +66,8 @@ endif(NOT TRAILING_SLASH)
 add_subdirectory(src)
 add_subdirectory(doc)
 add_subdirectory(tests)
+add_subdirectory(tests/fs_ops/fileop)
+add_subdirectory(tests/fs_ops/pjd-fstest)
 
 set(ROZOFS_PACKAGE_FILE_NAME "rozofs-${VERSION}-${CMAKE_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR}")
 

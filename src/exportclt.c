@@ -392,7 +392,7 @@ out:
     return status;
 }
 
-int exportclt_readlink(exportclt_t * clt, fid_t fid, char link[PATH_MAX]) {
+int exportclt_readlink(exportclt_t * clt, fid_t fid, char *link) {
     int status = -1;
     ep_mfile_arg_t arg;
     ep_readlink_ret_t *ret = 0;

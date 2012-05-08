@@ -702,7 +702,7 @@ out:
     return status;
 }
 
-int export_readlink(export_t * e, uuid_t fid, char link[PATH_MAX]) {
+int export_readlink(export_t * e, uuid_t fid, char *link) {
     int status = -1;
     int xerrno = errno;
     mfentry_t *mfe;
@@ -714,14 +714,12 @@ int export_readlink(export_t * e, uuid_t fid, char link[PATH_MAX]) {
         goto out;
     }
 
-    DEBUG("REAL READLINK :%s", mfe->path);
     if ((fd = open(mfe->path, O_RDONLY)) < 0) 
         goto error;
-    if (read(fd, link, sizeof(char) * PATH_MAX) == -1)
+    if (read(fd, link, sizeof(char) * ROZOFS_PATH_MAX) == -1)
         goto error;
     if (close(fd) != 0)
         goto error;
-    DEBUG("GIVES :%s", link);
     status = 0;
 
 error:
@@ -1059,16 +1057,15 @@ out:
 /*
    symlink creates a regular file puts right mattrs in xattr 
    and the link_path in file.
-XXX : should test if link_name is too long
 */
-int export_symlink(export_t * e, const char *link_name, uuid_t parent,
+int export_symlink(export_t * e, const char *link, uuid_t parent,
         const char *name, mattr_t * attrs) {
     int status = -1;
-    char path[PATH_MAX + FILENAME_MAX + 1];
-    char lname[PATH_MAX];
+    char path[PATH_MAX + NAME_MAX + 1];
+    char lname[ROZOFS_PATH_MAX];
     mfentry_t *pmfe = 0;
     mfentry_t *mfe = 0;
-    int fd = 0;
+    int fd = -1;
     int xerrno = errno;
     DEBUG_FUNCTION;
 
@@ -1106,8 +1103,8 @@ int export_symlink(export_t * e, const char *link_name, uuid_t parent,
     // write the link name
     if ((fd = open(path, O_RDWR)) < 0) 
         goto error;
-    strcpy(lname, link_name);
-    if (write(fd, lname, sizeof(char) * PATH_MAX) == -1)
+    strcpy(lname, link);
+    if (write(fd, lname, sizeof(char) * ROZOFS_PATH_MAX) == -1)
         goto error;
     if (close(fd) != 0) 
         goto error;

@@ -25,7 +25,7 @@
 typedef unsigned char   ep_uuid_t[ROZOFS_UUID_SIZE];
 typedef string          ep_name_t<ROZOFS_FILENAME_MAX>;
 typedef string          ep_path_t<ROZOFS_PATH_MAX>;
-typedef char            ep_link_t[ROZOFS_PATH_MAX];
+typedef string          ep_link_t<ROZOFS_PATH_MAX>;
 typedef char            ep_host_t[ROZOFS_HOSTNAME_MAX];
 typedef char            ep_md5_t[ROZOFS_MD5_SIZE];
  
@@ -148,7 +148,7 @@ struct ep_mkdir_arg_t {
 
 struct ep_symlink_arg_t {
     uint32_t    eid;
-    ep_name_t   link;
+    ep_link_t   link;
     ep_uuid_t   parent;
     ep_name_t   name;
 };

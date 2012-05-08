@@ -29,7 +29,7 @@
 #define ROZOFS_BSIZE 8192       // could it be export specific ?
 #define ROZOFS_SAFE_MAX 16
 #define ROZOFS_DIR_SIZE 4096
-#define ROZOFS_PATH_MAX 4096
+#define ROZOFS_PATH_MAX 1024
 #define ROZOFS_FILENAME_MAX 255
 #define ROZOFS_CLUSTERS_MAX 16
 #define ROZOFS_STORAGES_MAX 64

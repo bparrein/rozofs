@@ -46,7 +46,7 @@ BUILD_DIR=$PWD/build
 CMAKE_BUILD_TYPE=Debug #Debug or Release
 DAEMONS_LOCAL_DIR=${BUILD_DIR}/src/
 
-TESTS_DIR=$PWD/fs_ops
+TESTS_DIR=$BUILD_DIR/tests/fs_ops
 
 TEST_FS_OP_1_DIR=${TESTS_DIR}/fileop/fileop
 TEST_FS_OP_1_LOWER_LMT=1
@@ -71,10 +71,11 @@ build ()
     mkdir ${BUILD_DIR}
 
     cd ${BUILD_DIR}
-    rm -rf ${SOURCE_DIR}/CMakeCache.txt
+    rm -f ${SOURCE_DIR}/CMakeCache.txt
     cmake -G "Unix Makefiles" -DDAEMON_PID_DIRECTORY=${BUILD_DIR} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} ${SOURCE_DIR}
     make
     cd ..
+    cp -r $SOURCE_DIR/tests/fs_ops/pjd-fstest/tests $TEST_FS_OP_2_DIR
 }
 
 # $1 -> LAYOUT

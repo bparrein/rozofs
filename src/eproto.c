@@ -203,6 +203,7 @@ ep_readlink_ret_t *ep_readlink_1_svc(ep_mfile_arg_t * arg,
 
     if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
+    ret.ep_readlink_ret_t_u.link = xmalloc(ROZOFS_PATH_MAX);
     if (export_readlink(exp, arg->fid, ret.ep_readlink_ret_t_u.link) != 0)
         goto error;
     ret.status = EP_SUCCESS;
