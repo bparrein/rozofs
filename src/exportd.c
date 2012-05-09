@@ -140,6 +140,9 @@ export_t *exports_lookup_export(eid_t eid) {
 }
 
 int exports_initialize() {
+
+    DEBUG_FUNCTION;
+
     int status = -1;
     list_init(&exports);
 
@@ -154,18 +157,18 @@ out:
 static int load_layout_conf(struct config_t *config) {
     int status = -1;
 
+    DEBUG_FUNCTION;
+
     // Get the layout setting
     if (!config_lookup_int(config, "layout", &layout)) {
         errno = EIO;
         fprintf(stderr, "cant't fetche layout setting\n");
-        fatal("cant't fetche layout setting");
         goto out;
     }
 
     if (rozofs_initialize(layout) != 0) {
         fprintf(stderr, "can't initialise rozofs layout: %s\n",
                 strerror(errno));
-        fatal("can't initialise rozofs layout: %s", strerror(errno));
         goto out;
     }
     status = 0;
@@ -177,11 +180,12 @@ static int load_volumes_conf(struct config_t *config) {
     int status = -1, v, c, s;
     struct config_setting_t *volumes_set = NULL;
 
+    DEBUG_FUNCTION;
+
     // Get settings for volumes (list of volumes)
     if ((volumes_set = config_lookup(config, "volumes")) == NULL) {
         errno = ENOKEY;
         fprintf(stderr, "can't locate the volumes settings in conf file\n");
-        fatal("can't locate the volumes settings in conf file");
         goto out;
     }
 
@@ -189,20 +193,15 @@ static int load_volumes_conf(struct config_t *config) {
     for (v = 0; v < config_setting_length(volumes_set); v++) {
 
         long int vid; // Volume identifier
-        struct config_setting_t *vol_set;
-        struct config_setting_t *clu_list_set;
-
-        // Memory allocation for this volume
-        volume_t *volume = (volume_t *) xmalloc(sizeof (volume_t));
-
-        // Initialize list of cluter(s) for this volume
-        list_init(&volume->cluster_list);
+        struct config_setting_t *vol_set = NULL; // Settings for one volume
+        /* Settings of list of clusters for one volume */
+        struct config_setting_t *clu_list_set = NULL;
+        volume_t *volume = NULL;
 
         // Get settings for ONE volume
         if ((vol_set = config_setting_get_elem(volumes_set, v)) == NULL) {
             errno = EIO;
             fprintf(stderr, "cant't fetche volume at index %d\n", v);
-            fatal("cant't fetche volume at index %d", v);
             goto out;
         }
 
@@ -210,15 +209,28 @@ static int load_volumes_conf(struct config_t *config) {
         if (config_setting_lookup_int(vol_set, "vid", &vid) == CONFIG_FALSE) {
             errno = ENOKEY;
             fprintf(stderr, "cant't look up vid for volume (idx=%d)\n", v);
-            fatal("cant't look up vid for volume (idx=%d)", v);
             goto out;
         }
+
+        // If this VID already exists
+        if (volume_exist(vid) == 0) {
+            fprintf(stderr, "cant't add volume with vid: %lu already exists\n", vid);
+            goto out;
+        }
+
+        // Memory allocation for this volume
+        volume = (volume_t *) xmalloc(sizeof (volume_t));
+
+        // Initialize list of cluter(s) for this volume
+        list_init(&volume->cluster_list);
+
+        // Put vid for this volume
+        volume->vid = vid;
 
         // Get settings for clusters for this volume
         if ((clu_list_set = config_setting_get_member(vol_set, "cids")) == NULL) {
             errno = ENOKEY;
             fprintf(stderr, "can't fetch cids for volume (vid=%ld)\n", vid);
-            fatal("can't fetch cids for volume (vid=%ld)", vid);
             goto out;
         }
 
@@ -226,7 +238,6 @@ static int load_volumes_conf(struct config_t *config) {
         for (c = 0; c < config_setting_length(clu_list_set); c++) {
 
             long int cid; // Cluster identifier
-
             struct config_setting_t *stor_set;
             struct config_setting_t *clu_set;
 
@@ -234,15 +245,25 @@ static int load_volumes_conf(struct config_t *config) {
             if ((clu_set = config_setting_get_elem(clu_list_set, c)) == NULL) {
                 errno = EIO; //XXX
                 fprintf(stderr, "cant't fetch cluster (idx=%d) in volume (vid=%ld)\n", c, vid);
-                fatal("cant't fetch cluster at index (idx=%d) in volume (vid=%ld)", c, vid);
                 goto out;
             }
 
-            // Lookup cid for this clutser
+            // Lookup cid for this cluster
             if (config_setting_lookup_int(clu_set, "cid", &cid) == CONFIG_FALSE) {
                 errno = ENOKEY;
                 fprintf(stderr, "cant't look up cid for cluster (idx=%d)\n", c);
-                fatal("cant't look up cid for cluster (idx=%d)", c);
+                goto out;
+            }
+
+            // Check if cid is unique in the volume that we are currently adding
+            if (cluster_exist_vol(volume, cid) == 0) {
+                fprintf(stderr, "cant't add cluster with cid: %lu already exists\n", cid);
+                goto out;
+            }
+
+            // Check if cid is unique in the other(s) volume(s)
+            if (cluster_exist(cid) == 0) {
+                fprintf(stderr, "cant't add cluster with cid: %lu already exists\n", cid);
                 goto out;
             }
 
@@ -250,7 +271,12 @@ static int load_volumes_conf(struct config_t *config) {
             if ((stor_set = config_setting_get_member(clu_set, "sids")) == NULL) {
                 errno = ENOKEY;
                 fprintf(stderr, "can't fetch sids for cluster (cid=%ld)\n", cid);
-                fatal("can't fetch sids for cluster (cid=%ld)", cid);
+                goto out;
+            }
+
+            // Check if nb. of storages is sufficiant for this layout
+            if (config_setting_length(stor_set) < rozofs_safe) {
+                fprintf(stderr, "cluster (cid=%ld) doesn't have a sufficient number of storages for this layout\n", cid);
                 goto out;
             }
 
@@ -267,32 +293,53 @@ static int load_volumes_conf(struct config_t *config) {
                 if ((mstor_set = config_setting_get_elem(stor_set, s)) == NULL) {
                     errno = EIO; //XXX
                     fprintf(stderr, "cant't fetch storage (idx=%d) in cluster (idx=%d)\n", s, c);
-                    fatal("cant't fetch storage at index (idx=%d) in cluster (idx=%d)", s, c);
                     goto out;
                 }
 
+                // Lookup sid for this storage
                 if (config_setting_lookup_int(mstor_set, "sid", &sid) == CONFIG_FALSE) {
                     errno = ENOKEY;
                     fprintf(stderr, "cant't look up SID for storage (idx=%d) in cluster (idx=%d)\n", s, c);
-                    fatal("cant't look up SID for storage (idx=%d) in cluster (idx=%d)", s, c);
                     goto out;
                 }
 
+                // Check sid (must be greater than 0)
+                if (sid == 0) {
+                    errno = EINVAL;
+                    fprintf(stderr, "SID %lu is invalid (SID must be greater than 0)\n", sid);
+                    goto out;
+                }
+
+                // Check if sid is unique in the cluster that we are currently adding
+                if (storage_exist_cluster(storage, config_setting_length(stor_set), sid) == 0) {
+                    fprintf(stderr, "cant't add storage with sid: %lu already exists\n", sid);
+                    goto out;
+                }
+
+                // Check if sid is unique in the volume that we are currently adding
+                if (storage_exist_volume(volume, sid) == 0) {
+                    fprintf(stderr, "cant't add storage with sid: %lu already exists\n", sid);
+                    goto out;
+                }
+
+                // Check if sid is unique in the other(s) volume(s)
+                if (storage_exist(sid) == 0) {
+                    fprintf(stderr, "cant't add storage with sid: %lu already exists\n", sid);
+                    goto out;
+                }
+
+                // Lookup hostname for this storage
                 if (config_setting_lookup_string(mstor_set, "host", &host) == CONFIG_FALSE) {
                     errno = ENOKEY;
                     fprintf(stderr, "cant't look up host for storage (idx=%d) in cluster (idx=%d)\n", s, c);
-                    fatal("cant't look up host for storage (idx=%d) in cluster (idx=%d)", s, c);
                     goto out;
                 }
 
                 if (mstorage_initialize(storage + s, (uint16_t) sid, host) != 0) {
                     fprintf(stderr, "can't add storage (SID=%ld)\n", sid);
-                    fatal("can't add storage (SID=%ld)", sid);
                     goto out;
                 }
             }
-
-            // Verifation if cluster already exist
 
             // Memory allocation for this cluster
             cluster_t *cluster = (cluster_t *) xmalloc(sizeof (cluster_t));
@@ -303,10 +350,10 @@ static int load_volumes_conf(struct config_t *config) {
             cluster->ms = storage;
             cluster->nb_ms = config_setting_length(stor_set);
 
-            // Add this cluster to the list of this volume
             if ((errno = pthread_rwlock_wrlock(&volumes_list.lock)) != 0)
                 goto out;
 
+            // Add this cluster to the list of this volume
             list_push_back(&volume->cluster_list, &cluster->list);
 
             if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
@@ -314,20 +361,18 @@ static int load_volumes_conf(struct config_t *config) {
 
         } // End add cluster
 
-
-        // Add this volume to the list of volumes
         if ((errno = pthread_rwlock_wrlock(&volumes_list.lock)) != 0)
             goto out;
 
-        volume->vid = vid;
-
+        // Add this volume to the list of volumes
         list_push_back(&volumes_list.vol_list, &volume->list);
 
         if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
             goto out;
 
-    } // end add volume
+    } // End add volume
 
+    // Change version nb. of volumes list
     volumes_list.version++;
 
     status = 0;
@@ -339,28 +384,28 @@ static int load_exports_conf(struct config_t *config) {
     int status = -1, i;
     struct config_setting_t *export_set = NULL;
 
+    DEBUG_FUNCTION;
+
     // Get the exports settings
     if ((export_set = config_lookup(config, "exports")) == NULL) {
         errno = ENOKEY;
         fprintf(stderr, "can't locate the exports settings in conf file\n");
-        severe("can't locate the exports settings in conf file");
         goto out;
     }
 
+    // For each export
     for (i = 0; i < config_setting_length(export_set); i++) {
 
-        struct config_setting_t *mfs_setting;
-        export_entry_t *export_entry =
-                (export_entry_t *) xmalloc(sizeof (export_entry_t));
+        struct config_setting_t *mfs_setting = NULL;
+        export_entry_t *export_entry = (export_entry_t *) xmalloc(sizeof (export_entry_t));
         const char *root;
         const char *md5;
-        uint32_t eid;
+        uint32_t eid; // Export identifier
         long int vid; // Volume identifier
 
         if ((mfs_setting = config_setting_get_elem(export_set, i)) == NULL) {
             errno = EIO; //XXX
             fprintf(stderr, "cant't fetch export at index %d\n", i);
-            severe("cant't fetch export at index %d", i);
             goto out;
         }
 
@@ -368,23 +413,17 @@ static int load_exports_conf(struct config_t *config) {
                 == CONFIG_FALSE) {
             errno = ENOKEY;
             fprintf(stderr, "cant't look up eid for export (idx=%d)\n", i);
-            fatal("cant't look up eid for export (idx=%d)", i);
             goto out;
         }
 
         if (exports_lookup_export(eid) != NULL) {
-            fprintf(stderr, "cant't add export with eid %u: already exists\n",
-                    eid);
-            info("cant't add export with eid %u: already exists", eid);
-            continue;
+            fprintf(stderr, "cant't add export with eid %u: already exists\n", eid);
+            goto out;
         }
 
-        if (config_setting_lookup_string(mfs_setting, "root", &root) ==
-                CONFIG_FALSE) {
+        if (config_setting_lookup_string(mfs_setting, "root", &root) == CONFIG_FALSE) {
             errno = ENOKEY;
-            fprintf(stderr, "cant't look up root path for export (idx=%d)\n",
-                    i);
-            severe("cant't look up root path for export (idx=%d)", i);
+            fprintf(stderr, "cant't look up root path for export (idx=%d)\n", i);
             goto out;
         }
 
@@ -392,35 +431,127 @@ static int load_exports_conf(struct config_t *config) {
                 CONFIG_FALSE) {
             errno = ENOKEY;
             fprintf(stderr, "cant't look up md5 for export (idx=%d)\n", i);
-            severe("cant't look md5 for export (idx=%d)", i);
             goto out;
         }
 
+        // Check if this path is unique in exports
         if (exports_lookup_id((ep_path_t) root) != NULL) {
             fprintf(stderr,
                     "cant't add export with path %s: already exists\n", root);
-            info("cant't add export with path %s: already exists\n", root);
             continue;
         }
-        
+
         // Lookup volume identifier
         if (config_setting_lookup_int(mfs_setting, "vid", &vid) == CONFIG_FALSE) {
             errno = ENOKEY;
             fprintf(stderr, "cant't look up vid for export (idx=%d)\n", i);
-            fatal("cant't look up vid for export (idx=%d)", i);
             goto out;
         }
 
-        // vid must exist
+        // Check vid exist in the volume
         if (volume_exist(vid) != 0) {
             fprintf(stderr, "cant't add export with eid: %u (vid: %lu not exists)\n", eid, vid);
-            info("cant't add export with eid: %u (vid: %lu not exists)", eid, vid);
-            continue;
+            goto out;
         }
 
+        // Initialize export
         if (export_initialize(&export_entry->export, eid, root, md5, vid) != 0) {
             fprintf(stderr, "can't initialize export with path %s: %s\n",
                     root, strerror(errno));
+            goto out;
+        }
+
+        if ((errno = pthread_rwlock_wrlock(&exports_lock)) != 0)
+            goto out;
+
+        // Add this export to the list of exports
+        list_push_back(&exports, &export_entry->list);
+
+        if ((errno = pthread_rwlock_unlock(&exports_lock)) != 0)
+            goto out;
+    }
+    status = 0;
+out:
+    return status;
+}
+
+static int reload_exports_conf(struct config_t *config) {
+    int status = -1, i;
+    struct config_setting_t *export_set = NULL;
+
+    DEBUG_FUNCTION;
+
+    // Get the exports settings
+    if ((export_set = config_lookup(config, "exports")) == NULL) {
+        errno = ENOKEY;
+        severe("can't locate the exports settings in conf file");
+        goto out;
+    }
+
+    // For each export
+    for (i = 0; i < config_setting_length(export_set); i++) {
+
+        struct config_setting_t *mfs_setting = NULL;
+        export_entry_t *export_entry = (export_entry_t *) xmalloc(sizeof (export_entry_t));
+        const char *root;
+        const char *md5;
+        uint32_t eid; // Export identifier
+        long int vid; // Volume identifier
+
+        if ((mfs_setting = config_setting_get_elem(export_set, i)) == NULL) {
+            errno = EIO; //XXX
+            severe("cant't fetch export at index %d", i);
+            goto out;
+        }
+
+        if (config_setting_lookup_int(mfs_setting, "eid", (long int *) &eid)
+                == CONFIG_FALSE) {
+            errno = ENOKEY;
+            severe("cant't look up eid for export (idx=%d)", i);
+            goto out;
+        }
+
+        // Check eid exist in the volume (old config)
+        // If this eid already exist, go to the next export
+        if (exports_lookup_export(eid) != NULL) {
+            continue;
+        }
+
+        if (config_setting_lookup_string(mfs_setting, "root", &root) ==
+                CONFIG_FALSE) {
+            errno = ENOKEY;
+            severe("cant't look up root path for export (idx=%d)", i);
+            goto out;
+        }
+
+        if (config_setting_lookup_string(mfs_setting, "md5", &md5) ==
+                CONFIG_FALSE) {
+            errno = ENOKEY;
+            severe("cant't look md5 for export (idx=%d)", i);
+            goto out;
+        }
+
+        // Check if this path is unique in exports
+        if (exports_lookup_id((ep_path_t) root) != NULL) {
+            severe("cant't add export with path %s: already exists\n", root);
+            continue;
+        }
+
+        // Lookup volume identifier
+        if (config_setting_lookup_int(mfs_setting, "vid", &vid) == CONFIG_FALSE) {
+            errno = ENOKEY;
+            severe("cant't look up vid for export (idx=%d)", i);
+            goto out;
+        }
+
+        // Check vid exist in the volume
+        if (volume_exist(vid) != 0) {
+            severe("cant't add export with eid: %u (vid: %lu not exists)", eid, vid);
+            goto out;
+        }
+
+        // Initialize export
+        if (export_initialize(&export_entry->export, eid, root, md5, vid) != 0) {
             severe("can't initialize export with path %s: %s", root,
                     strerror(errno));
             goto out;
@@ -429,11 +560,13 @@ static int load_exports_conf(struct config_t *config) {
         if ((errno = pthread_rwlock_wrlock(&exports_lock)) != 0)
             goto out;
 
+        // Add this export to the list of exports
         list_push_back(&exports, &export_entry->list);
 
         if ((errno = pthread_rwlock_unlock(&exports_lock)) != 0)
             goto out;
 
+        info("add export with eid: %u", eid);
     }
     status = 0;
 out:
@@ -443,6 +576,7 @@ out:
 static int load_conf_file() {
     int status = -1, fd;
     struct config_t config;
+
     DEBUG_FUNCTION;
 
     config_init(&config);
@@ -450,8 +584,6 @@ static int load_conf_file() {
     if ((fd = open(exportd_config_file, O_RDWR)) == -1) {
         fprintf(stderr, "can't load config file %s: %s\n",
                 exportd_config_file, strerror(errno));
-        fatal("can't load config file %s: %s", exportd_config_file,
-                strerror(errno));
         status = -1;
         goto out;
     }
@@ -460,8 +592,6 @@ static int load_conf_file() {
     if (config_read_file(&config, exportd_config_file) == CONFIG_FALSE) {
         errno = EIO;
         fprintf(stderr, "can't read config file: %s at line: %d\n",
-                config_error_text(&config), config_error_line(&config));
-        fatal("can't read config file: %s at line: %d",
                 config_error_text(&config), config_error_line(&config));
         goto out;
     }
@@ -482,6 +612,221 @@ static int load_conf_file() {
 
 out:
     config_destroy(&config);
+    return status;
+}
+
+static int reload_volumes_conf(struct config_t *config) {
+    int status = -1, v, c, s;
+    struct config_setting_t *volumes_set = NULL;
+
+    DEBUG_FUNCTION;
+
+    // Get settings for volumes (list of volumes)
+    if ((volumes_set = config_lookup(config, "volumes")) == NULL) {
+        errno = ENOKEY;
+        severe("can't locate the volumes settings in conf file");
+        goto out;
+    }
+
+    // For each volume
+    for (v = 0; v < config_setting_length(volumes_set); v++) {
+
+        long int vid; // Volume identifier
+        struct config_setting_t *vol_set = NULL; // Settings for one volume
+        /* Settings of list of clusters for one volume */
+        struct config_setting_t *clu_list_set = NULL;
+        volume_t *volume = NULL;
+
+        // Get settings for ONE volume
+        if ((vol_set = config_setting_get_elem(volumes_set, v)) == NULL) {
+            errno = EIO;
+            severe("cant't fetche volume at index %d", v);
+            goto out;
+        }
+
+        // Lookup vid for this volume
+        if (config_setting_lookup_int(vol_set, "vid", &vid) == CONFIG_FALSE) {
+            errno = ENOKEY;
+            severe("cant't look up vid for volume (idx=%d)", v);
+            goto out;
+        }
+
+        // If this VID is a new volume
+        if (volume_exist(vid) != 0) {
+            // Memory allocation for this volume
+            volume = (volume_t *) xmalloc(sizeof (volume_t));
+            // Initialize list of cluter(s) for this volume
+            list_init(&volume->cluster_list);
+            // Put vid for this volume
+            volume->vid = vid;
+        }
+
+        // Get settings for clusters for this volume
+        if ((clu_list_set = config_setting_get_member(vol_set, "cids")) == NULL) {
+            errno = ENOKEY;
+            severe("can't fetch cids for volume (vid=%ld)", vid);
+            goto out;
+        }
+
+        // For each cluster of this volume
+        for (c = 0; c < config_setting_length(clu_list_set); c++) {
+
+            long int cid; // Cluster identifier
+            struct config_setting_t *stor_set = NULL;
+            struct config_setting_t *clu_set = NULL;
+
+            // Get settings for ONE cluster
+            if ((clu_set = config_setting_get_elem(clu_list_set, c)) == NULL) {
+                errno = EIO; //XXX
+                severe("cant't fetch cluster at index (idx=%d) in volume (vid=%ld)", c, vid);
+                goto out;
+            }
+
+            // Lookup cid for this cluster
+            if (config_setting_lookup_int(clu_set, "cid", &cid) == CONFIG_FALSE) {
+                errno = ENOKEY;
+                severe("cant't look up cid for cluster (idx=%d)", c);
+                goto out;
+            }
+
+            if (volume != NULL) {
+                // Check if cid is unique in the volume that we are currently adding
+                if (cluster_exist_vol(volume, cid) == 0) {
+                    severe("cant't add cluster with cid: %lu already exists", cid);
+                    goto out;
+                }
+            }
+
+            // Check if cid is unique (compare with the old config)
+            // If this cid already exists, continue without adding this cluster
+            if (cluster_exist(cid) == 0) {
+                continue;
+            }
+
+            // Get settings for sids for this cluster
+            if ((stor_set = config_setting_get_member(clu_set, "sids")) == NULL) {
+                errno = ENOKEY;
+                severe("can't fetch sids for cluster (cid=%ld)", cid);
+                goto out;
+            }
+
+            // Check if nb. of storages is sufficiant for this layout
+            if (config_setting_length(stor_set) < rozofs_safe) {
+                severe("cluster (cid=%ld) doesn't have a sufficient number of storage for this layout", cid);
+                goto out;
+            }
+
+            // Allocation of memory for storages
+            volume_storage_t *storage = (volume_storage_t *) malloc(config_setting_length(stor_set) * sizeof (volume_storage_t));
+
+            for (s = 0; s < config_setting_length(stor_set); s++) {
+
+                struct config_setting_t *mstor_set = NULL;
+                long int sid;
+                const char *host;
+
+                // Get settings for ONE storage
+                if ((mstor_set = config_setting_get_elem(stor_set, s)) == NULL) {
+                    errno = EIO; //XXX
+                    severe("cant't fetch storage at index (idx=%d) in cluster (idx=%d)", s, c);
+                    goto out;
+                }
+
+                // Lookup sid for this storage
+                if (config_setting_lookup_int(mstor_set, "sid", &sid) == CONFIG_FALSE) {
+                    errno = ENOKEY;
+                    severe("cant't look up SID for storage (idx=%d) in cluster (idx=%d)", s, c);
+                    goto out;
+                }
+
+                // Check sid (must be greater than 0)
+                if (sid == 0) {
+                    errno = EINVAL;
+                    fatal("SID %lu is invalid (SID must be greater than 0)", sid);
+                    goto out;
+                }
+
+                // Check if sid is unique in the cluster that we are currently adding
+                if (storage_exist_cluster(storage, config_setting_length(stor_set), sid) == 0) {
+                    severe("cant't add storage with sid: %lu already exists", sid);
+                    goto out;
+                }
+
+                if (volume != NULL) {
+                    // Check if sid is unique in the volume that we are currently adding
+                    if (storage_exist_volume(volume, sid) == 0) {
+                        severe("cant't add storage with sid: %lu already exists", sid);
+                        goto out;
+                    }
+                }
+
+                // Check if sid is unique in the other(s) volume(s)
+                if (storage_exist(sid) == 0) {
+                    severe("cant't add storage with sid: %lu already exists", sid);
+                    goto out;
+                }
+
+                // Lookup hostname for this storage
+                if (config_setting_lookup_string(mstor_set, "host", &host) == CONFIG_FALSE) {
+                    errno = ENOKEY;
+                    severe("cant't look up host for storage (idx=%d) in cluster (idx=%d)", s, c);
+                    goto out;
+                }
+
+                if (mstorage_initialize(storage + s, (uint16_t) sid, host) != 0) {
+                    severe("can't add storage (SID=%ld)", sid);
+                    goto out;
+                }
+            }
+
+            // Memory allocation for this cluster
+            cluster_t *cluster = (cluster_t *) xmalloc(sizeof (cluster_t));
+
+            cluster->cid = (uint16_t) cid;
+            cluster->free = 0;
+            cluster->size = 0;
+            cluster->ms = storage;
+            cluster->nb_ms = config_setting_length(stor_set);
+
+            // 2 CASES
+
+            if (volume != NULL) {
+                // Add this cluster to the list of this volume
+                if ((errno = pthread_rwlock_wrlock(&volumes_list.lock)) != 0)
+                    goto out;
+
+                list_push_back(&volume->cluster_list, &cluster->list);
+
+                if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
+                    goto out;
+            } else {
+                add_cluster_to_volume(vid, cluster);
+            }
+
+            info("add cluster (cid=%lu) to volume with vid=%lu", cid, vid);
+
+        } // End add cluster
+
+        if (volume != NULL) {
+            if ((errno = pthread_rwlock_wrlock(&volumes_list.lock)) != 0)
+                goto out;
+
+            // Add this volume to the list of volumes
+            list_push_back(&volumes_list.vol_list, &volume->list);
+
+            if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
+                goto out;
+
+            info("add volume with vid: %lu", vid);
+        }
+
+    } // end add volume
+
+    // Change version nb. of volumes list
+    volumes_list.version++;
+
+    status = 0;
+out:
     return status;
 }
 
@@ -617,36 +962,45 @@ static void on_stop() {
 
 static void on_hup() {
     int fd = -1;
+    int status = -1;
     struct config_t config;
     DEBUG_FUNCTION;
 
     config_init(&config);
 
+    info("Reload RozoFS export daemon");
+
     if ((fd = open(exportd_config_file, O_RDWR)) == -1) {
-        fprintf(stderr, "can't load config file %s: %s\n",
-                exportd_config_file, strerror(errno));
-        fatal("can't load config file %s: %s", exportd_config_file,
-                strerror(errno));
+        severe("Failed to reload config file %s: %s", exportd_config_file, strerror(errno));
         goto out;
     }
     close(fd);
 
     if (config_read_file(&config, exportd_config_file) == CONFIG_FALSE) {
         errno = EIO;
-        fprintf(stderr, "can't read config file: %s at line: %d\n",
-                config_error_text(&config), config_error_line(&config));
-        fatal("can't read config file: %s at line: %d",
-                config_error_text(&config), config_error_line(&config));
+        severe("Failed to read config file: %s at line: %d", config_error_text(&config), config_error_line(&config));
         goto out;
     }
 
-    if (load_exports_conf(&config) != 0)
+    if (reload_volumes_conf(&config) != 0) {
+        severe("Failed to reload completely the volumes list from configuration file");
         goto out;
+    }
 
-    if (load_volumes_conf(&config) != 0)
+    info("Reload volume(s) list : success");
+
+    if (reload_exports_conf(&config) != 0) {
+        severe("Failed to reload completely the exports list from configuration file");
         goto out;
+    }
 
+    info("Reload export(s) list : success");
+
+    status = 0;
 out:
+    if (status == 0) {
+        info("Reload config file : success");
+    }
     config_destroy(&config);
 }
 

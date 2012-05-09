@@ -1,4 +1,4 @@
-Implementation of symlink.
 Implementation of POSIX file lock.
 Enhance file distribution (see issue #14).
 Check the space available to store metadata.
+Better organize the loading of the configuration file.

@@ -117,7 +117,7 @@ static int load_storages_conf(struct config_t *config) {
     }
 
     storaged_storages =
-        xmalloc(config_setting_length(settings) * sizeof (storage_t));
+            xmalloc(config_setting_length(settings) * sizeof (storage_t));
 
     for (i = 0; i < config_setting_length(settings); i++) {
         struct config_setting_t *ms = NULL;
@@ -125,7 +125,7 @@ static int load_storages_conf(struct config_t *config) {
         const char *root;
 
         if (!(ms = config_setting_get_elem(settings, i))) {
-            errno = EIO;        //XXX
+            errno = EIO; //XXX
             fprintf(stderr, "cant't fetche storage at index %d\n", i);
             severe("cant't fetche storage at index %d", i);
             goto out;
@@ -154,12 +154,12 @@ static int load_storages_conf(struct config_t *config) {
         }
 
         if (storage_initialize(storaged_storages + i, (uint16_t) sid, root) !=
-            0) {
+                0) {
             fprintf(stderr,
                     "can't initialize storage (sid:%ld) with path %s: %s\n",
                     sid, root, strerror(errno));
             severe("can't initialize storage (sid:%ld) with path %s: %s", sid,
-                   root, strerror(errno));
+                    root, strerror(errno));
             goto out;
         }
 
@@ -181,7 +181,7 @@ static int load_conf_file() {
         fprintf(stderr, "can't load config file %s: %s\n",
                 storaged_config_file, strerror(errno));
         fatal("can't load config file %s: %s", storaged_config_file,
-              strerror(errno));
+                strerror(errno));
         status = -1;
         goto out;
     }
@@ -192,7 +192,7 @@ static int load_conf_file() {
         fprintf(stderr, "can't read config file: %s at line: %d\n",
                 config_error_text(&config), config_error_line(&config));
         fatal("can't read config file: %s at line: %d",
-              config_error_text(&config), config_error_line(&config));
+                config_error_text(&config), config_error_line(&config));
         goto out;
     }
 
@@ -254,17 +254,17 @@ static void on_start() {
     fcntl(sock, F_SETFL, oldflags);
 
     if ((storaged_svc =
-         svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE,
-                       ROZOFS_RPC_BUFFER_SIZE)) == NULL) {
+            svctcp_create(sock, ROZOFS_RPC_BUFFER_SIZE,
+            ROZOFS_RPC_BUFFER_SIZE)) == NULL) {
         fatal("can't create service.");
         return;
     }
 
-    pmap_unset(STORAGE_PROGRAM, STORAGE_VERSION);       // in case !
+    pmap_unset(STORAGE_PROGRAM, STORAGE_VERSION); // in case !
 
     if (!svc_register
-        (storaged_svc, STORAGE_PROGRAM, STORAGE_VERSION, storage_program_1,
-         IPPROTO_TCP)) {
+            (storaged_svc, STORAGE_PROGRAM, STORAGE_VERSION, storage_program_1,
+            IPPROTO_TCP)) {
         fatal("can't register service : %s", strerror(errno));
         return;
     }
@@ -294,7 +294,7 @@ void usage() {
     printf("Usage: storaged [OPTIONS]\n\n");
     printf("\t-h, --help\tprint this message.\n");
     printf("\t-c, --config\tconfig file to use (default: %s).\n",
-           STORAGED_DEFAULT_CONFIG);
+            STORAGED_DEFAULT_CONFIG);
 };
 
 int main(int argc, char *argv[]) {
@@ -315,26 +315,26 @@ int main(int argc, char *argv[]) {
 
         switch (c) {
 
-        case 'h':
-            usage();
-            exit(EXIT_SUCCESS);
-            break;
-        case 'c':
-            if (!realpath(optarg, storaged_config_file)) {
-                fprintf(stderr,
-                        "storaged failed: configuration file: %s: %s\n",
-                        optarg, strerror(errno));
+            case 'h':
+                usage();
+                exit(EXIT_SUCCESS);
+                break;
+            case 'c':
+                if (!realpath(optarg, storaged_config_file)) {
+                    fprintf(stderr,
+                            "storaged failed: configuration file: %s: %s\n",
+                            optarg, strerror(errno));
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case '?':
+                usage();
+                exit(EXIT_SUCCESS);
+                break;
+            default:
+                usage();
                 exit(EXIT_FAILURE);
-            }
-            break;
-        case '?':
-            usage();
-            exit(EXIT_SUCCESS);
-            break;
-        default:
-            usage();
-            exit(EXIT_FAILURE);
-            break;
+                break;
         }
     }
 

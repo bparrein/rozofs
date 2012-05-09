@@ -58,16 +58,6 @@ int mstorage_initialize(volume_storage_t * st, uint16_t sid,
     int status = -1;
     DEBUG_FUNCTION;
 
-    //XXX Check that the SID is unique
-
-    if (sid == 0) {
-        errno = EINVAL;
-        fprintf(stderr, "SID %u is invalid (SID must be greater than 0)\n",
-                sid);
-        fatal("SID %u is invalid (SID must be greater than 0)", sid);
-        goto out;
-    }
-
     st->sid = sid;
     strcpy(st->host, hostname);
     st->stat.free = 0;
@@ -75,7 +65,7 @@ int mstorage_initialize(volume_storage_t * st, uint16_t sid,
     st->status = 0;
 
     status = 0;
-out:
+
     return status;
 }
 
@@ -228,7 +218,7 @@ int volume_balance() {
                 vs->status = 0;
             } else {
                 if (storageclt_stat(&sclt, &vs->stat) != 0) {
-                    warning("failed to stat: %s", vs->host);
+                    warning("failed to stat (sid: %d, host: %s)", vs->sid, vs->host);
                     vs->status = 0;
                 } else {
                     vs->status = 1;
@@ -339,23 +329,19 @@ int volume_distribute(uint16_t * cid, uint16_t * sids, uint16_t vid) {
     if ((errno = pthread_rwlock_rdlock(&volumes_list.lock)) != 0)
         status = -1;
 
-    list_t *iterator;
-    list_t *iterator_2;
+    list_t *p, *q;
 
     // For each volume
+    list_for_each_forward(p, &volumes_list.vol_list) {
 
-    list_for_each_forward(iterator, &volumes_list.vol_list) {
-
-        volume_t *entry_vol = list_entry(iterator, volume_t, list);
-
-        warning("volume_distribute: vid search: %u, vid: %u", entry_vol->vid, vid);
+        volume_t *entry_vol = list_entry(p, volume_t, list);
 
         // Get volume with this vid
         if (entry_vol->vid == vid) {
 
-            list_for_each_forward(iterator_2, &entry_vol->cluster_list) {
+            list_for_each_forward(q, &entry_vol->cluster_list) {
 
-                cluster_t *entry = list_entry(iterator_2, cluster_t, list);
+                cluster_t *entry = list_entry(q, cluster_t, list);
 
                 if (cluster_distribute(entry, sids) == 0) {
                     cluster_found = 1;
@@ -432,6 +418,158 @@ int volume_exist(vid_t vid) {
 out:
     return status;
 }
+
+int cluster_exist(cid_t cid) {
+    list_t *p, *q;
+    int status = -1;
+
+    DEBUG_FUNCTION;
+
+    if ((errno = pthread_rwlock_rdlock(&volumes_list.lock)) != 0)
+        goto out;
+
+    list_for_each_forward(p, &volumes_list.vol_list) {
+
+        volume_t *entry_vol = list_entry(p, volume_t, list);
+
+        list_for_each_forward(q, &entry_vol->cluster_list) {
+
+            cluster_t *entry = list_entry(q, cluster_t, list);
+
+            if (entry->cid == cid) {
+                status = 0;
+                break;
+            }
+        }
+    }
+
+    if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
+        goto out;
+
+out:
+    return status;
+}
+
+int cluster_exist_vol(volume_t * v, cid_t cid) {
+    list_t *p;
+    int status = -1;
+
+    DEBUG_FUNCTION;
+
+    list_for_each_forward(p, &v->cluster_list) {
+
+        cluster_t *entry = list_entry(p, cluster_t, list);
+
+        if (entry->cid == cid) {
+            status = 0;
+            break;
+        }
+    }
+
+    return status;
+}
+
+int storage_exist_cluster(volume_storage_t * vs, int nb, sid_t sid) {
+    int i = 0;
+    int status = -1;
+
+    DEBUG_FUNCTION;
+
+    for (i = 0; i < nb; i++) {
+        volume_storage_t *p = vs + i;
+
+        if (p != NULL && p->sid == sid) {
+            status = 0;
+            break;
+        }
+    }
+
+    return status;
+}
+
+int storage_exist_volume(volume_t * v, sid_t sid) {
+    list_t *p;
+    int status = -1;
+
+    DEBUG_FUNCTION;
+
+    list_for_each_forward(p, &v->cluster_list) {
+
+        cluster_t *entry = list_entry(p, cluster_t, list);
+
+        if (storage_exist_cluster(entry->ms, entry->nb_ms, sid) == 0) {
+            status = 0;
+            break;
+        }
+
+    }
+
+    return status;
+}
+
+int storage_exist(sid_t sid) {
+    list_t *p, *q;
+    int i = 0;
+    int status = -1;
+
+    DEBUG_FUNCTION;
+
+    if ((errno = pthread_rwlock_rdlock(&volumes_list.lock)) != 0)
+        goto out;
+
+    list_for_each_forward(p, &volumes_list.vol_list) {
+
+        volume_t *entry_vol = list_entry(p, volume_t, list);
+
+        list_for_each_forward(q, &entry_vol->cluster_list) {
+
+            cluster_t *entry = list_entry(q, cluster_t, list);
+
+            for (i = 0; i < entry->nb_ms; i++) {
+
+                volume_storage_t *vs = (entry->ms) + i;
+
+                if (vs->sid == sid) {
+                    status = 0;
+                    break;
+                }
+            }
+        }
+    }
+
+    if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
+        goto out;
+
+out:
+    return status;
+}
+
+int add_cluster_to_volume(vid_t vid, cluster_t * cluster) {
+    list_t *p;
+    int status = -1;
+
+    DEBUG_FUNCTION;
+
+    if ((errno = pthread_rwlock_rdlock(&volumes_list.lock)) != 0)
+        goto out;
+
+    list_for_each_forward(p, &volumes_list.vol_list) {
+
+        volume_t *entry_vol = list_entry(p, volume_t, list);
+
+        if (entry_vol->vid == vid) {
+            list_push_back(&entry_vol->cluster_list, &cluster->list);
+            status = 0;
+            break;
+        }
+    }
+
+    if ((errno = pthread_rwlock_unlock(&volumes_list.lock)) != 0)
+        goto out;
+out:
+    return status;
+}
+
 
 /*
 int volume_print() {
