@@ -314,8 +314,8 @@ static inline int export_update_files(export_t *e, int32_t n) {
         goto out;
     }
     status = 0;
-out:
 
+out:
     return status;
 }
 
@@ -324,27 +324,31 @@ static inline int export_update_blocks(export_t * e, int32_t n) {
     uint64_t blocks;
     DEBUG_FUNCTION;
 
+    DEBUG("NB BLOCKS: %d", n);
     if (getxattr(e->root, EBLOCKSKEY, &blocks, sizeof (uint64_t)) !=
             sizeof (uint64_t)) {
-        warning
-                ("export_update_blocks failed: getxattr for file %s failed: %s",
+        warning("export_update_blocks failed: getxattr for file %s failed: %s",
                 e->root, strerror(errno));
+        goto out;
+    }
+
+    if (e->quota > 0 && blocks + n > e->quota) {
+        warning("quota exceed: %lu over %lu", blocks + n, e->quota);
+        errno = EDQUOT;
         goto out;
     }
 
     blocks += n;
 
-    if (setxattr
-            (e->root, EBLOCKSKEY, &blocks, sizeof (uint64_t),
+    if (setxattr(e->root, EBLOCKSKEY, &blocks, sizeof (uint64_t),
             XATTR_REPLACE) != 0) {
-        warning
-                ("export_update_blocks failed: setxattr for file %s failed: %s",
+        warning("export_update_blocks failed: setxattr for file %s failed: %s",
                 e->root, strerror(errno));
         goto out;
     }
     status = 0;
-out:
 
+out:
     return status;
 }
 
@@ -407,7 +411,7 @@ out:
 }
 
 int export_initialize(export_t * e, uint32_t eid, const char *root,
-        const char *md5, uint16_t vid) {
+        const char *md5, uint64_t quota, uint16_t vid) {
     int status = -1;
     mfentry_t *mfe;
     uuid_t trash_uuid;
@@ -432,6 +436,8 @@ int export_initialize(export_t * e, uint32_t eid, const char *root,
     } else {
         memcpy(e->md5, md5, ROZOFS_MD5_SIZE);
     }
+
+    e->quota = quota;
 
     list_init(&e->mfiles);
     list_init(&e->rmfiles);
@@ -1310,7 +1316,6 @@ out:
 
 int64_t export_write(export_t * e, uuid_t fid, uint64_t off, uint32_t len) {
     int64_t written = -1;
-    uint64_t size;
     mfentry_t *mfe = 0;
     DEBUG_FUNCTION;
 
@@ -1320,12 +1325,11 @@ int64_t export_write(export_t * e, uuid_t fid, uint64_t off, uint32_t len) {
     }
 
     if (off + len > mfe->attrs.size) {
-        size = off + len;
+        /* don't skip intermediate computation to keep ceil rounded */
+        uint64_t nbold = (mfe->attrs.size + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE;
+        uint64_t nbnew = (off + len + ROZOFS_BSIZE - 1) / ROZOFS_BSIZE;
 
-        if (export_update_blocks
-                (e,
-                (((off + len - mfe->attrs.size) + ROZOFS_BSIZE -
-                1) / ROZOFS_BSIZE)) != 0)
+        if (export_update_blocks (e,  nbnew - nbold) != 0)
             goto out;
 
         mfe->attrs.size = off + len;
@@ -1333,8 +1337,7 @@ int64_t export_write(export_t * e, uuid_t fid, uint64_t off, uint32_t len) {
 
     mfe->attrs.mtime = mfe->attrs.ctime = time(NULL);
 
-    if (fsetxattr
-            (mfe->fd, EATTRSTKEY, &mfe->attrs, sizeof (mattr_t),
+    if (fsetxattr(mfe->fd, EATTRSTKEY, &mfe->attrs, sizeof (mattr_t),
             XATTR_REPLACE) != 0) {
         severe("export_write failed: fsetxattr in file %s failed: %s",
                 mfe->path, strerror(errno));

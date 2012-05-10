@@ -1105,7 +1105,7 @@ int fuseloop(struct fuse_args *args, const char *mountpoint, int fg) {
          conf.buf_size * 1024, conf.max_retry) != 0) {
         fprintf(stderr,
                 "rozofsmount failed for:\n" "export directory: %s\n"
-                "export hostnane: %s\n" "local mountpoint: %s\n" "error: %s\n"
+                "export hostname: %s\n" "local mountpoint: %s\n" "error: %s\n"
                 "See log for more information\n", conf.export, conf.host,
                 mountpoint, strerror(errno));
         return 1;

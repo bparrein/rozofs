@@ -145,15 +145,22 @@ volumes =
 exports are directory exported by 
 .B exportd
 daemon as virtual filesystems for clients. A volume can be used by several exports.
-md5 is a 22 characters md5 crypt of the password.
+
+.B md5 
+is a 22 characters md5 crypt of the password.
 It could be generated with: md5pass utility 
 .BR md5pass (1)
 the salt used should be: rozofs. Only the last 22 characters should be used (omitting newline).For no authentification use empty md5. For example, for password "mypass", md5 is given by: md5pass mypass rozofs | cut -c 11-, that is: AyBvjVmNoKAkLQwNa2c4b0
 
+.B quota 
+are express in nb blocks (no suffix), Kilo, Mega or Giga Bytes 
+accordind to suffix K, M or G. Only the first letter of suffix is used that is:
+128G is equivalent to 128Giga wich in turn can be 128GigaBytes etc... For no quota use empty quota.
+Warning: any other suffix leads to quota express in blocks.
+
 exports = (
-    {eid = 1; root = "/path/to/foo"; md5="AyBvjVmNoKAkLQwNa2c4b0"; vid=1;},
-    {eid = 2; root = "/path/to/bar"; md5=""; vid=2;}
-);
+    {eid = 1; root = "/path/to/foo"; md5="AyBvjVmNoKAkLQwNa2c4b0"; quota="256G"; vid=1;},
+    {eid = 2; root = "/path/to/bar"; md5=""; quota = "", vid=2;}
 
 .SH FILES
 .I /etc/rozofs/export.conf (/usr/local/etc/rozofs/export.conf)
