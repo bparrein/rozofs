@@ -189,9 +189,9 @@ gen_export_conf ()
     for k in $(seq ${NB_EXPORTS}); do
         if [[ ${k} == ${NB_EXPORTS} ]]
         then
-            echo "   {eid = $k; root = \"${EXPORTS_ROOT}_$k\"; md5=\"${3}\"; vid=${k};}" >> $FILE
+            echo "   {eid = $k; root = \"${EXPORTS_ROOT}_$k\"; md5=\"${3}\"; quota=\"\";vid=${k};}" >> $FILE
         else
-            echo "   {eid = $k; root = \"${EXPORTS_ROOT}_$k\"; md5=\"${3}\"; vid=${k};}," >> $FILE
+            echo "   {eid = $k; root = \"${EXPORTS_ROOT}_$k\"; md5=\"${3}\"; quota=\"\";vid=${k};}," >> $FILE
         fi
     done;
     echo ');' >> $FILE
