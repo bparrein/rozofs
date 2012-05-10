@@ -439,8 +439,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
     // Offset (in bytes) for the first block
     foffset = off % ROZOFS_BSIZE;
     // Nb. of the last block to write
-    last =
-        (off + length) / ROZOFS_BSIZE + ((off + length) % ROZOFS_BSIZE ==
+    last = (off + length) / ROZOFS_BSIZE + ((off + length) % ROZOFS_BSIZE ==
                                          0 ? -1 : 0);
     // Offset (in bytes) for the last block
     loffset = (off + length) - last * ROZOFS_BSIZE;
@@ -451,7 +450,7 @@ static int64_t write_buf(file_t * f, uint64_t off, const char *buf,
     else
         fread = 0;
 
-    // Is it neccesary to read the last block ?
+    // Is it necesary to read the last block ?
     if (last < (f->attrs.size / ROZOFS_BSIZE) && loffset != ROZOFS_BSIZE)
         lread = 1;
     else

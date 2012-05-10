@@ -140,11 +140,10 @@ export_t *exports_lookup_export(eid_t eid) {
 }
 
 int exports_initialize() {
-
-    DEBUG_FUNCTION;
-
     int status = -1;
     list_init(&exports);
+
+    DEBUG_FUNCTION;
 
     if (pthread_rwlock_init(&exports_lock, NULL) != 0) {
         goto out;
@@ -244,7 +243,7 @@ static int load_volumes_conf(struct config_t *config) {
             // Get settings for ONE cluster
             if ((clu_set = config_setting_get_elem(clu_list_set, c)) == NULL) {
                 errno = EIO; //XXX
-                fprintf(stderr, "cant't fetch cluster (idx=%d) in volume (vid=%ld)\n", c, vid);
+                fprintf(stderr, "can't fetch cluster (idx=%d) in volume (vid=%ld)\n", c, vid);
                 goto out;
             }
 
@@ -292,14 +291,14 @@ static int load_volumes_conf(struct config_t *config) {
                 // Get settings for ONE storage
                 if ((mstor_set = config_setting_get_elem(stor_set, s)) == NULL) {
                     errno = EIO; //XXX
-                    fprintf(stderr, "cant't fetch storage (idx=%d) in cluster (idx=%d)\n", s, c);
+                    fprintf(stderr, "can't fetch storage (idx=%d) in cluster (idx=%d)\n", s, c);
                     goto out;
                 }
 
                 // Lookup sid for this storage
                 if (config_setting_lookup_int(mstor_set, "sid", &sid) == CONFIG_FALSE) {
                     errno = ENOKEY;
-                    fprintf(stderr, "cant't look up SID for storage (idx=%d) in cluster (idx=%d)\n", s, c);
+                    fprintf(stderr, "can't look up SID for storage (idx=%d) in cluster (idx=%d)\n", s, c);
                     goto out;
                 }
 
@@ -312,26 +311,26 @@ static int load_volumes_conf(struct config_t *config) {
 
                 // Check if sid is unique in the cluster that we are currently adding
                 if (storage_exist_cluster(storage, config_setting_length(stor_set), sid) == 0) {
-                    fprintf(stderr, "cant't add storage with sid: %lu already exists\n", sid);
+                    fprintf(stderr, "can't add storage with sid: %lu already exists\n", sid);
                     goto out;
                 }
 
                 // Check if sid is unique in the volume that we are currently adding
                 if (storage_exist_volume(volume, sid) == 0) {
-                    fprintf(stderr, "cant't add storage with sid: %lu already exists\n", sid);
+                    fprintf(stderr, "can't add storage with sid: %lu already exists\n", sid);
                     goto out;
                 }
 
                 // Check if sid is unique in the other(s) volume(s)
                 if (storage_exist(sid) == 0) {
-                    fprintf(stderr, "cant't add storage with sid: %lu already exists\n", sid);
+                    fprintf(stderr, "can't add storage with sid: %lu already exists\n", sid);
                     goto out;
                 }
 
                 // Lookup hostname for this storage
                 if (config_setting_lookup_string(mstor_set, "host", &host) == CONFIG_FALSE) {
                     errno = ENOKEY;
-                    fprintf(stderr, "cant't look up host for storage (idx=%d) in cluster (idx=%d)\n", s, c);
+                    fprintf(stderr, "can't look up host for storage (idx=%d) in cluster (idx=%d)\n", s, c);
                     goto out;
                 }
 
@@ -380,6 +379,49 @@ out:
     return status;
 }
 
+/*
+ * convert string to number of block of ROZOFS_BSIZE 
+ */
+static int strquota_to_nbblocks(const char *str, uint64_t *blocks) {
+    int status = -1;
+    char *unit;
+    uint64_t value;
+
+    errno = 0;
+    value = strtol(str, &unit, 10);
+    if ((errno == ERANGE && (value == LONG_MAX || value == LONG_MIN))
+                   || (errno != 0 && value == 0)) {
+        goto out;
+    }
+
+    // no digit, no quota
+    if (unit == str) {
+        *blocks = 0;
+        status = 0;
+        goto out;
+    }
+
+    switch(*unit) {
+        case 'K': 
+            *blocks = 1024 * value / ROZOFS_BSIZE;
+            break;
+        case 'M': 
+            *blocks = 1024 * 1024 * value / ROZOFS_BSIZE;
+            break;
+        case 'G':
+            *blocks = 1024 * 1024 * 1024 * value / ROZOFS_BSIZE;
+            break;
+        default : // no unit user set directly nb blocks
+            *blocks = value;
+            break;
+    }
+
+    status = 0;
+
+out:
+    return status;
+}
+
 static int load_exports_conf(struct config_t *config) {
     int status = -1, i;
     struct config_setting_t *export_set = NULL;
@@ -401,36 +443,56 @@ static int load_exports_conf(struct config_t *config) {
         const char *root;
         const char *md5;
         uint32_t eid; // Export identifier
+        const char *str;
+        uint64_t quota;
         long int vid; // Volume identifier
 
         if ((mfs_setting = config_setting_get_elem(export_set, i)) == NULL) {
             errno = EIO; //XXX
-            fprintf(stderr, "cant't fetch export at index %d\n", i);
+            fprintf(stderr, "can't fetch export at index %d\n", i);
             goto out;
         }
 
         if (config_setting_lookup_int(mfs_setting, "eid", (long int *) &eid)
                 == CONFIG_FALSE) {
             errno = ENOKEY;
-            fprintf(stderr, "cant't look up eid for export (idx=%d)\n", i);
+            fprintf(stderr, "can't look up eid for export (idx=%d)\n", i);
             goto out;
         }
 
         if (exports_lookup_export(eid) != NULL) {
-            fprintf(stderr, "cant't add export with eid %u: already exists\n", eid);
+            fprintf(stderr, "can't add export with eid %u: already exists\n", eid);
             goto out;
         }
 
         if (config_setting_lookup_string(mfs_setting, "root", &root) == CONFIG_FALSE) {
             errno = ENOKEY;
-            fprintf(stderr, "cant't look up root path for export (idx=%d)\n", i);
+            fprintf(stderr, "can't look up root path for export (idx=%d)\n", i);
             goto out;
         }
 
+        if (exports_lookup_id((ep_path_t) root) != NULL) {
+            fprintf(stderr, "can't add export with path %s: already exists\n", 
+                    root);
+            continue;
+        }
+        
         if (config_setting_lookup_string(mfs_setting, "md5", &md5) ==
                 CONFIG_FALSE) {
             errno = ENOKEY;
-            fprintf(stderr, "cant't look up md5 for export (idx=%d)\n", i);
+            fprintf(stderr, "can't look up md5 for export (idx=%d)\n", i);
+            goto out;
+        }
+
+        if (config_setting_lookup_string(mfs_setting, "quota", &str) ==
+                CONFIG_FALSE) {
+            errno = ENOKEY;
+            fprintf(stderr, "can't look up quota for export (idx=%d)\n", i);
+            goto out;
+        }
+
+        if (strquota_to_nbblocks(str, &quota) != 0) {
+            fprintf(stderr, "%s: can't convert to quota)\n", str);
             goto out;
         }
 
@@ -444,18 +506,19 @@ static int load_exports_conf(struct config_t *config) {
         // Lookup volume identifier
         if (config_setting_lookup_int(mfs_setting, "vid", &vid) == CONFIG_FALSE) {
             errno = ENOKEY;
-            fprintf(stderr, "cant't look up vid for export (idx=%d)\n", i);
+            fprintf(stderr, "can't look up vid for export (idx=%d)\n", i);
             goto out;
         }
 
         // Check vid exist in the volume
         if (volume_exist(vid) != 0) {
-            fprintf(stderr, "cant't add export with eid: %u (vid: %lu not exists)\n", eid, vid);
+            fprintf(stderr, "can't add export with eid: %u (vid: %lu not exists)\n", eid, vid);
             goto out;
         }
 
         // Initialize export
-        if (export_initialize(&export_entry->export, eid, root, md5, vid) != 0) {
+        if (export_initialize(&export_entry->export, eid, root, md5, quota, 
+                    vid) != 0) {
             fprintf(stderr, "can't initialize export with path %s: %s\n",
                     root, strerror(errno));
             goto out;
@@ -495,63 +558,90 @@ static int reload_exports_conf(struct config_t *config) {
         export_entry_t *export_entry = (export_entry_t *) xmalloc(sizeof (export_entry_t));
         const char *root;
         const char *md5;
+        const char *str;
+        uint64_t quota;
         uint32_t eid; // Export identifier
         long int vid; // Volume identifier
+        export_t *current;
 
         if ((mfs_setting = config_setting_get_elem(export_set, i)) == NULL) {
             errno = EIO; //XXX
-            severe("cant't fetch export at index %d", i);
+            severe("can't fetch export at index %d", i);
             goto out;
         }
 
         if (config_setting_lookup_int(mfs_setting, "eid", (long int *) &eid)
                 == CONFIG_FALSE) {
             errno = ENOKEY;
-            severe("cant't look up eid for export (idx=%d)", i);
+            severe("can't look up eid for export (idx=%d)", i);
             goto out;
         }
 
         // Check eid exist in the volume (old config)
-        // If this eid already exist, go to the next export
-        if (exports_lookup_export(eid) != NULL) {
+        // If this eid already exists, (check if quota has changed) 
+        // and go to the next export
+        if ((current = exports_lookup_export(eid)) != NULL) {
+            if (config_setting_lookup_string(mfs_setting, "quota", &str) ==
+                    CONFIG_FALSE) {
+                errno = ENOKEY;
+                severe("can't look up quota for export (idx=%d)\n", i);
+                goto out;
+            }
+
+            if (strquota_to_nbblocks(str, &current->quota) != 0) {
+                fprintf(stderr, "%s: can't convert to quota)\n", str);
+                goto out;
+            }
             continue;
         }
 
         if (config_setting_lookup_string(mfs_setting, "root", &root) ==
                 CONFIG_FALSE) {
             errno = ENOKEY;
-            severe("cant't look up root path for export (idx=%d)", i);
+            severe("can't look up root path for export (idx=%d)", i);
             goto out;
         }
 
         if (config_setting_lookup_string(mfs_setting, "md5", &md5) ==
                 CONFIG_FALSE) {
             errno = ENOKEY;
-            severe("cant't look md5 for export (idx=%d)", i);
+            severe("can't look md5 for export (idx=%d)", i);
+            goto out;
+        }
+        
+        if (config_setting_lookup_string(mfs_setting, "quota", &str) ==
+                CONFIG_FALSE) {
+            errno = ENOKEY;
+            severe("can't look up quota for export (idx=%d)\n", i);
             goto out;
         }
 
+        if (strquota_to_nbblocks(str, &quota) != 0) {
+            fprintf(stderr, "%s: can't convert to quota)\n", str);
+            goto out;
+        }
+ 
         // Check if this path is unique in exports
         if (exports_lookup_id((ep_path_t) root) != NULL) {
-            severe("cant't add export with path %s: already exists\n", root);
+            severe("can't add export with path %s: already exists\n", root);
             continue;
         }
 
         // Lookup volume identifier
         if (config_setting_lookup_int(mfs_setting, "vid", &vid) == CONFIG_FALSE) {
             errno = ENOKEY;
-            severe("cant't look up vid for export (idx=%d)", i);
+            severe("can't look up vid for export (idx=%d)", i);
             goto out;
         }
 
         // Check vid exist in the volume
         if (volume_exist(vid) != 0) {
-            severe("cant't add export with eid: %u (vid: %lu not exists)", eid, vid);
+            severe("can't add export with eid: %u (vid: %lu not exists)", eid, vid);
             goto out;
         }
 
         // Initialize export
-        if (export_initialize(&export_entry->export, eid, root, md5, vid) != 0) {
+        if (export_initialize(&export_entry->export, eid, root, md5, quota, vid) != 0) {
             severe("can't initialize export with path %s: %s", root,
                     strerror(errno));
             goto out;

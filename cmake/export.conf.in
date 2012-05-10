@@ -118,7 +118,13 @@ volumes =
 # for password "mypass", md5 is: md5pass mypass rozofs | cut -c 11-
 # that is: AyBvjVmNoKAkLQwNa2c4b0
 # For no authentification use empty md5.
+# Quota are express in nb blocks (no suffix), Kilo, Mega or Giga Bytes 
+# accordind to suffix K, M or G
+# only the first letter of suffix is used that is:
+# 128G is equivalent to 128Giga wich in turn can be 128GigaBytes etc...
+# For no quota use empty quota.
+# warning: any other suffix leads to quota express in blocks.
 exports = (
-    {eid = 1; root = "/path/to/foo"; md5="AyBvjVmNoKAkLQwNa2c4b0"; vid=1;},
-    {eid = 2; root = "/path/to/bar"; md5=""; vid=2;}
+    {eid = 1; root = "/path/to/foo"; md5="AyBvjVmNoKAkLQwNa2c4b0"; quota="256G"; vid=1;},
+    {eid = 2; root = "/path/to/bar"; md5=""; quota = "", vid=2;}
 );

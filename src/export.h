@@ -32,7 +32,8 @@ typedef struct export {
     eid_t eid; // Export identifier
     vid_t vid; // Volume identifier
     char root[PATH_MAX]; // absolute path
-    char md5[ROZOFS_MD5_SIZE];
+    char md5[ROZOFS_MD5_SIZE]; //passwd
+    uint64_t quota; // quota in blocks
     fid_t rfid; // root fid
     char trashname[NAME_MAX]; // trash directory
     list_t mfiles;
@@ -45,7 +46,7 @@ typedef struct export {
 int export_create(const char *root);
 
 int export_initialize(export_t * e, eid_t eid, const char *root,
-        const char *md5, uint16_t vid);
+        const char *md5, uint64_t quota,uint16_t vid);
 
 void export_release(export_t * e);
 
