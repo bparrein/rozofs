@@ -88,7 +88,7 @@ int64_t export_write(export_t * e, fid_t fid, uint64_t off, uint32_t len);
 int export_write_block(export_t * e, fid_t fid, bid_t bid, uint32_t n,
         dist_t d);
 
-int export_readdir(export_t * e, fid_t fid, child_t ** children);
+int export_readdir(export_t * e, fid_t fid, uint64_t cookie, child_t ** children, uint8_t * eof);
 
 int export_open(export_t * e, fid_t fid);
 

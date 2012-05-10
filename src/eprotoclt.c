@@ -221,13 +221,13 @@ ep_rename_1(ep_rename_arg_t *argp, CLIENT *clnt)
 }
 
 ep_readdir_ret_t *
-ep_readdir_1(ep_mfile_arg_t *argp, CLIENT *clnt)
+ep_readdir_1(ep_readdir_arg_t *argp, CLIENT *clnt)
 {
 	static ep_readdir_ret_t clnt_res;
 
 	memset((char *)&clnt_res, 0, sizeof(clnt_res));
 	if (clnt_call (clnt, EP_READDIR,
-		(xdrproc_t) xdr_ep_mfile_arg_t, (caddr_t) argp,
+		(xdrproc_t) xdr_ep_readdir_arg_t, (caddr_t) argp,
 		(xdrproc_t) xdr_ep_readdir_ret_t, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);

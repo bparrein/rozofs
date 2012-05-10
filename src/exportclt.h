@@ -47,8 +47,8 @@ typedef struct exportclt {
 } exportclt_t;
 
 int exportclt_initialize(exportclt_t * clt, const char *host, char *root,
-                         const char *passwd, uint32_t bufsize,
-                         uint32_t retries);
+        const char *passwd, uint32_t bufsize,
+        uint32_t retries);
 
 int exportclt_reload(exportclt_t * clt);
 
@@ -57,7 +57,7 @@ void exportclt_release(exportclt_t * clt);
 int exportclt_stat(exportclt_t * clt, estat_t * st);
 
 int exportclt_lookup(exportclt_t * clt, fid_t parent, char *name,
-                     mattr_t * attrs);
+        mattr_t * attrs);
 
 int exportclt_getattr(exportclt_t * clt, fid_t fid, mattr_t * attrs);
 
@@ -66,33 +66,33 @@ int exportclt_setattr(exportclt_t * clt, fid_t fid, mattr_t * attrs);
 int exportclt_readlink(exportclt_t * clt, fid_t fid, char *link);
 
 int exportclt_mknod(exportclt_t * clt, fid_t parent, char *name, uint32_t uid,
-                    uint32_t gid, mode_t mode, mattr_t * attrs);
+        uint32_t gid, mode_t mode, mattr_t * attrs);
 
 int exportclt_mkdir(exportclt_t * clt, fid_t parent, char *name, uint32_t uid,
-                    uint32_t gid, mode_t mode, mattr_t * attrs);
+        uint32_t gid, mode_t mode, mattr_t * attrs);
 
 int exportclt_unlink(exportclt_t * clt, fid_t fid);
 
 int exportclt_rmdir(exportclt_t * clt, fid_t fid);
 
 int exportclt_symlink(exportclt_t * clt, char *link, fid_t parent, char *name,
-                      mattr_t * attrs);
+        mattr_t * attrs);
 
 int exportclt_rename(exportclt_t * clt, fid_t from, fid_t parent, char *name);
 
 int64_t exportclt_read(exportclt_t * clt, fid_t fid, uint64_t off,
-                       uint32_t len);
+        uint32_t len);
 
 int exportclt_read_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
-                         dist_t * d);
+        dist_t * d);
 
 int64_t exportclt_write(exportclt_t * clt, fid_t fid, uint64_t off,
-                        uint32_t len);
+        uint32_t len);
 
 int exportclt_write_block(exportclt_t * clt, fid_t fid, bid_t bid, uint32_t n,
-                          dist_t d);
+        dist_t d);
 
-int exportclt_readdir(exportclt_t * clt, fid_t fid, child_t ** children);
+int exportclt_readdir(exportclt_t * clt, fid_t fid, uint64_t cookie, child_t ** children, uint8_t * eof);
 
 int exportclt_open(exportclt_t * clt, fid_t fid);
 

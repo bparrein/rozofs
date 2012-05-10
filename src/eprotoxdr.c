@@ -420,7 +420,35 @@ xdr_ep_child_t (XDR *xdrs, ep_child_t *objp)
 
 	 if (!xdr_ep_name_t (xdrs, &objp->name))
 		 return FALSE;
+	 if (!xdr_ep_uuid_t (xdrs, objp->fid))
+		 return FALSE;
 	 if (!xdr_ep_children_t (xdrs, &objp->next))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_dirlist_t (XDR *xdrs, dirlist_t *objp)
+{
+	//register int32_t *buf;
+
+	 if (!xdr_ep_children_t (xdrs, &objp->children))
+		 return FALSE;
+	 if (!xdr_uint8_t (xdrs, &objp->eof))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_ep_readdir_arg_t (XDR *xdrs, ep_readdir_arg_t *objp)
+{
+	//register int32_t *buf;
+
+	 if (!xdr_uint32_t (xdrs, &objp->eid))
+		 return FALSE;
+	 if (!xdr_ep_uuid_t (xdrs, objp->fid))
+		 return FALSE;
+	 if (!xdr_uint64_t (xdrs, &objp->cookie))
 		 return FALSE;
 	return TRUE;
 }
@@ -434,7 +462,7 @@ xdr_ep_readdir_ret_t (XDR *xdrs, ep_readdir_ret_t *objp)
 		 return FALSE;
 	switch (objp->status) {
 	case EP_SUCCESS:
-		 if (!xdr_ep_children_t (xdrs, &objp->ep_readdir_ret_t_u.children))
+		 if (!xdr_dirlist_t (xdrs, &objp->ep_readdir_ret_t_u.reply))
 			 return FALSE;
 		break;
 	case EP_FAILURE:

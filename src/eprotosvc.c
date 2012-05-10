@@ -34,7 +34,7 @@ export_program_1(struct svc_req *rqstp, register SVCXPRT *transp)
 		ep_mfile_arg_t ep_rmdir_1_arg;
 		ep_symlink_arg_t ep_symlink_1_arg;
 		ep_rename_arg_t ep_rename_1_arg;
-		ep_mfile_arg_t ep_readdir_1_arg;
+		ep_readdir_arg_t ep_readdir_1_arg;
 		ep_io_arg_t ep_read_1_arg;
 		ep_read_block_arg_t ep_read_block_1_arg;
 		ep_io_arg_t ep_write_1_arg;
@@ -132,7 +132,7 @@ export_program_1(struct svc_req *rqstp, register SVCXPRT *transp)
 		break;
 
 	case EP_READDIR:
-		_xdr_argument = (xdrproc_t) xdr_ep_mfile_arg_t;
+		_xdr_argument = (xdrproc_t) xdr_ep_readdir_arg_t;
 		_xdr_result = (xdrproc_t) xdr_ep_readdir_ret_t;
 		local = (char *(*)(char *, struct svc_req *)) ep_readdir_1_svc;
 		break;
