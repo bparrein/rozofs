@@ -517,7 +517,8 @@ static int load_exports_conf(struct config_t *config) {
         }
 
         // Initialize export
-        if (export_initialize(&export_entry->export, eid, root, md5, vid) != 0) {
+        if (export_initialize(&export_entry->export, eid, root, md5, quota, 
+                    vid) != 0) {
             fprintf(stderr, "can't initialize export with path %s: %s\n",
                     root, strerror(errno));
             goto out;
@@ -557,63 +558,90 @@ static int reload_exports_conf(struct config_t *config) {
         export_entry_t *export_entry = (export_entry_t *) xmalloc(sizeof (export_entry_t));
         const char *root;
         const char *md5;
+        const char *str;
+        uint64_t quota;
         uint32_t eid; // Export identifier
         long int vid; // Volume identifier
+        export_t *current;
 
         if ((mfs_setting = config_setting_get_elem(export_set, i)) == NULL) {
             errno = EIO; //XXX
-            severe("cant't fetch export at index %d", i);
+            severe("can't fetch export at index %d", i);
             goto out;
         }
 
         if (config_setting_lookup_int(mfs_setting, "eid", (long int *) &eid)
                 == CONFIG_FALSE) {
             errno = ENOKEY;
-            severe("cant't look up eid for export (idx=%d)", i);
+            severe("can't look up eid for export (idx=%d)", i);
             goto out;
         }
 
         // Check eid exist in the volume (old config)
-        // If this eid already exist, go to the next export
-        if (exports_lookup_export(eid) != NULL) {
+        // If this eid already exists, (check if quota has changed) 
+        // and go to the next export
+        if ((current = exports_lookup_export(eid)) != NULL) {
+            if (config_setting_lookup_string(mfs_setting, "quota", &str) ==
+                    CONFIG_FALSE) {
+                errno = ENOKEY;
+                severe("can't look up quota for export (idx=%d)\n", i);
+                goto out;
+            }
+
+            if (strquota_to_nbblocks(str, &current->quota) != 0) {
+                fprintf(stderr, "%s: can't convert to quota)\n", str);
+                goto out;
+            }
             continue;
         }
 
         if (config_setting_lookup_string(mfs_setting, "root", &root) ==
                 CONFIG_FALSE) {
             errno = ENOKEY;
-            severe("cant't look up root path for export (idx=%d)", i);
+            severe("can't look up root path for export (idx=%d)", i);
             goto out;
         }
 
         if (config_setting_lookup_string(mfs_setting, "md5", &md5) ==
                 CONFIG_FALSE) {
             errno = ENOKEY;
-            severe("cant't look md5 for export (idx=%d)", i);
+            severe("can't look md5 for export (idx=%d)", i);
+            goto out;
+        }
+        
+        if (config_setting_lookup_string(mfs_setting, "quota", &str) ==
+                CONFIG_FALSE) {
+            errno = ENOKEY;
+            severe("can't look up quota for export (idx=%d)\n", i);
             goto out;
         }
 
+        if (strquota_to_nbblocks(str, &quota) != 0) {
+            fprintf(stderr, "%s: can't convert to quota)\n", str);
+            goto out;
+        }
+ 
         // Check if this path is unique in exports
         if (exports_lookup_id((ep_path_t) root) != NULL) {
-            severe("cant't add export with path %s: already exists\n", root);
+            severe("can't add export with path %s: already exists\n", root);
             continue;
         }
 
         // Lookup volume identifier
         if (config_setting_lookup_int(mfs_setting, "vid", &vid) == CONFIG_FALSE) {
             errno = ENOKEY;
-            severe("cant't look up vid for export (idx=%d)", i);
+            severe("can't look up vid for export (idx=%d)", i);
             goto out;
         }
 
         // Check vid exist in the volume
         if (volume_exist(vid) != 0) {
-            severe("cant't add export with eid: %u (vid: %lu not exists)", eid, vid);
+            severe("can't add export with eid: %u (vid: %lu not exists)", eid, vid);
             goto out;
         }
 
         // Initialize export
-        if (export_initialize(&export_entry->export, eid, root, md5, vid) != 0) {
+        if (export_initialize(&export_entry->export, eid, root, md5, quota, vid) != 0) {
             severe("can't initialize export with path %s: %s", root,
                     strerror(errno));
             goto out;
