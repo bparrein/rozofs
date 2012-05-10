@@ -119,7 +119,7 @@ typedef struct rmfentry {
 } rmfentry_t;
 
 static int mfentry_initialize(mfentry_t *mfe, mfentry_t *parent,
-                              const char *name, char *path) {
+        const char *name, char *path) {
     int status = -1;
     DEBUG_FUNCTION;
 
@@ -207,7 +207,7 @@ static int mfentry_cmp_fid_name(void *k1, void *k2) {
     mfentry_t *sk2 = (mfentry_t *) k2;
 
     if ((uuid_compare(sk1->pfid, sk2->pfid) == 0) &&
-        (strcmp(sk1->name, sk2->name) == 0)) {
+            (strcmp(sk1->name, sk2->name) == 0)) {
         return 0;
     } else {
         return 1;
@@ -426,7 +426,7 @@ int export_initialize(export_t * e, uint32_t eid, const char *root,
 
     e->eid = eid;
     e->vid = vid;
-    
+
     if (strlen(md5) == 0) {
         memcpy(e->md5, ROZOFS_MD5_NONE, ROZOFS_MD5_SIZE);
     } else {
@@ -530,7 +530,7 @@ out:
 }
 
 int export_lookup(export_t *e, fid_t parent, const char *name,
-                  mattr_t *attrs) {
+        mattr_t *attrs) {
     int status = -1;
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
@@ -558,7 +558,7 @@ int export_lookup(export_t *e, fid_t parent, const char *name,
         goto out;
     }
     // XXX make this check on client
-    if (strcmp(name, e->trashname) == 0) {
+    if ((uuid_compare(parent, e->rfid) == 0) && strcmp(name, e->trashname) == 0) {
         errno = ENOENT;
         status = -1;
         goto out;
@@ -714,7 +714,7 @@ int export_readlink(export_t * e, uuid_t fid, char *link) {
         goto out;
     }
 
-    if ((fd = open(mfe->path, O_RDONLY)) < 0) 
+    if ((fd = open(mfe->path, O_RDONLY)) < 0)
         goto error;
     if (read(fd, link, sizeof(char) * ROZOFS_PATH_MAX) == -1)
         goto error;
@@ -733,7 +733,7 @@ out:
 }
 
 int export_mknod(export_t *e, uuid_t parent, const char *name, uint32_t uid,
-                 uint32_t gid, mode_t mode, mattr_t *attrs) {
+        uint32_t gid, mode_t mode, mattr_t *attrs) {
     int status = -1;
     char path[PATH_MAX + FILENAME_MAX + 1];
     mfentry_t *pmfe = 0;
@@ -1057,7 +1057,7 @@ out:
 /*
    symlink creates a regular file puts right mattrs in xattr 
    and the link_path in file.
-*/
+ */
 int export_symlink(export_t * e, const char *link, uuid_t parent,
         const char *name, mattr_t * attrs) {
     int status = -1;
@@ -1097,16 +1097,16 @@ int export_symlink(export_t * e, const char *link, uuid_t parent,
 
     attrs->size = ROZOFS_BSIZE;
     if (setxattr(path, EATTRSTKEY, attrs, sizeof (mattr_t), XATTR_CREATE) !=
-        0)
+            0)
         goto error;
 
     // write the link name
-    if ((fd = open(path, O_RDWR)) < 0) 
+    if ((fd = open(path, O_RDWR)) < 0)
         goto error;
     strcpy(lname, link);
     if (write(fd, lname, sizeof(char) * ROZOFS_PATH_MAX) == -1)
         goto error;
-    if (close(fd) != 0) 
+    if (close(fd) != 0)
         goto error;
 
     mfe = xmalloc(sizeof (mfentry_t));
@@ -1375,12 +1375,14 @@ out:
     return status;
 }
 
-int export_readdir(export_t * e, fid_t fid, child_t ** children) {
-    int status = -1;
-    mfentry_t *mfe = 0;
+int export_readdir(export_t * e, fid_t fid, uint64_t cookie, child_t ** children, uint8_t * eof) {
+    int status = -1, i;
+    mfentry_t *mfe = NULL;
     DIR *dp;
     struct dirent *ep;
     child_t **iterator;
+    int export_root = 0;
+
     DEBUG_FUNCTION;
 
     if (!(mfe = htable_get(&e->hfids, fid))) {
@@ -1388,29 +1390,68 @@ int export_readdir(export_t * e, fid_t fid, child_t ** children) {
         goto out;
     }
 
-    if (!(dp = opendir(mfe->path))) {
+    // Open directory
+    if (!(dp = opendir(mfe->path)))
         goto out;
+
+    // Readdir first time
+    ep = readdir(dp);
+
+    // See if fid is the root directory
+    if (uuid_compare(fid, e->rfid) == 0)
+        export_root = 1;
+
+    // Go to cookie index in this dir
+    for (i = 0; i < cookie; i++) {
+        if (ep) {
+            ep = readdir(dp);
+            // Check if the current directory is the trash
+            if (export_root && strcmp(ep->d_name, e->trashname) == 0)
+                i--;
+        }
     }
 
     iterator = children;
+    i = 0;
 
-    while ((ep = readdir(dp)) != 0) {
-        if (strcmp(ep->d_name, e->trashname) == 0) {
+    // Readdir the next entries
+    while (ep && i < MAX_DIR_ENTRIES) {
+        mattr_t attrs;
+        *iterator = xmalloc(sizeof (child_t)); // XXX FREE?
+
+        if (export_lookup(e, fid, ep->d_name, &attrs) == 0) {
+            // Copy fid
+            memcpy((*iterator)->fid, &attrs.fid, sizeof (fid_t));
+        } else {
+            // Readdir for next entry
+            ep = readdir(dp);
             continue;
         }
-        *iterator = xmalloc(sizeof (child_t)); // XXX FREE?
+
+        // Copy name
         (*iterator)->name = xstrdup(ep->d_name); // XXX FREE?
+
+        // Go to next entry
         iterator = &(*iterator)->next;
+
+        // Readdir for next entry
+        ep = readdir(dp);
+
+        i++;
     }
 
     if (closedir(dp) == -1)
         goto out;
 
+    if (ep)
+        *eof = 0;
+    else
+        *eof = 1;
+
     mfe->attrs.atime = time(NULL);
 
-    if (mfentry_persist(mfe) != 0) {
+    if (mfentry_persist(mfe) != 0)
         goto out;
-    }
 
     *iterator = NULL;
     status = 0;

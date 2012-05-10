@@ -34,6 +34,7 @@
 #define ROZOFS_CLUSTERS_MAX 16
 #define ROZOFS_STORAGES_MAX 64
 //#define ROZOFS_MAX_RETRY 5
+#define MAX_DIR_ENTRIES 100
 #define ROZOFS_MD5_SIZE 22
 #define ROZOFS_MD5_NONE "0000000000000000000000"
 
@@ -83,6 +84,7 @@ typedef struct estat {
 
 typedef struct child {
     char *name;
+    fid_t fid;
     struct child *next;
 } child_t;
 

@@ -185,14 +185,28 @@ typedef struct ep_child_t *ep_children_t;
 
 struct ep_child_t {
 	ep_name_t name;
+	ep_uuid_t fid;
 	ep_children_t next;
 };
 typedef struct ep_child_t ep_child_t;
 
+struct dirlist_t {
+	ep_children_t children;
+	uint8_t eof;
+};
+typedef struct dirlist_t dirlist_t;
+
+struct ep_readdir_arg_t {
+	uint32_t eid;
+	ep_uuid_t fid;
+	uint64_t cookie;
+};
+typedef struct ep_readdir_arg_t ep_readdir_arg_t;
+
 struct ep_readdir_ret_t {
 	ep_status_t status;
 	union {
-		ep_children_t children;
+		dirlist_t reply;
 		int error;
 	} ep_readdir_ret_t_u;
 };
@@ -299,8 +313,8 @@ extern  ep_mattr_ret_t * ep_symlink_1_svc(ep_symlink_arg_t *, struct svc_req *);
 extern  ep_status_ret_t * ep_rename_1(ep_rename_arg_t *, CLIENT *);
 extern  ep_status_ret_t * ep_rename_1_svc(ep_rename_arg_t *, struct svc_req *);
 #define EP_READDIR 14
-extern  ep_readdir_ret_t * ep_readdir_1(ep_mfile_arg_t *, CLIENT *);
-extern  ep_readdir_ret_t * ep_readdir_1_svc(ep_mfile_arg_t *, struct svc_req *);
+extern  ep_readdir_ret_t * ep_readdir_1(ep_readdir_arg_t *, CLIENT *);
+extern  ep_readdir_ret_t * ep_readdir_1_svc(ep_readdir_arg_t *, struct svc_req *);
 #define EP_READ 15
 extern  ep_io_ret_t * ep_read_1(ep_io_arg_t *, CLIENT *);
 extern  ep_io_ret_t * ep_read_1_svc(ep_io_arg_t *, struct svc_req *);
@@ -417,6 +431,8 @@ extern  bool_t xdr_ep_mkdir_arg_t (XDR *, ep_mkdir_arg_t*);
 extern  bool_t xdr_ep_symlink_arg_t (XDR *, ep_symlink_arg_t*);
 extern  bool_t xdr_ep_children_t (XDR *, ep_children_t*);
 extern  bool_t xdr_ep_child_t (XDR *, ep_child_t*);
+extern  bool_t xdr_dirlist_t (XDR *, dirlist_t*);
+extern  bool_t xdr_ep_readdir_arg_t (XDR *, ep_readdir_arg_t*);
 extern  bool_t xdr_ep_readdir_ret_t (XDR *, ep_readdir_ret_t*);
 extern  bool_t xdr_ep_rename_arg_t (XDR *, ep_rename_arg_t*);
 extern  bool_t xdr_ep_io_arg_t (XDR *, ep_io_arg_t*);
@@ -452,6 +468,8 @@ extern bool_t xdr_ep_mkdir_arg_t ();
 extern bool_t xdr_ep_symlink_arg_t ();
 extern bool_t xdr_ep_children_t ();
 extern bool_t xdr_ep_child_t ();
+extern bool_t xdr_dirlist_t ();
+extern bool_t xdr_ep_readdir_arg_t ();
 extern bool_t xdr_ep_readdir_ret_t ();
 extern bool_t xdr_ep_rename_arg_t ();
 extern bool_t xdr_ep_io_arg_t ();

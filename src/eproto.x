@@ -157,11 +157,23 @@ typedef struct ep_child_t *ep_children_t;
 
 struct ep_child_t {
     ep_name_t       name;
+    ep_uuid_t       fid;
     ep_children_t   next;
 };
 
+struct dirlist_t {
+	ep_children_t children;
+	uint8_t eof;
+};
+
+struct ep_readdir_arg_t {
+    uint32_t    eid;
+    ep_uuid_t   fid;
+    uint64_t    cookie;
+};
+
 union ep_readdir_ret_t switch (ep_status_t status) {
-    case EP_SUCCESS:    ep_children_t   children;
+    case EP_SUCCESS:    dirlist_t       reply;
     case EP_FAILURE:    int             error;
     default:            void;
 };
@@ -271,7 +283,7 @@ program EXPORT_PROGRAM {
         EP_RENAME(ep_rename_arg_t)              = 13;
 
         ep_readdir_ret_t
-        EP_READDIR(ep_mfile_arg_t)              = 14;
+        EP_READDIR(ep_readdir_arg_t)            = 14;
 
         ep_io_ret_t
         EP_READ(ep_io_arg_t)                    = 15;

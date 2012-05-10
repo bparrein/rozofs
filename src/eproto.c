@@ -305,8 +305,8 @@ ep_mattr_ret_t *ep_symlink_1_svc(ep_symlink_arg_t * arg, struct svc_req * req) {
         goto error;
 
     if (export_symlink(exp, arg->link, arg->parent, arg->name,
-       (mattr_t *) & ret.ep_mattr_ret_t_u.attrs) != 0)
-       goto error;
+            (mattr_t *) & ret.ep_mattr_ret_t_u.attrs) != 0)
+        goto error;
 
     ret.status = EP_SUCCESS;
     goto out;
@@ -337,18 +337,19 @@ out:
     return &ret;
 }
 
-ep_readdir_ret_t *ep_readdir_1_svc(ep_mfile_arg_t * arg, struct svc_req * req) {
+ep_readdir_ret_t *ep_readdir_1_svc(ep_readdir_arg_t * arg, struct svc_req * req) {
     static ep_readdir_ret_t ret;
     export_t *exp;
     DEBUG_FUNCTION;
 
     xdr_free((xdrproc_t) xdr_ep_readdir_ret_t, (char *) &ret);
+    
     if (!(exp = exports_lookup_export(arg->eid)))
         goto error;
     if (export_readdir
-            (exp, arg->fid, (child_t **) & ret.ep_readdir_ret_t_u.children) != 0)
+            (exp, arg->fid, arg->cookie, (child_t **) & ret.ep_readdir_ret_t_u.reply.children,(uint8_t *) &ret.ep_readdir_ret_t_u.reply.eof) != 0)
         goto error;
-    ret.status = EP_SUCCESS;
+    ret.status = EP_SUCCESS;   
     goto out;
 error:
     ret.status = EP_FAILURE;
