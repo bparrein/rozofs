@@ -900,6 +900,7 @@ void rozofs_ll_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 
     while (iterator != NULL) {
         mattr_t attrs;
+        memset(&attrs, 0, sizeof (mattr_t));
         ientry_t *ie2 = 0;
 
         // May be already cached
