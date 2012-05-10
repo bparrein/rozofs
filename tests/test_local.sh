@@ -522,7 +522,9 @@ usage ()
     echo >&2 "Usage:"
     echo >&2 "$0 start <Layout>"
     echo >&2 "$0 stop"
+    echo >&2 "$0 reload"
     echo >&2 "$0 test"
+    echo >&2 "$0 test2"
     echo >&2 "$0 build"
     exit 0;
 }
@@ -585,6 +587,72 @@ run_fs_test ()
         remove_all
 }
 
+
+run_reload_test ()
+{
+
+        NB_EXPORTS=2;
+        NB_VOLUMES=2;
+        NB_CLUSTERS_BY_VOLUME=2;
+
+        gen_storage_conf 0 4
+        gen_export_conf 0 4 ${MD5_GENERATED}
+
+        go_layout 0
+
+        create_storages
+        create_exports
+
+        NB_EXPORTS=1;
+        NB_VOLUMES=1;
+        NB_CLUSTERS_BY_VOLUME=1;
+
+        gen_storage_conf 0 4
+        gen_export_conf 0 4 ${MD5_GENERATED}
+
+        go_layout 0
+
+        start_storaged
+        start_exportd
+        deploy_clients_local
+
+        fs_test_1
+
+        undeploy_clients_local
+
+        # Add one volume & one export
+        NB_EXPORTS=2;
+        NB_VOLUMES=2;
+        NB_CLUSTERS_BY_VOLUME=2;
+
+        gen_storage_conf 0 4
+        gen_export_conf 0 4 ${MD5_GENERATED}
+
+        stop_storaged
+        start_storaged
+        reload_exportd
+
+        # Wait until exportd stat the new storages
+
+        sleep 10
+
+        deploy_clients_local
+
+        fs_test_1
+
+        sleep 1
+
+        undeploy_clients_local
+
+        stop_storaged
+        stop_exportd
+
+        remove_exports
+        remove_storages
+
+        remove_all
+}
+
 main ()
 {
     [ $# -lt 1 ] && usage
@@ -640,6 +708,15 @@ main ()
         stop_exportd
 
         remove_all
+    elif [ "$1" == "reload" ]
+    then
+
+        undeploy_clients_local
+
+        reload_storaged
+        reload_exportd
+
+        deploy_clients_local
 
     elif [ "$1" == "test" ]
     then
@@ -647,6 +724,13 @@ main ()
         check_build
         check_no_run
         run_fs_test
+
+    elif [ "$1" == "test2" ]
+    then
+
+        check_build
+        check_no_run
+        run_reload_test
 
     elif [ "$1" == "mount" ]
     then

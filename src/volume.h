@@ -85,4 +85,15 @@ uint16_t volume_size();
 
 int volume_exist(vid_t vid);
 
+int cluster_exist(cid_t cid);
+
+int cluster_exist_vol(volume_t * v, cid_t cid);
+
+int storage_exist(sid_t sid);
+
+int storage_exist_volume(volume_t * v, sid_t sid);
+
+int storage_exist_cluster(volume_storage_t * vs, int nb, sid_t sid);
+
+int add_cluster_to_volume(vid_t vid, cluster_t * cluster);
 #endif
