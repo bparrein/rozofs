@@ -66,8 +66,8 @@ static int pfentry_initialize(pfentry_t * pfe, const char *path, fid_t fid,
 
     uuid_copy(pfe->fid, fid);
     pfe->pid = pid;
-    if ((pfe->fd =
-         open(path, O_RDWR | O_CREAT, S_IFREG | S_IRUSR | S_IWUSR)) < 0) {
+    if ((pfe->fd = open(path, 
+                    O_RDWR | O_CREAT, S_IFREG | S_IRUSR | S_IWUSR)) < 0) {
         severe("pfentry_initialize failed: open for file %s failed: %s", path,
                strerror(errno));
         goto out;

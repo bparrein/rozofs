@@ -46,7 +46,7 @@ typedef struct export {
 int export_create(const char *root);
 
 int export_initialize(export_t * e, eid_t eid, const char *root,
-        const char *md5, uint64_t quota,uint16_t vid);
+        const char *md5, uint64_t quota, uint16_t vid);
 
 void export_release(export_t * e);
 
