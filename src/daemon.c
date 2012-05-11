@@ -84,29 +84,29 @@ static void daemon_handle_signal(int sig) {
     DEBUG_FUNCTION;
 
     switch (sig) {
-    case SIGTERM:
-        if (daemon_on_stop) {
-            daemon_on_stop();
-            signal(SIGTERM, SIG_DFL);
-            raise(SIGTERM);
-        }
-        break;
-    case SIGKILL:
-        if (daemon_on_stop) {
-            daemon_on_stop();
-            signal(SIGKILL, SIG_DFL);
-            raise(SIGKILL);
-        }
-        break;
-    case SIGHUP:
-        if (daemon_on_hup)
-            daemon_on_hup();
-        break;
+        case SIGTERM:
+            if (daemon_on_stop) {
+                daemon_on_stop();
+                signal(SIGTERM, SIG_DFL);
+                raise(SIGTERM);
+            }
+            break;
+        case SIGKILL:
+            if (daemon_on_stop) {
+                daemon_on_stop();
+                signal(SIGKILL, SIG_DFL);
+                raise(SIGKILL);
+            }
+            break;
+        case SIGHUP:
+            if (daemon_on_hup)
+                daemon_on_hup();
+            break;
     }
 }
 
 void daemon_start(const char *name, void (*on_start) (void),
-                  void (*on_stop) (void), void (*on_hup) (void)) {
+        void (*on_stop) (void), void (*on_hup) (void)) {
     int pid;
     DEBUG_FUNCTION;
 
@@ -115,10 +115,10 @@ void daemon_start(const char *name, void (*on_start) (void),
         fprintf(stderr, "already running as pid: %d\n", pid);
         return;
     }
-    if (daemon(0, 0) != 0) {
-        fprintf(stderr, "daemon failed");
-        return;
-    }
+        if (daemon(0, 0) != 0) {
+            fprintf(stderr, "daemon failed");
+            return;
+        }
     if (on_stop)
         daemon_on_stop = on_stop;
     if (on_hup)
