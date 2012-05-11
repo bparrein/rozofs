@@ -256,7 +256,6 @@ int volume_balance() {
                 entry->size = 0;
 
                 while (it != entry->ms + entry->nb_ms) {
-
                     entry->free += it->stat.free;
                     entry->size += it->stat.size;
                     it++;
@@ -384,7 +383,6 @@ void volume_stat(volume_stat_t * stat, uint16_t vid) {
         if (entry_vol->vid == vid) {
 
             list_for_each_forward(q, &entry_vol->cluster_list) {
-
                 stat->bfree += list_entry(q, cluster_t, list)->free / ROZOFS_BSIZE;
             }
         }
