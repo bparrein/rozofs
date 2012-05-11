@@ -365,6 +365,8 @@ int export_create(const char *root) {
     if (setxattr(path, EVERSIONKEY, &version, 
                 sizeof (char) * strlen(version) + 1, XATTR_CREATE) != 0)
         goto out;
+
+    memset(&attrs, 0, sizeof (mattr_t));
     uuid_generate(attrs.fid);
     attrs.cid = 0;
     memset(attrs.sids, 0, ROZOFS_SAFE_MAX * sizeof (sid_t));
@@ -1401,10 +1403,10 @@ int export_readdir(export_t * e, fid_t fid, uint64_t cookie,
     // Readdir the next entries
     while (ep && i < MAX_DIR_ENTRIES) {
         mattr_t attrs;
-        *iterator = xmalloc(sizeof (child_t)); // XXX FREE?
 
         if (export_lookup(e, fid, ep->d_name, &attrs) == 0) {
             // Copy fid
+            *iterator = xmalloc(sizeof (child_t)); // XXX FREE?
             memcpy((*iterator)->fid, &attrs.fid, sizeof (fid_t));
         } else {
             // Readdir for next entry

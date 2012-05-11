@@ -225,15 +225,24 @@ out:
 
 void exportclt_release(exportclt_t * clt) {
     list_t *p, *q;
+    int i;
 
     DEBUG_FUNCTION;
 
     list_for_each_forward_safe(p, q, &clt->mcs) {
         mcluster_t *entry = list_entry(p, mcluster_t, list);
+
+        for (i = 0; i < entry->nb_ms; i++) {
+            storageclt_release(&entry->ms[i]);
+        }
+
         free(entry->ms);
         list_remove(p);
         free(entry);
     }
+
+    free(clt->passwd);
+    free(clt->root);
 
     rpcclt_release(&clt->rpcclt);
 }
