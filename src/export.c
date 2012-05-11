@@ -502,10 +502,10 @@ void export_release(export_t * e) {
         free(rmfe);
     }
 
-    pthread_rwlock_destroy(&e->rm_lock);
-
     htable_release(&e->hfids);
     htable_release(&e->h_pfids);
+
+    pthread_rwlock_destroy(&e->rm_lock);
 }
 
 int export_stat(export_t * e, estat_t * st) {

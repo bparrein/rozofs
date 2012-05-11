@@ -100,7 +100,7 @@ int volume_release() {
         volume_t *entry_vol = list_entry(p, volume_t, list);
 
         list_for_each_forward_safe(i, j, &entry_vol->cluster_list) {
-            cluster_t *entry = list_entry(p, cluster_t, list);
+            cluster_t *entry = list_entry(i, cluster_t, list);
             list_remove(i);
             free(entry->ms);
             free(entry);

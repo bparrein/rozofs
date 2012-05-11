@@ -281,6 +281,7 @@ static int load_volumes_conf(struct config_t *config) {
 
             // Allocation of memory for storages
             volume_storage_t *storage = (volume_storage_t *) xmalloc(config_setting_length(stor_set) * sizeof (volume_storage_t));
+            memset(storage, 0, config_setting_length(stor_set) * sizeof (volume_storage_t));
 
             for (s = 0; s < config_setting_length(stor_set); s++) {
 
@@ -390,7 +391,7 @@ static int strquota_to_nbblocks(const char *str, uint64_t *blocks) {
     errno = 0;
     value = strtol(str, &unit, 10);
     if ((errno == ERANGE && (value == LONG_MAX || value == LONG_MIN))
-                   || (errno != 0 && value == 0)) {
+            || (errno != 0 && value == 0)) {
         goto out;
     }
 
@@ -402,10 +403,10 @@ static int strquota_to_nbblocks(const char *str, uint64_t *blocks) {
     }
 
     switch(*unit) {
-        case 'K': 
+        case 'K':
             *blocks = 1024 * value / ROZOFS_BSIZE;
             break;
-        case 'M': 
+        case 'M':
             *blocks = 1024 * 1024 * value / ROZOFS_BSIZE;
             break;
         case 'G':
@@ -472,11 +473,11 @@ static int load_exports_conf(struct config_t *config) {
         }
 
         if (exports_lookup_id((ep_path_t) root) != NULL) {
-            fprintf(stderr, "can't add export with path %s: already exists\n", 
+            fprintf(stderr, "can't add export with path %s: already exists\n",
                     root);
             continue;
         }
-        
+
         if (config_setting_lookup_string(mfs_setting, "md5", &md5) ==
                 CONFIG_FALSE) {
             errno = ENOKEY;
@@ -517,8 +518,8 @@ static int load_exports_conf(struct config_t *config) {
         }
 
         // Initialize export
-        if (export_initialize(&export_entry->export, eid, root, md5, quota, 
-                    vid) != 0) {
+        if (export_initialize(&export_entry->export, eid, root, md5, quota,
+                vid) != 0) {
             fprintf(stderr, "can't initialize export with path %s: %s\n",
                     root, strerror(errno));
             goto out;
@@ -608,7 +609,7 @@ static int reload_exports_conf(struct config_t *config) {
             severe("can't look md5 for export (idx=%d)", i);
             goto out;
         }
-        
+
         if (config_setting_lookup_string(mfs_setting, "quota", &str) ==
                 CONFIG_FALSE) {
             errno = ENOKEY;
@@ -620,7 +621,7 @@ static int reload_exports_conf(struct config_t *config) {
             fprintf(stderr, "%s: can't convert to quota)\n", str);
             goto out;
         }
- 
+
         // Check if this path is unique in exports
         if (exports_lookup_id((ep_path_t) root) != NULL) {
             severe("can't add export with path %s: already exists\n", root);
@@ -1046,7 +1047,7 @@ static void on_stop() {
         svc_destroy(exportd_svc);
         exportd_svc = NULL;
     }
-    info("stopped.");
+    info("stopped.");    
     closelog();
 }
 
